@@ -5,6 +5,29 @@ All notable changes to the Elnora CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.2.0](https://github.com/Elnora-AI/elnora-cli/compare/elnora-v0.1.0...elnora-v0.2.0) (2026-03-05)
+
+
+### Features
+
+* add 55 new CLI commands covering all v1 API endpoints ([#8](https://github.com/Elnora-AI/elnora-cli/issues/8)) ([26db63a](https://github.com/Elnora-AI/elnora-cli/commit/26db63ac6fabfcfa293d36dc7eaf747346f3c9bf))
+* add Claude Code plugin config and skills ([95b6e93](https://github.com/Elnora-AI/elnora-cli/commit/95b6e93952c5c080957aa234585fc1fa0618cc61))
+* add CLI source code, README, and project config ([a87303d](https://github.com/Elnora-AI/elnora-cli/commit/a87303d5e7c3c99b24f1eafdcbd574b46d4aabe7))
+* add repo scaffolding — README, CI, issue templates, security policy ([bf6152e](https://github.com/Elnora-AI/elnora-cli/commit/bf6152e32f691f0673352c71d0cf5a1c850d1cfe))
+
+
+### Bug Fixes
+
+* **ci:** close/reopen release PR to trigger CI checks ([#12](https://github.com/Elnora-AI/elnora-cli/issues/12)) ([7037b4c](https://github.com/Elnora-AI/elnora-cli/commit/7037b4ca33e7f0a8af52215df53f4d1cb57b9a5a))
+* **ci:** switch to release-please, remove broken semantic-release ([#10](https://github.com/Elnora-AI/elnora-cli/issues/10)) ([28386cb](https://github.com/Elnora-AI/elnora-cli/commit/28386cb567760c2c9f4c253419be118685fec921))
+* **docs:** clean up README — remove API key format, fix plugin section ([#5](https://github.com/Elnora-AI/elnora-cli/issues/5)) ([561ad61](https://github.com/Elnora-AI/elnora-cli/commit/561ad6130787fe1c9533a7bef54e7a280a85acec))
+* update docs for client-readiness fixes ([06305ba](https://github.com/Elnora-AI/elnora-cli/commit/06305ba2431c37d8e401f02c8ab3f535fec1e92d))
+
+
+### Documentation
+
+* add Claude Code plugin section to README ([#4](https://github.com/Elnora-AI/elnora-cli/issues/4)) ([ed68aba](https://github.com/Elnora-AI/elnora-cli/commit/ed68abaf9b6e11bd19d0a4582376c8b65ea63658))
+
 ## [Unreleased]
 
 ## [0.1.0] - 2026-03-04

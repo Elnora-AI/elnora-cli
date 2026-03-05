@@ -28,9 +28,17 @@ sys.excepthook = _crash_handler
 
 import click  # noqa: E402
 
+from .commands.account import account  # noqa: E402
+from .commands.api_keys import api_keys  # noqa: E402
+from .commands.audit import audit  # noqa: E402
 from .commands.auth import auth  # noqa: E402
 from .commands.completion import completion  # noqa: E402
+from .commands.feedback import feedback  # noqa: E402
 from .commands.files import files  # noqa: E402
+from .commands.flags import flags  # noqa: E402
+from .commands.folders import folders  # noqa: E402
+from .commands.library import library  # noqa: E402
+from .commands.orgs import orgs  # noqa: E402
 from .commands.projects import projects  # noqa: E402
 from .commands.search import search  # noqa: E402
 from .commands.tasks import tasks  # noqa: E402
@@ -63,9 +71,17 @@ def cli(ctx, compact, fmt, fields):
     ctx.obj["fields"] = [f.strip() for f in fields.split(",") if f.strip()] if fields else None
 
 
+cli.add_command(account)
+cli.add_command(api_keys)
+cli.add_command(audit)
 cli.add_command(auth)
 cli.add_command(completion)
+cli.add_command(feedback)
 cli.add_command(files)
+cli.add_command(flags)
+cli.add_command(folders)
+cli.add_command(library)
+cli.add_command(orgs)
 cli.add_command(projects)
 cli.add_command(search)
 cli.add_command(tasks)

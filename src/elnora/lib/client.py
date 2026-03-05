@@ -27,6 +27,52 @@ from .errors import (
 )
 from .validation import validate_guid
 
+
+def anon_request(endpoint, body=None, *, method="GET", query_params=None):
+    """Call Elnora API without authentication (for public endpoints)."""
+    url = f"{config.BASE_URL}{endpoint}"
+    if query_params:
+        qs = urllib.parse.urlencode(query_params)
+        url = f"{url}?{qs}"
+    headers = {k: v for k, v in config.DEFAULT_HEADERS.items()}
+    if method == "GET":
+        headers.pop("Content-Type", None)
+    data = None
+    if method in ("POST", "PUT") and body is not None:
+        data = json.dumps(body).encode("utf-8")
+    req = urllib.request.Request(url, data=data, headers=headers, method=method)
+    opener = urllib.request.build_opener(_NoRedirectHandler)
+    try:
+        with opener.open(req, timeout=30) as resp:
+            raw = resp.read().decode("utf-8")
+            try:
+                return json.loads(raw)
+            except json.JSONDecodeError:
+                return raw
+    except urllib.error.HTTPError as e:
+        body_text = ""
+        try:
+            body_text = e.read().decode("utf-8", errors="replace")
+        except Exception:
+            pass
+        body_text = scrub(body_text)
+        if e.code == 404:
+            raise NotFoundError("resource", body_text[:200] if body_text else "not found")
+        if e.code == 422:
+            raise ValidationError(body_text[:500] if body_text else "Validation error")
+        if e.code == 429:
+            raise RateLimitError()
+        if 500 <= e.code < 600:
+            raise ServerError(f"Server error (HTTP {e.code}): {body_text[:500]}")
+        raise ElnoraError(f"API error (HTTP {e.code}): {body_text[:500]}", code=f"HTTP_{e.code}")
+    except urllib.error.URLError as e:
+        raise ElnoraError(
+            f"Network error: {scrub(str(e.reason))}",
+            suggestion="Check your internet connection and try again.",
+            code="NETWORK_ERROR",
+        ) from e
+
+
 # Keys allowed through _load_env — everything else is ignored
 _ENV_WHITELIST = {"ELNORA_API_KEY", "ELNORA_MCP_API_KEY"}
 
@@ -504,3 +550,359 @@ class ElnoraClient:
             config.ENDPOINTS["search_files"],
             query_params={"q": query, "page": page, "pageSize": page_size},
         )
+
+    # ------------------------------------------------------------------
+    # Organizations
+    # ------------------------------------------------------------------
+
+    def list_organizations(self) -> dict:
+        return self._request(config.ENDPOINTS["organizations"])
+
+    def get_organization(self, org_id: str) -> dict:
+        validate_guid(org_id, "org_id")
+        return self._request(config.ENDPOINTS["organization"].replace("{id}", org_id))
+
+    def create_organization(self, *, name: str, description: str | None = None) -> dict:
+        body: dict[str, Any] = {"name": name}
+        if description is not None:
+            body["description"] = description
+        return self._request(config.ENDPOINTS["organizations"], body, method="POST")
+
+    def update_organization(self, org_id: str, *, name: str | None = None, description: str | None = None) -> dict:
+        validate_guid(org_id, "org_id")
+        body: dict[str, Any] = {}
+        if name is not None:
+            body["name"] = name
+        if description is not None:
+            body["description"] = description
+        return self._request(config.ENDPOINTS["organization"].replace("{id}", org_id), body, method="PUT")
+
+    def list_organization_members(self, org_id: str) -> dict:
+        validate_guid(org_id, "org_id")
+        return self._request(config.ENDPOINTS["organization_members"].replace("{id}", org_id))
+
+    def update_organization_member_role(self, org_id: str, membership_id: str, *, role: str) -> dict:
+        validate_guid(org_id, "org_id")
+        validate_guid(membership_id, "membership_id")
+        endpoint = config.ENDPOINTS["organization_member_role"].replace("{id}", org_id).replace("{mid}", membership_id)
+        return self._request(endpoint, {"role": role}, method="PUT")
+
+    def remove_organization_member(self, org_id: str, membership_id: str) -> dict:
+        validate_guid(org_id, "org_id")
+        validate_guid(membership_id, "membership_id")
+        endpoint = config.ENDPOINTS["organization_member"].replace("{id}", org_id).replace("{mid}", membership_id)
+        return self._request(endpoint, method="DELETE")
+
+    def get_organization_billing(self, org_id: str) -> dict:
+        validate_guid(org_id, "org_id")
+        return self._request(config.ENDPOINTS["organization_billing"].replace("{id}", org_id))
+
+    # ------------------------------------------------------------------
+    # Organization Invitations
+    # ------------------------------------------------------------------
+
+    def send_invitation(self, org_id: str, *, email: str, role: str = "Member") -> dict:
+        validate_guid(org_id, "org_id")
+        endpoint = config.ENDPOINTS["org_invitations"].replace("{orgId}", org_id)
+        return self._request(endpoint, {"email": email, "role": role}, method="POST")
+
+    def list_invitations(self, org_id: str) -> dict:
+        validate_guid(org_id, "org_id")
+        return self._request(config.ENDPOINTS["org_invitations"].replace("{orgId}", org_id))
+
+    def cancel_invitation(self, org_id: str, invitation_id: str) -> dict:
+        validate_guid(org_id, "org_id")
+        validate_guid(invitation_id, "invitation_id")
+        endpoint = config.ENDPOINTS["org_invitation"].replace("{orgId}", org_id).replace("{invId}", invitation_id)
+        return self._request(endpoint, method="DELETE")
+
+    def get_invitation_info(self, token: str) -> dict:
+        return self._request(config.ENDPOINTS["invitation_info"].replace("{token}", token))
+
+    def accept_invitation(self, token: str) -> dict:
+        return self._request(config.ENDPOINTS["invitation_accept"].replace("{token}", token), method="POST")
+
+    # ------------------------------------------------------------------
+    # Folders
+    # ------------------------------------------------------------------
+
+    def list_folders(self, project_id: str) -> dict:
+        validate_guid(project_id, "project_id")
+        return self._request(config.ENDPOINTS["project_folders"].replace("{id}", project_id))
+
+    def create_folder(self, project_id: str, *, name: str, parent_id: str | None = None) -> dict:
+        validate_guid(project_id, "project_id")
+        body: dict[str, Any] = {"name": name}
+        if parent_id is not None:
+            body["parentId"] = parent_id
+        return self._request(config.ENDPOINTS["project_folders"].replace("{id}", project_id), body, method="POST")
+
+    def rename_folder(self, folder_id: str, *, name: str) -> dict:
+        validate_guid(folder_id, "folder_id")
+        return self._request(config.ENDPOINTS["folder"].replace("{id}", folder_id), {"name": name}, method="PUT")
+
+    def move_folder(self, folder_id: str, *, parent_id: str | None) -> dict:
+        validate_guid(folder_id, "folder_id")
+        endpoint = config.ENDPOINTS["folder_move"].replace("{id}", folder_id)
+        return self._request(endpoint, {"parentId": parent_id}, method="PUT")
+
+    def delete_folder(self, folder_id: str) -> dict:
+        validate_guid(folder_id, "folder_id")
+        return self._request(config.ENDPOINTS["folder"].replace("{id}", folder_id), method="DELETE")
+
+    # ------------------------------------------------------------------
+    # Organization Library
+    # ------------------------------------------------------------------
+
+    def list_library_files(self, org_id: str, *, page: int = 1, page_size: int = 25) -> dict:
+        validate_guid(org_id, "org_id")
+        return self._request(
+            config.ENDPOINTS["library_files"].replace("{orgId}", org_id),
+            query_params={"page": page, "pageSize": page_size},
+        )
+
+    def list_library_folders(self, org_id: str) -> dict:
+        validate_guid(org_id, "org_id")
+        return self._request(config.ENDPOINTS["library_folders"].replace("{orgId}", org_id))
+
+    def create_library_folder(self, org_id: str, *, name: str, parent_id: str | None = None) -> dict:
+        validate_guid(org_id, "org_id")
+        body: dict[str, Any] = {"name": name}
+        if parent_id is not None:
+            body["parentId"] = parent_id
+        return self._request(config.ENDPOINTS["library_folders"].replace("{orgId}", org_id), body, method="POST")
+
+    def rename_library_folder(self, org_id: str, folder_id: str, *, name: str) -> dict:
+        validate_guid(org_id, "org_id")
+        validate_guid(folder_id, "folder_id")
+        return self._request(
+            config.ENDPOINTS["library_folder"].replace("{orgId}", org_id).replace("{id}", folder_id),
+            {"name": name},
+            method="PUT",
+        )
+
+    def delete_library_folder(self, org_id: str, folder_id: str) -> dict:
+        validate_guid(org_id, "org_id")
+        validate_guid(folder_id, "folder_id")
+        return self._request(
+            config.ENDPOINTS["library_folder"].replace("{orgId}", org_id).replace("{id}", folder_id),
+            method="DELETE",
+        )
+
+    # ------------------------------------------------------------------
+    # Projects (new methods)
+    # ------------------------------------------------------------------
+
+    def update_project(
+        self, project_id: str, *, name: str | None = None, description: str | None = None, icon: str | None = None
+    ) -> dict:
+        validate_guid(project_id, "project_id")
+        body: dict[str, Any] = {}
+        if name is not None:
+            body["name"] = name
+        if description is not None:
+            body["description"] = description
+        if icon is not None:
+            body["icon"] = icon
+        return self._request(config.ENDPOINTS["project"].replace("{id}", project_id), body, method="PUT")
+
+    def archive_project(self, project_id: str) -> dict:
+        validate_guid(project_id, "project_id")
+        return self._request(config.ENDPOINTS["project"].replace("{id}", project_id), method="DELETE")
+
+    def list_project_members(self, project_id: str) -> dict:
+        validate_guid(project_id, "project_id")
+        return self._request(config.ENDPOINTS["project_members"].replace("{id}", project_id))
+
+    def add_project_member(self, project_id: str, *, user_id: str, role: str = "Member") -> dict:
+        validate_guid(project_id, "project_id")
+        return self._request(
+            config.ENDPOINTS["project_members"].replace("{id}", project_id),
+            {"userId": user_id, "role": role},
+            method="POST",
+        )
+
+    def update_project_member_role(self, project_id: str, user_id: str, *, role: str) -> dict:
+        validate_guid(project_id, "project_id")
+        endpoint = config.ENDPOINTS["project_member_role"].replace("{id}", project_id).replace("{uid}", user_id)
+        return self._request(endpoint, {"role": role}, method="PUT")
+
+    def remove_project_member(self, project_id: str, user_id: str) -> dict:
+        validate_guid(project_id, "project_id")
+        endpoint = config.ENDPOINTS["project_member"].replace("{id}", project_id).replace("{uid}", user_id)
+        return self._request(endpoint, method="DELETE")
+
+    def leave_project(self, project_id: str) -> dict:
+        validate_guid(project_id, "project_id")
+        return self._request(config.ENDPOINTS["project_leave"].replace("{id}", project_id), method="POST")
+
+    # ------------------------------------------------------------------
+    # Files (new methods)
+    # ------------------------------------------------------------------
+
+    def create_file(
+        self, *, project_id: str, name: str, folder_id: str | None = None, file_type: str | None = None
+    ) -> dict:
+        validate_guid(project_id, "project_id")
+        body: dict[str, Any] = {"projectId": project_id, "name": name}
+        if folder_id is not None:
+            body["folderId"] = folder_id
+        if file_type is not None:
+            body["fileType"] = file_type
+        return self._request(config.ENDPOINTS["files"], body, method="POST")
+
+    def initiate_upload(
+        self, *, project_id: str, file_name: str, content_type: str = "application/octet-stream"
+    ) -> dict:
+        validate_guid(project_id, "project_id")
+        return self._request(
+            config.ENDPOINTS["file_upload"],
+            {"projectId": project_id, "fileName": file_name, "contentType": content_type},
+            method="POST",
+        )
+
+    def confirm_upload(self, file_id: str) -> dict:
+        validate_guid(file_id, "file_id")
+        return self._request(config.ENDPOINTS["file_upload_confirm"].replace("{id}", file_id), method="POST")
+
+    def download_file(self, file_id: str) -> str:
+        validate_guid(file_id, "file_id")
+        return self._request(config.ENDPOINTS["file_download"].replace("{id}", file_id))
+
+    def update_file(self, file_id: str, *, name: str | None = None, folder_id: str | None = None) -> dict:
+        validate_guid(file_id, "file_id")
+        body: dict[str, Any] = {}
+        if name is not None:
+            body["name"] = name
+        if folder_id is not None:
+            body["folderId"] = folder_id
+        return self._request(config.ENDPOINTS["file"].replace("{id}", file_id), body, method="PUT")
+
+    def archive_file(self, file_id: str) -> dict:
+        validate_guid(file_id, "file_id")
+        return self._request(config.ENDPOINTS["file"].replace("{id}", file_id), method="DELETE")
+
+    def get_file_version_content(self, file_id: str, version_id: str) -> dict:
+        validate_guid(file_id, "file_id")
+        validate_guid(version_id, "version_id")
+        endpoint = config.ENDPOINTS["file_version_content"].replace("{id}", file_id).replace("{vid}", version_id)
+        return self._request(endpoint)
+
+    def create_file_version(self, file_id: str, *, content: str | None = None) -> dict:
+        validate_guid(file_id, "file_id")
+        body: dict[str, Any] = {}
+        if content is not None:
+            body["content"] = content
+        return self._request(config.ENDPOINTS["file_versions"].replace("{id}", file_id), body, method="POST")
+
+    def restore_file_version(self, file_id: str, version_id: str) -> dict:
+        validate_guid(file_id, "file_id")
+        validate_guid(version_id, "version_id")
+        endpoint = config.ENDPOINTS["file_version_restore"].replace("{id}", file_id).replace("{vid}", version_id)
+        return self._request(endpoint, method="POST")
+
+    def promote_file(self, file_id: str, *, visibility: str) -> dict:
+        validate_guid(file_id, "file_id")
+        endpoint = config.ENDPOINTS["file_promote"].replace("{id}", file_id)
+        return self._request(endpoint, {"visibility": visibility}, method="POST")
+
+    def fork_file(self, file_id: str, *, target_project_id: str) -> dict:
+        validate_guid(file_id, "file_id")
+        validate_guid(target_project_id, "target_project_id")
+        endpoint = config.ENDPOINTS["file_fork"].replace("{id}", file_id)
+        return self._request(endpoint, {"targetProjectId": target_project_id}, method="POST")
+
+    def create_working_copy(self, file_id: str, *, task_id: str | None = None) -> dict:
+        validate_guid(file_id, "file_id")
+        params = {}
+        if task_id is not None:
+            params["taskId"] = task_id
+        endpoint = config.ENDPOINTS["file_working_copy"].replace("{id}", file_id)
+        return self._request(endpoint, query_params=params if params else None, method="POST")
+
+    def commit_working_copy(self, file_id: str) -> dict:
+        validate_guid(file_id, "file_id")
+        return self._request(config.ENDPOINTS["file_commit"].replace("{id}", file_id), method="POST")
+
+    def list_org_files(self, org_id: str, *, page: int = 1, page_size: int = 25) -> dict:
+        validate_guid(org_id, "org_id")
+        return self._request(
+            config.ENDPOINTS["org_files"].replace("{orgId}", org_id),
+            query_params={"page": page, "pageSize": page_size},
+        )
+
+    # ------------------------------------------------------------------
+    # Search (new)
+    # ------------------------------------------------------------------
+
+    def search_all(self, *, query: str, page: int = 1, page_size: int = 25) -> dict:
+        return self._request(
+            config.ENDPOINTS["search_all"],
+            query_params={"q": query, "page": page, "pageSize": page_size},
+        )
+
+    # ------------------------------------------------------------------
+    # API Keys
+    # ------------------------------------------------------------------
+
+    def create_api_key(self, *, name: str, scopes: list[str] | None = None) -> dict:
+        body: dict[str, Any] = {"name": name}
+        if scopes is not None:
+            body["scopes"] = scopes
+        return self._request(config.ENDPOINTS["api_keys"], body, method="POST")
+
+    def list_api_keys(self) -> dict:
+        return self._request(config.ENDPOINTS["api_keys"])
+
+    def revoke_api_key(self, key_id: str) -> dict:
+        validate_guid(key_id, "key_id")
+        return self._request(config.ENDPOINTS["api_key"].replace("{id}", key_id), method="DELETE")
+
+    # ------------------------------------------------------------------
+    # Audit
+    # ------------------------------------------------------------------
+
+    def list_audit_log(
+        self, org_id: str, *, page: int = 1, page_size: int = 25, action: str | None = None, user_id: str | None = None
+    ) -> dict:
+        validate_guid(org_id, "org_id")
+        params: dict[str, Any] = {"page": page, "pageSize": page_size}
+        if action is not None:
+            params["action"] = action
+        if user_id is not None:
+            params["userId"] = user_id
+        return self._request(config.ENDPOINTS["audit_log"].replace("{orgId}", org_id), query_params=params)
+
+    # ------------------------------------------------------------------
+    # Feedback
+    # ------------------------------------------------------------------
+
+    def submit_feedback(self, *, title: str, description: str) -> dict:
+        return self._request(config.ENDPOINTS["feedback"], {"title": title, "description": description}, method="POST")
+
+    # ------------------------------------------------------------------
+    # Account
+    # ------------------------------------------------------------------
+
+    def get_account(self, user_id: int) -> dict:
+        return self._request(config.ENDPOINTS["account_user"].replace("{id}", str(user_id)))
+
+    def update_account(self, user_id: int, *, first_name: str | None = None, last_name: str | None = None) -> dict:
+        body: dict[str, Any] = {}
+        if first_name is not None:
+            body["firstName"] = first_name
+        if last_name is not None:
+            body["lastName"] = last_name
+        return self._request(config.ENDPOINTS["account_user"].replace("{id}", str(user_id)), body, method="PUT")
+
+    # ------------------------------------------------------------------
+    # User Agreements
+    # ------------------------------------------------------------------
+
+    def accept_agreement(self, *, document_version_id: int) -> dict:
+        return self._request(
+            config.ENDPOINTS["user_agreement"], {"documentVersionId": document_version_id}, method="POST"
+        )
+
+    def list_agreements(self) -> dict:
+        return self._request(config.ENDPOINTS["user_agreements"])

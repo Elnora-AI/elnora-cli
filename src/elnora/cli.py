@@ -90,9 +90,9 @@ cli.add_command(tasks)
 
 
 def main():
-    from .lib.update_check import check_for_update
-
     import atexit
+
+    from .lib.update_check import check_for_update
 
     atexit.register(check_for_update)
     cli()

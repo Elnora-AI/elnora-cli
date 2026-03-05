@@ -1,4 +1,5 @@
 """Shell completion generation for the Elnora CLI."""
+
 from __future__ import annotations
 
 import click
@@ -45,11 +46,13 @@ compdef _elnora elnora""")
         lines = ["# elnora fish completion — save to ~/.config/fish/completions/elnora.fish"]
         for cmd in commands.split():
             lines.append(f'complete -c elnora -n "__fish_use_subcommand" -a "{cmd}" -d "Manage {cmd}"')
-        lines.extend([
-            'complete -c elnora -l help -d "Show help"',
-            'complete -c elnora -l version -d "Show version"',
-            'complete -c elnora -l compact -d "Compact JSON output"',
-            'complete -c elnora -l output -d "Output format" -xa "json csv"',
-            'complete -c elnora -l fields -d "Comma-separated fields"',
-        ])
+        lines.extend(
+            [
+                'complete -c elnora -l help -d "Show help"',
+                'complete -c elnora -l version -d "Show version"',
+                'complete -c elnora -l compact -d "Compact JSON output"',
+                'complete -c elnora -l output -d "Output format" -xa "json csv"',
+                'complete -c elnora -l fields -d "Comma-separated fields"',
+            ]
+        )
         click.echo("\n".join(lines))

@@ -2,6 +2,7 @@
 
 from click.testing import CliRunner
 
+from elnora import __version__
 from elnora.cli import cli
 
 runner = CliRunner()
@@ -16,7 +17,7 @@ def test_cli_help():
 def test_version():
     result = runner.invoke(cli, ["--version"])
     assert result.exit_code == 0
-    assert "0.1.0" in result.output
+    assert __version__ in result.output
 
 
 def test_projects_help():

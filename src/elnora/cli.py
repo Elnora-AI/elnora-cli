@@ -1,7 +1,5 @@
 """Elnora CLI — entry point and global flags."""
 
-from __future__ import annotations
-
 import json
 import sys
 

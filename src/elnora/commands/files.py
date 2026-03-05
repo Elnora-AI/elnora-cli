@@ -7,7 +7,7 @@ import click
 from ..lib.client import ElnoraClient
 from ..lib.config import DEFAULT_PAGE_SIZE
 from ..lib.errors import handle_errors, output_success
-from ..lib.validation import validate_guid, validate_page_size
+from ..lib.validation import validate_page, validate_page_size
 
 
 @click.group()
@@ -23,8 +23,8 @@ def files():
 def list_files(ctx, project, page, page_size):
     """List files in a project."""
     with handle_errors(ctx):
+        validate_page(page)
         validate_page_size(page_size)
-        validate_guid(project, "project")
         client = ElnoraClient.from_env()
         result = client.list_files(project, page=page, page_size=page_size)
         output_success(
@@ -41,7 +41,6 @@ def list_files(ctx, project, page, page_size):
 def get_file(ctx, file_id):
     """Get file metadata by ID."""
     with handle_errors(ctx):
-        validate_guid(file_id, "file_id")
         client = ElnoraClient.from_env()
         result = client.get_file(file_id)
         output_success(
@@ -58,7 +57,6 @@ def get_file(ctx, file_id):
 def get_content(ctx, file_id):
     """Get raw file content."""
     with handle_errors(ctx):
-        validate_guid(file_id, "file_id")
         client = ElnoraClient.from_env()
         content = client.get_file_content(file_id)
         click.echo(content)
@@ -72,8 +70,8 @@ def get_content(ctx, file_id):
 def get_versions(ctx, file_id, page, page_size):
     """Get version history for a file."""
     with handle_errors(ctx):
+        validate_page(page)
         validate_page_size(page_size)
-        validate_guid(file_id, "file_id")
         client = ElnoraClient.from_env()
         result = client.get_file_versions(file_id, page=page, page_size=page_size)
         output_success(

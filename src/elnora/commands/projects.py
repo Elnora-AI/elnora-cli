@@ -7,7 +7,7 @@ import click
 from ..lib.client import ElnoraClient
 from ..lib.config import DEFAULT_PAGE_SIZE
 from ..lib.errors import handle_errors, output_success
-from ..lib.validation import validate_guid, validate_page_size
+from ..lib.validation import validate_page, validate_page_size
 
 
 @click.group()
@@ -22,6 +22,7 @@ def projects():
 def list_projects(ctx, page: int, page_size: int):
     """List all projects."""
     with handle_errors(ctx):
+        validate_page(page)
         validate_page_size(page_size)
         client = ElnoraClient.from_env()
         result = client.list_projects(page=page, page_size=page_size)
@@ -39,7 +40,6 @@ def list_projects(ctx, page: int, page_size: int):
 def get_project(ctx, project_id: str):
     """Get a project by ID."""
     with handle_errors(ctx):
-        validate_guid(project_id, "project_id")
         client = ElnoraClient.from_env()
         result = client.get_project(project_id)
         output_success(

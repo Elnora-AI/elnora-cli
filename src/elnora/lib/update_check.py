@@ -27,8 +27,7 @@ def check_for_update():
 
         if latest and _is_newer(latest, __version__):
             print(
-                f"\n  Update available: {__version__} -> {latest}"
-                f"\n  Run: uv tool upgrade elnora\n",
+                f"\n  Update available: {__version__} -> {latest}\n  Run: uv tool upgrade elnora\n",
                 file=sys.stderr,
             )
     except Exception:

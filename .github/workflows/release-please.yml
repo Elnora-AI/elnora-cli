@@ -22,20 +22,14 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       # PRs created by GITHUB_TOKEN don't trigger CI. Close/reopen to trigger.
-      - name: Trigger CI on release PR
-        if: ${{ steps.release.outputs.pr }}
+      - name: Trigger CI and enable auto-merge on release PR
+        if: ${{ steps.release.outputs.prs_created }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PR_NUMBER: ${{ steps.release.outputs.pr }}
+          PR_JSON: ${{ steps.release.outputs.pr }}
           REPO: ${{ github.repository }}
         run: |
+          PR_NUMBER=$(echo "$PR_JSON" | jq -r '.number')
           gh pr close "$PR_NUMBER" --repo "$REPO"
           gh pr reopen "$PR_NUMBER" --repo "$REPO"
-
-      - name: Enable auto-merge on release PR
-        if: ${{ steps.release.outputs.pr }}
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PR_NUMBER: ${{ steps.release.outputs.pr }}
-          REPO: ${{ github.repository }}
-        run: gh pr merge --auto --squash "$PR_NUMBER" --repo "$REPO" || true
+          gh pr merge --auto --squash "$PR_NUMBER" --repo "$REPO" || true

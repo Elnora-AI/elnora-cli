@@ -149,7 +149,6 @@ class TestLoadEnv:
     """`.env` file loading."""
 
     def test_loads_whitelisted_key(self, tmp_path, monkeypatch):
-        # Create a project root with .git marker and .env
         (tmp_path / ".git").mkdir()
         env_file = tmp_path / ".env"
         env_file.write_text("ELNORA_API_KEY=elnora_live_fromenv1234567890\n")
@@ -240,7 +239,6 @@ class TestNoRedirectHandler:
         with pytest.raises(ElnoraError, match="Unexpected redirect") as exc_info:
             handler.redirect_request(None, None, 301, "Moved", {}, "https://example.com/path?secret=key")
         error_msg = str(exc_info.value)
-        # The error must NOT leak query params or path from the redirect URL
         assert "secret" not in error_msg
         assert "/path" not in error_msg
 

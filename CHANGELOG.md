@@ -31,6 +31,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- `elnora health` command — check platform availability (no auth required)
+
 ## [0.1.0] - 2026-03-04
 
 ### Added

@@ -752,12 +752,22 @@ class ElnoraClient:
         return self._request(config.ENDPOINTS["files"], body, method="POST")
 
     def initiate_upload(
-        self, *, project_id: str, file_name: str, content_type: str = "application/octet-stream"
+        self,
+        *,
+        project_id: str,
+        file_name: str,
+        content_type: str = "application/octet-stream",
+        file_size_bytes: int,
     ) -> dict:
         validate_guid(project_id, "project_id")
         return self._request(
             config.ENDPOINTS["file_upload"],
-            {"projectId": project_id, "fileName": file_name, "contentType": content_type},
+            {
+                "projectId": project_id,
+                "fileName": file_name,
+                "contentType": content_type,
+                "fileSizeBytes": file_size_bytes,
+            },
             method="POST",
         )
 

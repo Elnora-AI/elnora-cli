@@ -79,6 +79,8 @@ ENDPOINTS = {
     "legal_docs": "/userAgreement/legalDocumentVersion/list",
     # Auth
     "auth_validate": "/auth/validate-token",
+    # Health (anonymous, outside /api/v1 prefix)
+    "health": "/health",
 }
 
 DEFAULT_HEADERS = {

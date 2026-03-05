@@ -62,14 +62,14 @@ def get_content(ctx, file_id):
     with handle_errors(ctx):
         client = ElnoraClient.from_env()
         content = client.get_file_content(file_id)
-        if ctx.obj["fmt"] == "json" and ctx.obj["compact"]:
-            output_success({"content": content}, compact=True)
-        elif ctx.obj["fmt"] != "json" or ctx.obj["fields"]:
+        if ctx.obj["compact"] or ctx.obj["fields"]:
+            # Structured output when explicitly requested
             output_success(
                 {"content": content},
                 compact=ctx.obj["compact"], fmt=ctx.obj["fmt"], fields=ctx.obj["fields"],
             )
         else:
+            # Raw text output (default) — CSV and plain JSON both get raw text
             click.echo(content)
 
 

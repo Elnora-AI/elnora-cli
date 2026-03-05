@@ -78,9 +78,42 @@ class TestTaskCommands:
             result = runner.invoke(cli, ["tasks", "create", "--project", "bfdc6fbd-40ed-4042-9ea7-c79a5ec90085"])
         assert result.exit_code == 0
 
+    def test_send(self):
+        mock = _mock_client()
+        with patch("elnora.commands.tasks.ElnoraClient.from_env", return_value=mock):
+            result = runner.invoke(cli, [
+                "tasks", "send", "bfdc6fbd-40ed-4042-9ea7-c79a5ec90085",
+                "--message", "Hello",
+            ])
+        assert result.exit_code == 0
+        mock.send_message.assert_called_once()
+
+    def test_messages(self):
+        mock = _mock_client()
+        with patch("elnora.commands.tasks.ElnoraClient.from_env", return_value=mock):
+            result = runner.invoke(cli, ["tasks", "messages", "bfdc6fbd-40ed-4042-9ea7-c79a5ec90085"])
+        assert result.exit_code == 0
+
+    def test_update_success(self):
+        mock = _mock_client()
+        with patch("elnora.commands.tasks.ElnoraClient.from_env", return_value=mock):
+            result = runner.invoke(cli, [
+                "tasks", "update", "bfdc6fbd-40ed-4042-9ea7-c79a5ec90085",
+                "--status", "completed",
+            ])
+        assert result.exit_code == 0
+
     def test_update_requires_field(self):
         result = runner.invoke(cli, ["tasks", "update", "bfdc6fbd-40ed-4042-9ea7-c79a5ec90085"])
         assert result.exit_code != 0
+
+    def test_archive(self):
+        mock = _mock_client()
+        with patch("elnora.commands.tasks.ElnoraClient.from_env", return_value=mock):
+            result = runner.invoke(cli, ["tasks", "archive", "bfdc6fbd-40ed-4042-9ea7-c79a5ec90085"])
+        assert result.exit_code == 0
+        parsed = json.loads(result.output)
+        assert parsed["archived"] is True
 
 
 class TestFileCommands:

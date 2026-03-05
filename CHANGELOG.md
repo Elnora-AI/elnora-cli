@@ -5,6 +5,14 @@ All notable changes to the Elnora CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.3.0](https://github.com/Elnora-AI/elnora-cli/compare/elnora-v0.2.0...elnora-v0.3.0) (2026-03-05)
+
+
+### Features
+
+* add health command and fix file upload ([#17](https://github.com/Elnora-AI/elnora-cli/issues/17)) ([da029d6](https://github.com/Elnora-AI/elnora-cli/commit/da029d616528b976a45d6124da8c9d07c310473b))
+* complete CLI skills coverage and add permission defaults ([#18](https://github.com/Elnora-AI/elnora-cli/issues/18)) ([3eda49a](https://github.com/Elnora-AI/elnora-cli/commit/3eda49acc9d60793cccca12eb636d91c67490eec))
+
 ## [0.2.0](https://github.com/Elnora-AI/elnora-cli/compare/elnora-v0.1.0...elnora-v0.2.0) (2026-03-05)
 
 

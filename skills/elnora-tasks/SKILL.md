@@ -110,7 +110,7 @@ $CLI --compact tasks archive <TASK_ID>
 # → {"archived":true,"taskId":"<UUID>"}
 ```
 
-Permanent deletion — confirm with user before running.
+Destructive operation — confirm with user before running.
 
 ## Agent Recipes
 

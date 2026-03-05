@@ -26,6 +26,13 @@ def test_fish_completion():
     assert "complete -c elnora" in result.output
 
 
-def test_invalid_shell():
+def test_powershell_completion():
     result = runner.invoke(cli, ["completion", "powershell"])
+    assert result.exit_code == 0
+    assert "Register-ArgumentCompleter" in result.output
+    assert "elnora" in result.output
+
+
+def test_invalid_shell():
+    result = runner.invoke(cli, ["completion", "invalid"])
     assert result.exit_code != 0

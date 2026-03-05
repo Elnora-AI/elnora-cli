@@ -1,7 +1,6 @@
 # CodeQL Security Scanning
 #
 # SAST for the Elnora CLI codebase using GitHub's CodeQL engine.
-# Satisfies SOC2 compliance requirement for vulnerability scanning.
 # Evidence: Security tab > Code scanning alerts
 
 name: CodeQL Security Analysis

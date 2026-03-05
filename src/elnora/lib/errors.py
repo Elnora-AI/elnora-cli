@@ -9,8 +9,6 @@ Credentials are scrubbed from all error output.
 
 from __future__ import annotations
 
-import csv
-import io
 import json
 import os
 import re
@@ -110,6 +108,9 @@ def _filter_fields(data: list[dict], fields: list[str]) -> list[dict]:
 def output_success(data: object, *, compact: bool = False, fmt: str = "json", fields: list[str] | None = None) -> None:
     """Print success payload to stdout."""
     if fmt == "csv":
+        import csv
+        import io
+
         # Normalise to list of dicts
         if isinstance(data, dict) and "items" in data:
             rows: list[dict] = data["items"]

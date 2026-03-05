@@ -2,7 +2,18 @@
 
 import json
 
+import pytest
+
 from elnora.lib.errors import (
+    _EXIT_CODES,
+    AuthError,
+    ElnoraError,
+    NotFoundError,
+    RateLimitError,
+    ServerError,
+    ValidationError,
+    handle_errors,
+    output_error,
     output_success,
     scrub,
 )
@@ -82,3 +93,114 @@ class TestOutputSuccess:
         captured = capsys.readouterr()
         assert "extra" not in captured.out
         assert "id" in captured.out
+
+
+class TestOutputError:
+    """output_error prints structured JSON to stderr and exits with typed codes."""
+
+    def test_elnora_error_exit_code(self):
+        with pytest.raises(SystemExit) as exc_info:
+            output_error(ValidationError("bad input"))
+        assert exc_info.value.code == 2
+
+    def test_auth_error_exit_code(self):
+        with pytest.raises(SystemExit) as exc_info:
+            output_error(AuthError("no key"))
+        assert exc_info.value.code == 3
+
+    def test_not_found_exit_code(self):
+        with pytest.raises(SystemExit) as exc_info:
+            output_error(NotFoundError("Project", "abc"))
+        assert exc_info.value.code == 4
+
+    def test_rate_limit_exit_code(self):
+        with pytest.raises(SystemExit) as exc_info:
+            output_error(RateLimitError())
+        assert exc_info.value.code == 5
+
+    def test_server_error_exit_code(self):
+        with pytest.raises(SystemExit) as exc_info:
+            output_error(ServerError())
+        assert exc_info.value.code == 6
+
+    def test_generic_exception_exit_code(self):
+        with pytest.raises(SystemExit) as exc_info:
+            output_error(RuntimeError("boom"))
+        assert exc_info.value.code == 1
+
+    def test_stderr_contains_json(self, capsys):
+        with pytest.raises(SystemExit):
+            output_error(ValidationError("bad field", suggestion="Fix it"))
+        captured = capsys.readouterr()
+        parsed = json.loads(captured.err)
+        assert parsed["code"] == "VALIDATION_ERROR"
+        assert parsed["suggestion"] == "Fix it"
+        assert "bad field" in parsed["error"]
+
+    def test_compact_output(self, capsys):
+        with pytest.raises(SystemExit):
+            output_error(AuthError("no key"), compact=True)
+        captured = capsys.readouterr()
+        assert "\n" not in captured.err.strip()
+        parsed = json.loads(captured.err)
+        assert parsed["code"] == "AUTH_FAILED"
+
+    def test_scrubs_secrets_in_error(self, capsys, monkeypatch):
+        monkeypatch.setenv("ELNORA_API_KEY", "elnora_live_supersecretkey12345678901234")
+        with pytest.raises(SystemExit):
+            output_error(RuntimeError("Failed with elnora_live_supersecretkey12345678901234"))
+        captured = capsys.readouterr()
+        assert "supersecret" not in captured.err
+        assert "[REDACTED]" in captured.err
+
+
+class TestExitCodes:
+    """_EXIT_CODES mapping is complete and correct."""
+
+    def test_all_error_types_mapped(self):
+        expected = {ValidationError: 2, AuthError: 3, NotFoundError: 4, RateLimitError: 5, ServerError: 6}
+        assert _EXIT_CODES == expected
+
+    def test_base_error_not_mapped(self):
+        assert ElnoraError not in _EXIT_CODES
+
+
+class TestHandleErrors:
+    """handle_errors context manager catches exceptions and calls output_error."""
+
+    def _make_ctx(self, compact=False):
+        class FakeCtx:
+            obj = {"compact": compact}
+        return FakeCtx()
+
+    def test_passes_through_on_success(self):
+        ctx = self._make_ctx()
+        with handle_errors(ctx):
+            result = 42
+        assert result == 42
+
+    def test_catches_elnora_error(self, capsys):
+        ctx = self._make_ctx()
+        with pytest.raises(SystemExit) as exc_info:
+            with handle_errors(ctx):
+                raise NotFoundError("Task", "abc-123")
+        assert exc_info.value.code == 4
+
+    def test_catches_generic_exception(self, capsys):
+        ctx = self._make_ctx()
+        with pytest.raises(SystemExit) as exc_info:
+            with handle_errors(ctx):
+                raise RuntimeError("unexpected")
+        assert exc_info.value.code == 1
+
+    def test_reraises_keyboard_interrupt(self):
+        ctx = self._make_ctx()
+        with pytest.raises(KeyboardInterrupt):
+            with handle_errors(ctx):
+                raise KeyboardInterrupt()
+
+    def test_reraises_system_exit(self):
+        ctx = self._make_ctx()
+        with pytest.raises(SystemExit):
+            with handle_errors(ctx):
+                raise SystemExit(0)

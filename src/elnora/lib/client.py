@@ -107,13 +107,12 @@ class ElnoraClient:
             try:
                 mode = CONFIG_FILE.stat().st_mode
                 if mode & 0o077:
-                    import sys
+                    from .errors import output_warning
 
-                    msg = (
-                        '{"warning":"~/.elnora/config.toml has insecure permissions.'
-                        ' Run: chmod 600 ~/.elnora/config.toml","code":"INSECURE_PERMISSIONS"}'
+                    output_warning(
+                        "~/.elnora/config.toml has insecure permissions. Run: chmod 600 ~/.elnora/config.toml",
+                        code="INSECURE_PERMISSIONS",
                     )
-                    print(msg, file=sys.stderr)
             except OSError:
                 pass
         try:
@@ -167,6 +166,20 @@ class ElnoraClient:
 
         if env_path is None:
             return
+
+        # Warn if .env has insecure permissions
+        if os.name != "nt":
+            try:
+                mode = env_path.stat().st_mode
+                if mode & 0o077:
+                    from .errors import output_warning
+
+                    output_warning(
+                        f"{env_path} has insecure permissions. Run: chmod 600 {env_path}",
+                        code="INSECURE_PERMISSIONS",
+                    )
+            except OSError:
+                pass
 
         try:
             fh = open(env_path, encoding="utf-8")

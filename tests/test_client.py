@@ -1,5 +1,6 @@
-"""Tests for ElnoraClient — SSRF blocking, error mapping, auth resolution."""
+"""Tests for ElnoraClient — SSRF blocking, error mapping, auth resolution, .env loading."""
 
+import os
 from unittest.mock import patch
 
 import pytest
@@ -21,40 +22,23 @@ class TestSSRF:
     def _make_client(self):
         return ElnoraClient("elnora_live_" + "x" * 30)
 
-    def test_blocks_http_scheme(self):
+    def test_blocks_http_scheme(self, monkeypatch):
         client = self._make_client()
-        with patch.object(type(client), "_request", wraps=client._request):
-            with pytest.raises(ElnoraError, match="SSRF blocked.*non-HTTPS"):
-                # Override BASE_URL temporarily
-                import elnora.lib.config as cfg
-                original = cfg.BASE_URL
-                cfg.BASE_URL = "http://platform.elnora.ai/api/v1"
-                try:
-                    client._request("/test")
-                finally:
-                    cfg.BASE_URL = original
+        monkeypatch.setattr("elnora.lib.config.BASE_URL", "http://platform.elnora.ai/api/v1")
+        with pytest.raises(ElnoraError, match="SSRF blocked.*non-HTTPS"):
+            client._request("/test")
 
-    def test_blocks_wrong_hostname(self):
+    def test_blocks_wrong_hostname(self, monkeypatch):
         client = self._make_client()
-        import elnora.lib.config as cfg
-        original = cfg.BASE_URL
-        cfg.BASE_URL = "https://evil.com/api/v1"
-        try:
-            with pytest.raises(ElnoraError, match="SSRF blocked"):
-                client._request("/test")
-        finally:
-            cfg.BASE_URL = original
+        monkeypatch.setattr("elnora.lib.config.BASE_URL", "https://evil.com/api/v1")
+        with pytest.raises(ElnoraError, match="SSRF blocked"):
+            client._request("/test")
 
-    def test_blocks_userinfo(self):
+    def test_blocks_userinfo(self, monkeypatch):
         client = self._make_client()
-        import elnora.lib.config as cfg
-        original = cfg.BASE_URL
-        cfg.BASE_URL = "https://user@platform.elnora.ai/api/v1"
-        try:
-            with pytest.raises(ElnoraError, match="SSRF blocked.*userinfo"):
-                client._request("/test")
-        finally:
-            cfg.BASE_URL = original
+        monkeypatch.setattr("elnora.lib.config.BASE_URL", "https://user@platform.elnora.ai/api/v1")
+        with pytest.raises(ElnoraError, match="SSRF blocked.*userinfo"):
+            client._request("/test")
 
 
 class TestHandleHttpError:
@@ -64,44 +48,36 @@ class TestHandleHttpError:
         return ElnoraClient("elnora_live_" + "x" * 30)
 
     def test_401_raises_auth_error(self):
-        client = self._make_client()
         with pytest.raises(AuthError):
-            client._handle_http_error(401, "Unauthorized")
+            self._make_client()._handle_http_error(401, "Unauthorized")
 
     def test_403_raises_auth_error(self):
-        client = self._make_client()
         with pytest.raises(AuthError):
-            client._handle_http_error(403, "Forbidden")
+            self._make_client()._handle_http_error(403, "Forbidden")
 
     def test_404_raises_not_found(self):
-        client = self._make_client()
         with pytest.raises(NotFoundError):
-            client._handle_http_error(404, "Not found")
+            self._make_client()._handle_http_error(404, "Not found")
 
     def test_422_raises_validation_error(self):
-        client = self._make_client()
         with pytest.raises(ValidationError):
-            client._handle_http_error(422, "Bad input")
+            self._make_client()._handle_http_error(422, "Bad input")
 
     def test_429_raises_rate_limit(self):
-        client = self._make_client()
         with pytest.raises(RateLimitError):
-            client._handle_http_error(429, "")
+            self._make_client()._handle_http_error(429, "")
 
     def test_500_raises_server_error(self):
-        client = self._make_client()
         with pytest.raises(ServerError):
-            client._handle_http_error(500, "Internal")
+            self._make_client()._handle_http_error(500, "Internal")
 
     def test_502_raises_server_error(self):
-        client = self._make_client()
         with pytest.raises(ServerError):
-            client._handle_http_error(502, "Bad Gateway")
+            self._make_client()._handle_http_error(502, "Bad Gateway")
 
     def test_418_raises_generic_error(self):
-        client = self._make_client()
         with pytest.raises(ElnoraError, match="HTTP 418"):
-            client._handle_http_error(418, "I'm a teapot")
+            self._make_client()._handle_http_error(418, "I'm a teapot")
 
 
 class TestFromEnv:
@@ -123,7 +99,6 @@ class TestFromEnv:
     def test_rejects_missing_key(self, monkeypatch):
         monkeypatch.delenv("ELNORA_API_KEY", raising=False)
         monkeypatch.delenv("ELNORA_MCP_API_KEY", raising=False)
-        # Ensure no config file
         with patch.object(ElnoraClient, "_load_config_file", return_value=""):
             with patch.object(ElnoraClient, "_load_env"):
                 with pytest.raises(AuthError, match="No Elnora API key found"):
@@ -168,3 +143,62 @@ class TestLoadConfigFile:
         monkeypatch.setattr("elnora.lib.client.CONFIG_FILE", tmp_path / "nonexistent.toml")
         result = ElnoraClient._load_config_file()
         assert result == ""
+
+
+class TestLoadEnv:
+    """`.env` file loading."""
+
+    def test_loads_whitelisted_key(self, tmp_path, monkeypatch):
+        # Create a project root with .git marker and .env
+        (tmp_path / ".git").mkdir()
+        env_file = tmp_path / ".env"
+        env_file.write_text('ELNORA_API_KEY=elnora_live_fromenv1234567890\n')
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.delenv("ELNORA_API_KEY", raising=False)
+        monkeypatch.delenv("ELNORA_MCP_API_KEY", raising=False)
+        ElnoraClient._load_env()
+        assert os.environ.get("ELNORA_API_KEY") == "elnora_live_fromenv1234567890"
+
+    def test_ignores_non_whitelisted_key(self, tmp_path, monkeypatch):
+        (tmp_path / ".git").mkdir()
+        env_file = tmp_path / ".env"
+        env_file.write_text('SECRET_KEY=should_not_load\nELNORA_API_KEY=elnora_live_test12345678901234\n')
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.delenv("ELNORA_API_KEY", raising=False)
+        monkeypatch.delenv("SECRET_KEY", raising=False)
+        ElnoraClient._load_env()
+        assert os.environ.get("SECRET_KEY") is None
+        assert os.environ.get("ELNORA_API_KEY") == "elnora_live_test12345678901234"
+
+    def test_handles_export_prefix(self, tmp_path, monkeypatch):
+        (tmp_path / "pyproject.toml").write_text("")
+        env_file = tmp_path / ".env"
+        env_file.write_text('export ELNORA_API_KEY=elnora_live_exported123456789\n')
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.delenv("ELNORA_API_KEY", raising=False)
+        ElnoraClient._load_env()
+        assert os.environ.get("ELNORA_API_KEY") == "elnora_live_exported123456789"
+
+    def test_handles_quoted_values(self, tmp_path, monkeypatch):
+        (tmp_path / ".git").mkdir()
+        env_file = tmp_path / ".env"
+        env_file.write_text('ELNORA_API_KEY="elnora_live_quoted12345678901"\n')
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.delenv("ELNORA_API_KEY", raising=False)
+        ElnoraClient._load_env()
+        assert os.environ.get("ELNORA_API_KEY") == "elnora_live_quoted12345678901"
+
+    def test_no_env_file(self, tmp_path, monkeypatch):
+        (tmp_path / ".git").mkdir()
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.delenv("ELNORA_API_KEY", raising=False)
+        ElnoraClient._load_env()  # Should not raise
+
+    def test_does_not_override_existing_env(self, tmp_path, monkeypatch):
+        (tmp_path / ".git").mkdir()
+        env_file = tmp_path / ".env"
+        env_file.write_text('ELNORA_API_KEY=elnora_live_fromfile123456789\n')
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setenv("ELNORA_API_KEY", "elnora_live_fromenv_original1234")
+        ElnoraClient._load_env()
+        assert os.environ.get("ELNORA_API_KEY") == "elnora_live_fromenv_original1234"

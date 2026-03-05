@@ -160,7 +160,7 @@ All commands output structured JSON to stdout on success and structured JSON err
 }
 ```
 
-**Error** (exit 1):
+**Error** (typed exit codes):
 ```json
 {
   "error": "Invalid project_id: 'abc'. Expected UUID format.",
@@ -168,6 +168,16 @@ All commands output structured JSON to stdout on success and structured JSON err
   "suggestion": "Run: elnora projects list"
 }
 ```
+
+| Exit Code | Meaning |
+|-----------|---------|
+| 0 | Success |
+| 1 | General / unexpected error |
+| 2 | Validation error (bad input) |
+| 3 | Authentication error |
+| 4 | Not found |
+| 5 | Rate limited |
+| 6 | Server error |
 
 This makes the CLI easy to integrate with `jq`, scripts, and AI agents.
 

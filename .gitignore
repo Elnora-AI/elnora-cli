@@ -27,8 +27,5 @@ coverage/
 htmlcov/
 .coverage
 
-# uv
-uv.lock
-
 # Logs
 *.log

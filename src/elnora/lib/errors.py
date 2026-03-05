@@ -1,0 +1,191 @@
+"""Output contract for the Elnora Platform CLI.
+
+Success: JSON to stdout, exit 0
+Error:   JSON to stderr, exit 1
+Warning: JSON to stderr, exit 0
+
+Credentials are scrubbed from all error output.
+"""
+
+from __future__ import annotations
+
+import csv
+import io
+import json
+import os
+import re
+import sys
+from contextlib import contextmanager
+from typing import NoReturn
+
+
+# ---------------------------------------------------------------------------
+# Error hierarchy
+# ---------------------------------------------------------------------------
+
+class ElnoraError(Exception):
+    """Base error with machine-readable code and agent-friendly suggestion."""
+
+    def __init__(self, message: str, *, suggestion: str | None = None, code: str = "ELNORA_ERROR"):
+        super().__init__(message)
+        self.suggestion = suggestion
+        self.code = code
+
+
+class AuthError(ElnoraError):
+    def __init__(self, message: str | None = None):
+        super().__init__(
+            message or "No Elnora API key found. Set ELNORA_API_KEY environment variable.",
+            suggestion="Get your API key from platform.elnora.ai > Settings > API Keys",
+            code="AUTH_FAILED",
+        )
+
+
+class NotFoundError(ElnoraError):
+    def __init__(self, entity: str, identifier: str):
+        super().__init__(
+            f"{entity} not found: {identifier}",
+            suggestion="Check the identifier and try again.",
+            code="NOT_FOUND",
+        )
+
+
+class RateLimitError(ElnoraError):
+    def __init__(self, message: str | None = None):
+        super().__init__(
+            message or "Elnora API rate limit exceeded.",
+            suggestion="Wait a moment and retry.",
+            code="RATE_LIMITED",
+        )
+
+
+class ValidationError(ElnoraError):
+    def __init__(self, message: str, suggestion: str | None = None):
+        super().__init__(message, suggestion=suggestion, code="VALIDATION_ERROR")
+
+
+class ServerError(ElnoraError):
+    def __init__(self, message: str | None = None):
+        super().__init__(
+            message or "Elnora API server error.",
+            suggestion="Try again later. If the issue persists, contact support@elnora.ai.",
+            code="SERVER_ERROR",
+        )
+
+
+# ---------------------------------------------------------------------------
+# Credential scrubbing
+# ---------------------------------------------------------------------------
+
+_SCRUB_KEY_VALUE_RE = re.compile(
+    r'"?(?:ELNORA_API_KEY|ELNORA_MCP_API_KEY|api_key|x-api-key)"?\s*[=:]\s*"?([^\s"\']+)"?',
+    re.IGNORECASE,
+)
+
+# Catch bare long token-like strings (40+ alphanumeric/dash/underscore chars)
+# Matches Vanta/Linear CLI redactSecrets pattern
+_SCRUB_LONG_TOKEN_RE = re.compile(r"[a-zA-Z0-9_-]{40,}")
+
+
+def scrub(text: str) -> str:
+    """Remove API key patterns and long token-like strings from text."""
+    for env_var in ("ELNORA_API_KEY", "ELNORA_MCP_API_KEY"):
+        key = os.environ.get(env_var, "")
+        if key and key in text:
+            text = text.replace(key, "[REDACTED]")
+    text = _SCRUB_KEY_VALUE_RE.sub("[REDACTED]", text)
+    text = _SCRUB_LONG_TOKEN_RE.sub("[REDACTED]", text)
+    return text
+
+
+# ---------------------------------------------------------------------------
+# Output functions
+# ---------------------------------------------------------------------------
+
+def _filter_fields(data: list[dict], fields: list[str]) -> list[dict]:
+    """Filter each dict to only the specified keys."""
+    return [{k: row[k] for k in fields if k in row} for row in data]
+
+
+def output_success(data: object, *, compact: bool = False, fmt: str = "json", fields: list[str] | None = None) -> None:
+    """Print success payload to stdout."""
+    if fmt == "csv":
+        # Normalise to list of dicts
+        if isinstance(data, dict) and "items" in data:
+            rows: list[dict] = data["items"]
+        elif isinstance(data, list):
+            rows = data
+        else:
+            rows = [data] if isinstance(data, dict) else [{"value": data}]
+
+        if fields:
+            rows = _filter_fields(rows, fields)
+
+        if not rows:
+            return
+
+        all_keys: list[str] = []
+        seen: set[str] = set()
+        for row in rows:
+            for k in row:
+                if k not in seen:
+                    all_keys.append(k)
+                    seen.add(k)
+
+        buf = io.StringIO()
+        writer = csv.DictWriter(buf, fieldnames=all_keys, extrasaction="ignore")
+        writer.writeheader()
+        writer.writerows(rows)
+        print(buf.getvalue(), end="")
+        return
+
+    # JSON output
+    if fields and isinstance(data, (list, dict)):
+        if isinstance(data, dict) and "items" in data:
+            data["items"] = _filter_fields(data["items"], fields)
+        elif isinstance(data, list):
+            data = _filter_fields(data, fields)
+        elif isinstance(data, dict):
+            data = {k: data[k] for k in fields if k in data}
+
+    if compact:
+        print(json.dumps(data, separators=(",", ":"), default=str))
+    else:
+        print(json.dumps(data, indent=2, default=str))
+
+
+def output_error(exc: BaseException, *, compact: bool = False) -> NoReturn:
+    """Print error to stderr and exit 1."""
+    payload: dict[str, str] = {"error": scrub(str(exc))}
+    if isinstance(exc, ElnoraError):
+        payload["code"] = exc.code
+        if exc.suggestion:
+            payload["suggestion"] = exc.suggestion
+    else:
+        payload["code"] = type(exc).__name__
+
+    if compact:
+        print(json.dumps(payload, separators=(",", ":")), file=sys.stderr)
+    else:
+        print(json.dumps(payload, indent=2), file=sys.stderr)
+    sys.exit(1)
+
+
+def output_warning(message: str, *, code: str = "WARNING", compact: bool = False) -> None:
+    """Print warning to stderr (does not exit)."""
+    payload = {"warning": message, "code": code}
+    if compact:
+        print(json.dumps(payload, separators=(",", ":")), file=sys.stderr)
+    else:
+        print(json.dumps(payload, indent=2), file=sys.stderr)
+
+
+@contextmanager
+def handle_errors(ctx):
+    """Context manager for consistent error handling across commands."""
+    try:
+        yield
+    except (KeyboardInterrupt, SystemExit):
+        raise
+    except Exception as exc:
+        output_error(exc, compact=ctx.obj.get("compact", False))

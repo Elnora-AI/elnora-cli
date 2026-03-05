@@ -96,3 +96,29 @@ def logout(ctx):
                 fmt=ctx.obj["fmt"],
                 fields=ctx.obj["fields"],
             )
+
+
+@auth.command()
+@click.option("--token", default=None, help="Token to validate (defaults to current API key).")
+@click.pass_context
+def validate(ctx, token):
+    """Validate a JWT or API key token."""
+    with handle_errors(ctx):
+        from ..lib.client import ElnoraClient, anon_request
+        from ..lib import config
+
+        if token is None:
+            # Use current API key
+            client = ElnoraClient.from_env()
+            token = client._api_key
+        result = anon_request(
+            config.ENDPOINTS["auth_validate"],
+            {"token": token},
+            method="POST",
+        )
+        output_success(
+            result,
+            compact=ctx.obj["compact"],
+            fmt=ctx.obj["fmt"],
+            fields=ctx.obj["fields"],
+        )

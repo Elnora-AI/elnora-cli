@@ -1,4 +1,4 @@
-"""Files commands — list, inspect, and read project files."""
+"""Files commands — list, inspect, read, create, upload, update, archive, and version management."""
 
 from __future__ import annotations
 
@@ -6,8 +6,8 @@ import click
 
 from ..lib.client import ElnoraClient
 from ..lib.config import DEFAULT_PAGE_SIZE
-from ..lib.errors import handle_errors, output_success
-from ..lib.validation import validate_page, validate_page_size
+from ..lib.errors import ValidationError, handle_errors, output_success
+from ..lib.validation import validate_guid, validate_page, validate_page_size
 
 
 @click.group()
@@ -93,3 +93,194 @@ def get_versions(ctx, file_id, page, page_size):
             fmt=ctx.obj["fmt"],
             fields=ctx.obj["fields"],
         )
+
+
+@files.command("create")
+@click.option("--project", required=True, help="Project GUID (required).")
+@click.option("--name", required=True, help="File name.")
+@click.option("--folder", default=None, help="Folder GUID (optional).")
+@click.option("--type", "type_", required=True, help="File type (e.g. Document, Protocol, Dataset).")
+@click.pass_context
+def create_file(ctx, project: str, name: str, folder: str | None, type_: str | None):
+    """Create a new file in a project."""
+    with handle_errors(ctx):
+        validate_guid(project, "project")
+        if folder:
+            validate_guid(folder, "folder")
+        client = ElnoraClient.from_env()
+        result = client.create_file(project_id=project, name=name, folder_id=folder, file_type=type_)
+        output_success(result, compact=ctx.obj["compact"], fmt=ctx.obj["fmt"], fields=ctx.obj["fields"])
+
+
+@files.command("upload")
+@click.option("--project", required=True, help="Project GUID (required).")
+@click.option("--file-name", required=True, help="Name of the file to upload.")
+@click.option("--content-type", default="application/octet-stream", show_default=True, help="MIME content type.")
+@click.pass_context
+def upload_file(ctx, project: str, file_name: str, content_type: str):
+    """Initiate a file upload and get a presigned URL."""
+    with handle_errors(ctx):
+        validate_guid(project, "project")
+        client = ElnoraClient.from_env()
+        result = client.initiate_upload(project_id=project, file_name=file_name, content_type=content_type)
+        output_success(result, compact=ctx.obj["compact"], fmt=ctx.obj["fmt"], fields=ctx.obj["fields"])
+
+
+@files.command("confirm-upload")
+@click.argument("file_id")
+@click.pass_context
+def confirm_upload(ctx, file_id: str):
+    """Confirm a file upload has completed."""
+    with handle_errors(ctx):
+        client = ElnoraClient.from_env()
+        result = client.confirm_upload(file_id)
+        output_success(result, compact=ctx.obj["compact"], fmt=ctx.obj["fmt"], fields=ctx.obj["fields"])
+
+
+@files.command("download")
+@click.argument("file_id")
+@click.pass_context
+def download_file(ctx, file_id: str):
+    """Download raw file content."""
+    with handle_errors(ctx):
+        client = ElnoraClient.from_env()
+        content = client.download_file(file_id)
+        if ctx.obj["compact"] or ctx.obj["fields"]:
+            output_success(
+                {"content": content},
+                compact=ctx.obj["compact"],
+                fmt=ctx.obj["fmt"],
+                fields=ctx.obj["fields"],
+            )
+        else:
+            click.echo(content)
+
+
+@files.command("update")
+@click.argument("file_id")
+@click.option("--name", default=None, help="New file name.")
+@click.option("--folder", default=None, help="New folder GUID.")
+@click.pass_context
+def update_file(ctx, file_id: str, name: str | None, folder: str | None):
+    """Update a file's name or folder."""
+    with handle_errors(ctx):
+        if name is None and folder is None:
+            raise ValidationError(
+                "Nothing to update. Provide --name and/or --folder.",
+                suggestion="elnora files update <id> --name 'New name'",
+            )
+        if folder:
+            validate_guid(folder, "folder")
+        client = ElnoraClient.from_env()
+        result = client.update_file(file_id, name=name, folder_id=folder)
+        output_success(result, compact=ctx.obj["compact"], fmt=ctx.obj["fmt"], fields=ctx.obj["fields"])
+
+
+@files.command("archive")
+@click.argument("file_id")
+@click.pass_context
+def archive_file(ctx, file_id: str):
+    """Archive a file."""
+    with handle_errors(ctx):
+        client = ElnoraClient.from_env()
+        client.archive_file(file_id)
+        output_success(
+            {"archived": True, "fileId": file_id},
+            compact=ctx.obj["compact"],
+            fmt=ctx.obj["fmt"],
+            fields=ctx.obj["fields"],
+        )
+
+
+@files.command("version-content")
+@click.argument("file_id")
+@click.argument("version_id")
+@click.pass_context
+def version_content(ctx, file_id: str, version_id: str):
+    """Get content of a specific file version."""
+    with handle_errors(ctx):
+        client = ElnoraClient.from_env()
+        content = client.get_file_version_content(file_id, version_id)
+        if ctx.obj["compact"] or ctx.obj["fields"]:
+            output_success(
+                {"content": content},
+                compact=ctx.obj["compact"],
+                fmt=ctx.obj["fmt"],
+                fields=ctx.obj["fields"],
+            )
+        else:
+            click.echo(content)
+
+
+@files.command("create-version")
+@click.argument("file_id")
+@click.option("--content", default=None, help="Version content (optional).")
+@click.pass_context
+def create_version(ctx, file_id: str, content: str | None):
+    """Create a new version of a file."""
+    with handle_errors(ctx):
+        client = ElnoraClient.from_env()
+        result = client.create_file_version(file_id, content=content)
+        output_success(result, compact=ctx.obj["compact"], fmt=ctx.obj["fmt"], fields=ctx.obj["fields"])
+
+
+@files.command("restore")
+@click.argument("file_id")
+@click.argument("version_id")
+@click.pass_context
+def restore_version(ctx, file_id: str, version_id: str):
+    """Restore a file to a specific version."""
+    with handle_errors(ctx):
+        client = ElnoraClient.from_env()
+        result = client.restore_file_version(file_id, version_id)
+        output_success(result, compact=ctx.obj["compact"], fmt=ctx.obj["fmt"], fields=ctx.obj["fields"])
+
+
+@files.command("promote")
+@click.argument("file_id")
+@click.option("--visibility", required=True, help="Visibility level to promote to.")
+@click.pass_context
+def promote_file(ctx, file_id: str, visibility: str):
+    """Promote a file's visibility."""
+    with handle_errors(ctx):
+        client = ElnoraClient.from_env()
+        result = client.promote_file(file_id, visibility=visibility)
+        output_success(result, compact=ctx.obj["compact"], fmt=ctx.obj["fmt"], fields=ctx.obj["fields"])
+
+
+@files.command("fork")
+@click.argument("file_id")
+@click.option("--target-project", required=True, help="Target project GUID.")
+@click.pass_context
+def fork_file(ctx, file_id: str, target_project: str):
+    """Fork a file into another project."""
+    with handle_errors(ctx):
+        validate_guid(target_project, "target_project")
+        client = ElnoraClient.from_env()
+        result = client.fork_file(file_id, target_project_id=target_project)
+        output_success(result, compact=ctx.obj["compact"], fmt=ctx.obj["fmt"], fields=ctx.obj["fields"])
+
+
+@files.command("working-copy")
+@click.argument("file_id")
+@click.option("--task", default=None, help="Task GUID (optional).")
+@click.pass_context
+def working_copy(ctx, file_id: str, task: str | None):
+    """Create a working copy of a file."""
+    with handle_errors(ctx):
+        if task:
+            validate_guid(task, "task")
+        client = ElnoraClient.from_env()
+        result = client.create_working_copy(file_id, task_id=task)
+        output_success(result, compact=ctx.obj["compact"], fmt=ctx.obj["fmt"], fields=ctx.obj["fields"])
+
+
+@files.command("commit")
+@click.argument("file_id")
+@click.pass_context
+def commit_working_copy(ctx, file_id: str):
+    """Commit a working copy."""
+    with handle_errors(ctx):
+        client = ElnoraClient.from_env()
+        result = client.commit_working_copy(file_id)
+        output_success(result, compact=ctx.obj["compact"], fmt=ctx.obj["fmt"], fields=ctx.obj["fields"])

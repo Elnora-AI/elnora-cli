@@ -1,4 +1,4 @@
-"""Project commands — list, get, and create projects."""
+"""Project commands — list, get, create, update, archive, and member management."""
 
 from __future__ import annotations
 
@@ -6,8 +6,8 @@ import click
 
 from ..lib.client import ElnoraClient
 from ..lib.config import DEFAULT_PAGE_SIZE
-from ..lib.errors import handle_errors, output_success
-from ..lib.validation import validate_page, validate_page_size
+from ..lib.errors import ValidationError, handle_errors, output_success
+from ..lib.validation import validate_guid, validate_page, validate_page_size
 
 
 @click.group()
@@ -66,3 +66,106 @@ def create_project(ctx, name: str, description: str | None, icon: str | None):
             fmt=ctx.obj["fmt"],
             fields=ctx.obj["fields"],
         )
+
+
+@projects.command("update")
+@click.argument("project_id")
+@click.option("--name", default=None, help="New project name.")
+@click.option("--description", default=None, help="New project description.")
+@click.option("--icon", default=None, help="New project icon.")
+@click.pass_context
+def update_project(ctx, project_id: str, name: str | None, description: str | None, icon: str | None):
+    """Update a project's name, description, or icon."""
+    with handle_errors(ctx):
+        if name is None and description is None and icon is None:
+            raise ValidationError(
+                "Nothing to update. Provide --name, --description, and/or --icon.",
+                suggestion="elnora projects update <id> --name 'New name'",
+            )
+        client = ElnoraClient.from_env()
+        result = client.update_project(project_id, name=name, description=description, icon=icon)
+        output_success(result, compact=ctx.obj["compact"], fmt=ctx.obj["fmt"], fields=ctx.obj["fields"])
+
+
+@projects.command("archive")
+@click.argument("project_id")
+@click.pass_context
+def archive_project(ctx, project_id: str):
+    """Archive a project."""
+    with handle_errors(ctx):
+        client = ElnoraClient.from_env()
+        client.archive_project(project_id)
+        output_success(
+            {"archived": True, "projectId": project_id},
+            compact=ctx.obj["compact"],
+            fmt=ctx.obj["fmt"],
+            fields=ctx.obj["fields"],
+        )
+
+
+@projects.command("members")
+@click.argument("project_id")
+@click.pass_context
+def list_members(ctx, project_id: str):
+    """List members of a project."""
+    with handle_errors(ctx):
+        client = ElnoraClient.from_env()
+        result = client.list_project_members(project_id)
+        output_success(result, compact=ctx.obj["compact"], fmt=ctx.obj["fmt"], fields=ctx.obj["fields"])
+
+
+@projects.command("add-member")
+@click.argument("project_id")
+@click.option("--user-id", required=True, help="User GUID to add.")
+@click.option("--role", default="Member", show_default=True, help="Role to assign.")
+@click.pass_context
+def add_member(ctx, project_id: str, user_id: str, role: str):
+    """Add a member to a project."""
+    with handle_errors(ctx):
+        validate_guid(user_id, "user_id")
+        client = ElnoraClient.from_env()
+        result = client.add_project_member(project_id, user_id=user_id, role=role)
+        output_success(result, compact=ctx.obj["compact"], fmt=ctx.obj["fmt"], fields=ctx.obj["fields"])
+
+
+@projects.command("update-role")
+@click.argument("project_id")
+@click.argument("user_id")
+@click.option("--role", required=True, help="New role to assign.")
+@click.pass_context
+def update_role(ctx, project_id: str, user_id: str, role: str):
+    """Update a project member's role."""
+    with handle_errors(ctx):
+        validate_guid(user_id, "user_id")
+        client = ElnoraClient.from_env()
+        result = client.update_project_member_role(project_id, user_id, role=role)
+        output_success(result, compact=ctx.obj["compact"], fmt=ctx.obj["fmt"], fields=ctx.obj["fields"])
+
+
+@projects.command("remove-member")
+@click.argument("project_id")
+@click.argument("user_id")
+@click.pass_context
+def remove_member(ctx, project_id: str, user_id: str):
+    """Remove a member from a project."""
+    with handle_errors(ctx):
+        validate_guid(user_id, "user_id")
+        client = ElnoraClient.from_env()
+        client.remove_project_member(project_id, user_id)
+        output_success(
+            {"removed": True, "projectId": project_id, "userId": user_id},
+            compact=ctx.obj["compact"],
+            fmt=ctx.obj["fmt"],
+            fields=ctx.obj["fields"],
+        )
+
+
+@projects.command("leave")
+@click.argument("project_id")
+@click.pass_context
+def leave_project(ctx, project_id: str):
+    """Leave a project."""
+    with handle_errors(ctx):
+        client = ElnoraClient.from_env()
+        result = client.leave_project(project_id)
+        output_success(result, compact=ctx.obj["compact"], fmt=ctx.obj["fmt"], fields=ctx.obj["fields"])

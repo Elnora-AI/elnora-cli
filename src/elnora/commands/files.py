@@ -114,16 +114,65 @@ def create_file(ctx, project: str, name: str, folder: str | None, type_: str | N
 
 @files.command("upload")
 @click.option("--project", required=True, help="Project GUID (required).")
-@click.option("--file-name", required=True, help="Name of the file to upload.")
-@click.option("--content-type", default="application/octet-stream", show_default=True, help="MIME content type.")
+@click.option("--file", "file_path", required=True, type=click.Path(exists=True), help="Local file path to upload.")
+@click.option("--file-name", default=None, help="Override file name (defaults to local filename).")
+@click.option("--content-type", default=None, help="MIME content type (auto-detected if omitted).")
 @click.pass_context
-def upload_file(ctx, project: str, file_name: str, content_type: str):
-    """Initiate a file upload and get a presigned URL."""
+def upload_file(ctx, project: str, file_path: str, file_name: str | None, content_type: str | None):
+    """Upload a local file to a project.
+
+    Gets a presigned URL from the API, uploads the file, and confirms.
+    """
+    import mimetypes
+    from pathlib import Path
+
     with handle_errors(ctx):
         validate_guid(project, "project")
+        path = Path(file_path)
+        if file_name is None:
+            file_name = path.name
+        if content_type is None:
+            content_type = mimetypes.guess_type(file_name)[0] or "application/octet-stream"
+        file_size = path.stat().st_size
+        if file_size == 0:
+            raise ValidationError("File is empty.", suggestion="Provide a non-empty file.")
+
         client = ElnoraClient.from_env()
-        result = client.initiate_upload(project_id=project, file_name=file_name, content_type=content_type)
-        output_success(result, compact=ctx.obj["compact"], fmt=ctx.obj["fmt"], fields=ctx.obj["fields"])
+        # Step 1: Get presigned upload URL
+        upload_info = client.initiate_upload(
+            project_id=project,
+            file_name=file_name,
+            content_type=content_type,
+            file_size_bytes=file_size,
+        )
+
+        # Step 2: PUT file content to presigned URL
+        presigned_url = upload_info.get("uploadUrl") or upload_info.get("url")
+        file_id = upload_info.get("fileId") or upload_info.get("id")
+        if not presigned_url:
+            raise ValidationError(
+                "API did not return an upload URL.",
+                suggestion="Check API response: " + str(list(upload_info.keys())),
+            )
+
+        import urllib.request
+
+        file_data = path.read_bytes()
+        put_req = urllib.request.Request(
+            presigned_url,
+            data=file_data,
+            headers={"Content-Type": content_type},
+            method="PUT",
+        )
+        with urllib.request.urlopen(put_req, timeout=120) as resp:
+            resp.read()
+
+        # Step 3: Confirm upload
+        if file_id:
+            confirm_result = client.confirm_upload(file_id)
+            output_success(confirm_result, compact=ctx.obj["compact"], fmt=ctx.obj["fmt"], fields=ctx.obj["fields"])
+        else:
+            output_success(upload_info, compact=ctx.obj["compact"], fmt=ctx.obj["fmt"], fields=ctx.obj["fields"])
 
 
 @files.command("confirm-upload")

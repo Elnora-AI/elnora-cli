@@ -107,6 +107,13 @@ elnora search tasks --query "HEK 293"
 elnora search files --query "transfection protocol"
 ```
 
+### Health Check
+
+```bash
+# Check if the Elnora platform is reachable
+elnora health
+```
+
 ## Global Options
 
 | Option | Description |

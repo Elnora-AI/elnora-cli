@@ -1,4 +1,5 @@
 """Project commands — list, get, and create projects."""
+
 from __future__ import annotations
 
 import click

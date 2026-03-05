@@ -1,4 +1,5 @@
 """Files commands — list, inspect, and read project files."""
+
 from __future__ import annotations
 
 import click

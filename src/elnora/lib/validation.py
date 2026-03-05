@@ -1,4 +1,5 @@
 """Input validation — GUID format, page size bounds."""
+
 from __future__ import annotations
 
 import re

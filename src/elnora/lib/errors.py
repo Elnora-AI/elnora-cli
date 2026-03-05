@@ -18,10 +18,10 @@ import sys
 from contextlib import contextmanager
 from typing import NoReturn
 
-
 # ---------------------------------------------------------------------------
 # Error hierarchy
 # ---------------------------------------------------------------------------
+
 
 class ElnoraError(Exception):
     """Base error with machine-readable code and agent-friendly suggestion."""
@@ -101,6 +101,7 @@ def scrub(text: str) -> str:
 # ---------------------------------------------------------------------------
 # Output functions
 # ---------------------------------------------------------------------------
+
 
 def _filter_fields(data: list[dict], fields: list[str]) -> list[dict]:
     """Filter each dict to only the specified keys."""

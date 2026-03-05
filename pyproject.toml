@@ -10,8 +10,18 @@ requires-python = ">=3.10"
 dependencies = ["click>=8.1"]
 license = "Apache-2.0"
 
+[dependency-groups]
+dev = ["pytest>=7", "ruff>=0.4"]
+
 [project.scripts]
 elnora = "elnora.cli:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/elnora"]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]

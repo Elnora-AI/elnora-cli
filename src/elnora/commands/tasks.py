@@ -1,4 +1,5 @@
 """Task commands — list, get, create, send, messages, update, archive."""
+
 from __future__ import annotations
 
 import click

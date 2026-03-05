@@ -1,4 +1,5 @@
 """Search commands — find tasks and files by query."""
+
 from __future__ import annotations
 
 import click

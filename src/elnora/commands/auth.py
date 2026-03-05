@@ -1,4 +1,5 @@
 """Auth commands — login, verify API key, and show connection info."""
+
 from __future__ import annotations
 
 import click

@@ -23,7 +23,13 @@ def login(ctx, api_key):
     Get a key from platform.elnora.ai > Settings > API Keys.
     """
     with handle_errors(ctx):
-        if not api_key:
+        if api_key:
+            click.echo(
+                "Warning: passing --api-key on the command line is insecure (visible in process listings). "
+                "Use interactive prompt or pipe via stdin instead.",
+                err=True,
+            )
+        else:
             click.echo("Get your API key from: https://platform.elnora.ai > Settings > API Keys")
             api_key = click.prompt("API key", hide_input=True)
 

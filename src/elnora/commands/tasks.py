@@ -7,7 +7,7 @@ import click
 from ..lib.client import ElnoraClient
 from ..lib.config import DEFAULT_PAGE_SIZE
 from ..lib.errors import ValidationError, handle_errors, output_success
-from ..lib.validation import validate_guid, validate_page_size
+from ..lib.validation import validate_guid, validate_page, validate_page_size
 
 
 @click.group()
@@ -23,10 +23,10 @@ def tasks():
 def list_tasks(ctx, project, page, page_size):
     """List tasks, optionally filtered by project."""
     with handle_errors(ctx):
+        validate_page(page)
         validate_page_size(page_size)
         client = ElnoraClient.from_env()
         if project:
-            validate_guid(project, "project")
             result = client.list_project_tasks(project, page=page, page_size=page_size)
         else:
             result = client.list_tasks(page=page, page_size=page_size)
@@ -39,7 +39,6 @@ def list_tasks(ctx, project, page, page_size):
 def get_task(ctx, task_id):
     """Get a single task by ID."""
     with handle_errors(ctx):
-        validate_guid(task_id, "task_id")
         client = ElnoraClient.from_env()
         result = client.get_task(task_id)
         output_success(result, compact=ctx.obj["compact"], fmt=ctx.obj["fmt"], fields=ctx.obj["fields"])
@@ -53,7 +52,6 @@ def get_task(ctx, task_id):
 def create_task(ctx, project, title, message):
     """Create a new task in a project."""
     with handle_errors(ctx):
-        validate_guid(project, "project")
         client = ElnoraClient.from_env()
         result = client.create_task(project_id=project, title=title, initial_message=message)
         output_success(result, compact=ctx.obj["compact"], fmt=ctx.obj["fmt"], fields=ctx.obj["fields"])
@@ -67,7 +65,6 @@ def create_task(ctx, project, title, message):
 def send_message(ctx, task_id, message, file_refs):
     """Send a message to a task."""
     with handle_errors(ctx):
-        validate_guid(task_id, "task_id")
         file_refs_list = None
         if file_refs:
             file_refs_list = [ref.strip() for ref in file_refs.split(",") if ref.strip()]
@@ -84,9 +81,8 @@ def send_message(ctx, task_id, message, file_refs):
 @click.option("--limit", default=50, type=int, show_default=True, help="Max messages to return.")
 @click.pass_context
 def get_messages(ctx, task_id, cursor, limit):
-    """Get messages for a task."""
+    """Get messages for a task (cursor-based pagination)."""
     with handle_errors(ctx):
-        validate_guid(task_id, "task_id")
         validate_page_size(limit, "limit")
         client = ElnoraClient.from_env()
         result = client.get_messages(task_id, cursor=cursor, limit=limit)
@@ -96,7 +92,7 @@ def get_messages(ctx, task_id, cursor, limit):
 @tasks.command("update")
 @click.argument("task_id")
 @click.option("--title", default=None, help="New task title.")
-@click.option("--status", default=None, help="New task status.")
+@click.option("--status", default=None, help="New task status (e.g. active, completed).")
 @click.pass_context
 def update_task(ctx, task_id, title, status):
     """Update a task's title or status."""
@@ -106,7 +102,6 @@ def update_task(ctx, task_id, title, status):
                 "Nothing to update. Provide --title and/or --status.",
                 suggestion="elnora tasks update <id> --title 'New title' --status completed",
             )
-        validate_guid(task_id, "task_id")
         client = ElnoraClient.from_env()
         result = client.update_task(task_id, title=title, status=status)
         output_success(result, compact=ctx.obj["compact"], fmt=ctx.obj["fmt"], fields=ctx.obj["fields"])
@@ -118,7 +113,6 @@ def update_task(ctx, task_id, title, status):
 def archive_task(ctx, task_id):
     """Archive (delete) a task."""
     with handle_errors(ctx):
-        validate_guid(task_id, "task_id")
         client = ElnoraClient.from_env()
         client.archive_task(task_id)
         output_success(

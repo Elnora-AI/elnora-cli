@@ -1,7 +1,9 @@
 """Basic CLI tests — verify commands exist and help text renders."""
 
+import pytest
 from click.testing import CliRunner
 
+from elnora import __version__
 from elnora.cli import cli
 
 runner = CliRunner()
@@ -16,7 +18,7 @@ def test_cli_help():
 def test_version():
     result = runner.invoke(cli, ["--version"])
     assert result.exit_code == 0
-    assert "0.1.0" in result.output
+    assert __version__ in result.output
 
 
 def test_projects_help():
@@ -58,3 +60,40 @@ def test_auth_help():
 def test_completion_help():
     result = runner.invoke(cli, ["completion", "--help"])
     assert result.exit_code == 0
+
+
+class TestCrashHandler:
+    """Global crash handler formats exceptions as JSON to stderr."""
+
+    def test_elnora_error_structured_output(self, capsys):
+        import json
+
+        from elnora.cli import _crash_handler
+        from elnora.lib.errors import ValidationError
+
+        with pytest.raises(SystemExit) as exc_info:
+            _crash_handler(ValidationError, ValidationError("bad input"), None)
+        assert exc_info.value.code == 2
+        captured = capsys.readouterr()
+        parsed = json.loads(captured.err)
+        assert parsed["code"] == "VALIDATION_ERROR"
+        assert "bad input" in parsed["error"]
+
+    def test_generic_error_internal_code(self, capsys):
+        import json
+
+        from elnora.cli import _crash_handler
+
+        exc = RuntimeError("something broke")
+        with pytest.raises(SystemExit) as exc_info:
+            _crash_handler(RuntimeError, exc, None)
+        assert exc_info.value.code == 1
+        captured = capsys.readouterr()
+        parsed = json.loads(captured.err)
+        assert parsed["code"] == "INTERNAL_ERROR"
+
+    def test_passthrough_keyboard_interrupt(self):
+        from elnora.cli import _crash_handler
+
+        # Should NOT raise SystemExit — delegates to default hook
+        _crash_handler(KeyboardInterrupt, KeyboardInterrupt(), None)

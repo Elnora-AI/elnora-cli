@@ -33,6 +33,16 @@ def validate_guid(value: str, label: str) -> str:
     return value
 
 
+def validate_page(value: int) -> int:
+    """Validate page number is positive."""
+    if value < 1:
+        raise ValidationError(
+            f"Invalid page: {value}. Must be >= 1.",
+            suggestion="Use a positive page number.",
+        )
+    return value
+
+
 def validate_page_size(value: int, label: str = "page size") -> int:
     """Validate a numeric limit is within bounds (1-MAX_PAGE_SIZE)."""
     if value < 1 or value > MAX_PAGE_SIZE:

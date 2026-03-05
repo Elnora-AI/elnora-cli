@@ -25,3 +25,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Credential scrubbing in all error output
 - SSRF protection and redirect blocking
 - Request throttling (100ms minimum between requests)
+
+[Unreleased]: https://github.com/Elnora-AI/elnora-cli/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/Elnora-AI/elnora-cli/releases/tag/v0.1.0

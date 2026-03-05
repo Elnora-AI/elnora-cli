@@ -9,8 +9,6 @@ Credentials are scrubbed from all error output.
 
 from __future__ import annotations
 
-import csv
-import io
 import json
 import os
 import re
@@ -33,10 +31,10 @@ class ElnoraError(Exception):
 
 
 class AuthError(ElnoraError):
-    def __init__(self, message: str | None = None):
+    def __init__(self, message: str | None = None, *, suggestion: str | None = None):
         super().__init__(
             message or "No Elnora API key found. Set ELNORA_API_KEY environment variable.",
-            suggestion="Get your API key from platform.elnora.ai > Settings > API Keys",
+            suggestion=suggestion or "Get your API key from platform.elnora.ai > Settings > API Keys",
             code="AUTH_FAILED",
         )
 
@@ -83,7 +81,6 @@ _SCRUB_KEY_VALUE_RE = re.compile(
 )
 
 # Catch bare long token-like strings (40+ alphanumeric/dash/underscore chars)
-# Matches Vanta/Linear CLI redactSecrets pattern
 _SCRUB_LONG_TOKEN_RE = re.compile(r"[a-zA-Z0-9_-]{40,}")
 
 
@@ -111,6 +108,9 @@ def _filter_fields(data: list[dict], fields: list[str]) -> list[dict]:
 def output_success(data: object, *, compact: bool = False, fmt: str = "json", fields: list[str] | None = None) -> None:
     """Print success payload to stdout."""
     if fmt == "csv":
+        import csv
+        import io
+
         # Normalise to list of dicts
         if isinstance(data, dict) and "items" in data:
             rows: list[dict] = data["items"]
@@ -143,7 +143,7 @@ def output_success(data: object, *, compact: bool = False, fmt: str = "json", fi
     # JSON output
     if fields and isinstance(data, (list, dict)):
         if isinstance(data, dict) and "items" in data:
-            data["items"] = _filter_fields(data["items"], fields)
+            data = {**data, "items": _filter_fields(data["items"], fields)}
         elif isinstance(data, list):
             data = _filter_fields(data, fields)
         elif isinstance(data, dict):
@@ -155,8 +155,18 @@ def output_success(data: object, *, compact: bool = False, fmt: str = "json", fi
         print(json.dumps(data, indent=2, default=str))
 
 
+# Exit code mapping: distinct codes help scripts and agents branch on error type
+_EXIT_CODES: dict[type, int] = {
+    ValidationError: 2,
+    AuthError: 3,
+    NotFoundError: 4,
+    RateLimitError: 5,
+    ServerError: 6,
+}
+
+
 def output_error(exc: BaseException, *, compact: bool = False) -> NoReturn:
-    """Print error to stderr and exit 1."""
+    """Print error to stderr and exit with a typed exit code."""
     payload: dict[str, str] = {"error": scrub(str(exc))}
     if isinstance(exc, ElnoraError):
         payload["code"] = exc.code
@@ -169,7 +179,7 @@ def output_error(exc: BaseException, *, compact: bool = False) -> NoReturn:
         print(json.dumps(payload, separators=(",", ":")), file=sys.stderr)
     else:
         print(json.dumps(payload, indent=2), file=sys.stderr)
-    sys.exit(1)
+    sys.exit(_EXIT_CODES.get(type(exc), 1))
 
 
 def output_warning(message: str, *, code: str = "WARNING", compact: bool = False) -> None:

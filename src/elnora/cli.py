@@ -1,11 +1,9 @@
 """Elnora CLI — entry point and global flags."""
 
-from __future__ import annotations
-
 import json
 import sys
 
-from .lib.errors import scrub
+from .lib.errors import _EXIT_CODES, ElnoraError, scrub
 
 
 def _crash_handler(exc_type, exc_value, exc_tb):
@@ -13,9 +11,17 @@ def _crash_handler(exc_type, exc_value, exc_tb):
     if issubclass(exc_type, (SystemExit, KeyboardInterrupt)):
         sys.__excepthook__(exc_type, exc_value, exc_tb)
         return
-    payload = {"error": scrub(str(exc_value)), "type": exc_type.__name__}
+    error_msg = scrub(str(exc_value))
+    if isinstance(exc_value, ElnoraError):
+        payload = {"error": error_msg, "code": exc_value.code}
+        if exc_value.suggestion:
+            payload["suggestion"] = exc_value.suggestion
+        exit_code = _EXIT_CODES.get(type(exc_value), 1)
+    else:
+        payload = {"error": error_msg, "code": "INTERNAL_ERROR"}
+        exit_code = 1
     print(json.dumps(payload, indent=2), file=sys.stderr)
-    sys.exit(1)
+    sys.exit(exit_code)
 
 
 sys.excepthook = _crash_handler

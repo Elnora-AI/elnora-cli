@@ -7,7 +7,7 @@ import click
 from ..lib.client import ElnoraClient
 from ..lib.config import DEFAULT_PAGE_SIZE
 from ..lib.errors import handle_errors, output_success
-from ..lib.validation import validate_page_size
+from ..lib.validation import validate_page, validate_page_size
 
 
 @click.group()
@@ -23,6 +23,7 @@ def search():
 def tasks(ctx, query: str, page: int, page_size: int):
     """Search tasks by query string."""
     with handle_errors(ctx):
+        validate_page(page)
         validate_page_size(page_size)
         client = ElnoraClient.from_env()
         result = client.search_tasks(query=query, page=page, page_size=page_size)
@@ -42,6 +43,7 @@ def tasks(ctx, query: str, page: int, page_size: int):
 def files(ctx, query: str, page: int, page_size: int):
     """Search files by query string."""
     with handle_errors(ctx):
+        validate_page(page)
         validate_page_size(page_size)
         client = ElnoraClient.from_env()
         result = client.search_files(query=query, page=page, page_size=page_size)

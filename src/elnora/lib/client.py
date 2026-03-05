@@ -102,29 +102,51 @@ class ElnoraClient:
         """Read API key from ~/.elnora/config.toml (simple TOML subset)."""
         if not CONFIG_FILE.is_file():
             return ""
+        # Warn if config file has insecure permissions (group/other readable)
+        if os.name != "nt":
+            try:
+                mode = CONFIG_FILE.stat().st_mode
+                if mode & 0o077:
+                    from .errors import output_warning
+
+                    output_warning(
+                        "~/.elnora/config.toml has insecure permissions. Run: chmod 600 ~/.elnora/config.toml",
+                        code="INSECURE_PERMISSIONS",
+                    )
+            except OSError:
+                pass
         try:
             text = CONFIG_FILE.read_text(encoding="utf-8")
         except OSError:
             return ""
         for line in text.splitlines():
             line = line.strip()
-            if line.startswith("api_key") and "=" in line:
-                _, _, val = line.partition("=")
-                val = val.strip().strip('"').strip("'")
-                return val
+            if line.startswith("#") or "=" not in line:
+                continue
+            raw_key, _, val = line.partition("=")
+            if raw_key.strip() != "api_key":
+                continue
+            val = val.strip().strip('"').strip("'")
+            return val
         return ""
 
     @staticmethod
     def save_config(api_key: str) -> Path:
         """Write API key to ~/.elnora/config.toml."""
         CONFIG_DIR.mkdir(parents=True, exist_ok=True)
-        CONFIG_FILE.write_text(
-            f'# Elnora CLI configuration\n# Created by: elnora auth login\n\napi_key = "{api_key}"\n',
-            encoding="utf-8",
-        )
-        # Restrict permissions (owner-only read/write) — no-op on Windows
         if os.name != "nt":
-            CONFIG_FILE.chmod(0o600)
+            # Ensure directory is owner-only (umask may have made it world-readable)
+            CONFIG_DIR.chmod(0o700)
+        content = f'# Elnora CLI configuration\n# Created by: elnora auth login\n\napi_key = "{api_key}"\n'
+        if os.name != "nt":
+            # Atomic create with restricted permissions — no TOCTOU window
+            fd = os.open(CONFIG_FILE, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+            try:
+                os.write(fd, content.encode("utf-8"))
+            finally:
+                os.close(fd)
+        else:
+            CONFIG_FILE.write_text(content, encoding="utf-8")
         return CONFIG_FILE
 
     @staticmethod
@@ -135,7 +157,7 @@ class ElnoraClient:
         inline ``#`` comments.
         """
         # Walk up to find repo root
-        current = Path(__file__).resolve().parent
+        current = Path.cwd().resolve()
         env_path: Path | None = None
         for _ in range(20):  # safety limit
             if any((current / marker).exists() for marker in _ROOT_MARKERS):
@@ -150,6 +172,20 @@ class ElnoraClient:
 
         if env_path is None:
             return
+
+        # Warn if .env has insecure permissions
+        if os.name != "nt":
+            try:
+                mode = env_path.stat().st_mode
+                if mode & 0o077:
+                    from .errors import output_warning
+
+                    output_warning(
+                        f"{env_path} has insecure permissions. Run: chmod 600 {env_path}",
+                        code="INSECURE_PERMISSIONS",
+                    )
+            except OSError:
+                pass
 
         try:
             fh = open(env_path, encoding="utf-8")
@@ -182,17 +218,12 @@ class ElnoraClient:
                     if comment_idx != -1:
                         raw_val = raw_val[:comment_idx]
                 raw_val = raw_val.strip()
-                if raw_val:
-                    os.environ.setdefault(raw_key, raw_val)
+                if raw_val and not os.environ.get(raw_key):
+                    os.environ[raw_key] = raw_val
 
     # ------------------------------------------------------------------
     # Low-level HTTP
     # ------------------------------------------------------------------
-
-    @staticmethod
-    def _validate_id(value: str, label: str) -> str:
-        """Validate a GUID via validation module."""
-        return validate_guid(value, label)
 
     def _request(
         self,
@@ -266,7 +297,6 @@ class ElnoraClient:
             except Exception:
                 pass
             self._handle_http_error(e.code, body_text)
-            raise AssertionError("unreachable")
         except urllib.error.URLError as e:
             raise ElnoraError(
                 f"Network error: {scrub(str(e.reason))}",
@@ -308,7 +338,7 @@ class ElnoraClient:
 
     def get_project(self, project_id: str) -> dict:
         """Get a single project by ID."""
-        self._validate_id(project_id, "project_id")
+        validate_guid(project_id, "project_id")
         endpoint = config.ENDPOINTS["project"].replace("{id}", project_id)
         return self._request(endpoint)
 
@@ -340,13 +370,13 @@ class ElnoraClient:
 
     def list_project_tasks(self, project_id: str, *, page: int = 1, page_size: int = 25) -> dict:
         """List tasks within a project."""
-        self._validate_id(project_id, "project_id")
+        validate_guid(project_id, "project_id")
         endpoint = config.ENDPOINTS["project_tasks"].replace("{id}", project_id)
         return self._request(endpoint, query_params={"page": page, "pageSize": page_size})
 
     def get_task(self, task_id: str) -> dict:
         """Get a single task by ID."""
-        self._validate_id(task_id, "task_id")
+        validate_guid(task_id, "task_id")
         endpoint = config.ENDPOINTS["task"].replace("{id}", task_id)
         return self._request(endpoint)
 
@@ -359,7 +389,7 @@ class ElnoraClient:
         context_file_ids: list[str] | None = None,
     ) -> dict:
         """Create a new task in a project."""
-        self._validate_id(project_id, "project_id")
+        validate_guid(project_id, "project_id")
         body: dict[str, Any] = {"projectId": project_id}
         if title is not None:
             body["title"] = title
@@ -377,7 +407,7 @@ class ElnoraClient:
         referenced_file_ids: list[str] | None = None,
     ) -> dict:
         """Send a message to a task."""
-        self._validate_id(task_id, "task_id")
+        validate_guid(task_id, "task_id")
         endpoint = config.ENDPOINTS["task_messages"].replace("{id}", task_id)
         body: dict[str, Any] = {"content": content}
         if referenced_file_ids is not None:
@@ -392,7 +422,7 @@ class ElnoraClient:
         limit: int = 50,
     ) -> dict:
         """Get messages for a task."""
-        self._validate_id(task_id, "task_id")
+        validate_guid(task_id, "task_id")
         endpoint = config.ENDPOINTS["task_messages"].replace("{id}", task_id)
         params: dict[str, Any] = {"limit": limit}
         if cursor is not None:
@@ -407,7 +437,7 @@ class ElnoraClient:
         status: str | None = None,
     ) -> dict:
         """Update a task's title or status."""
-        self._validate_id(task_id, "task_id")
+        validate_guid(task_id, "task_id")
         endpoint = config.ENDPOINTS["task"].replace("{id}", task_id)
         body: dict[str, Any] = {}
         if title is not None:
@@ -418,7 +448,7 @@ class ElnoraClient:
 
     def archive_task(self, task_id: str) -> dict:
         """Archive (delete) a task."""
-        self._validate_id(task_id, "task_id")
+        validate_guid(task_id, "task_id")
         endpoint = config.ENDPOINTS["task"].replace("{id}", task_id)
         return self._request(endpoint, method="DELETE")
 
@@ -428,19 +458,19 @@ class ElnoraClient:
 
     def list_files(self, project_id: str, *, page: int = 1, page_size: int = 25) -> dict:
         """List files in a project."""
-        self._validate_id(project_id, "project_id")
+        validate_guid(project_id, "project_id")
         endpoint = config.ENDPOINTS["project_files"].replace("{id}", project_id)
         return self._request(endpoint, query_params={"page": page, "pageSize": page_size})
 
     def get_file(self, file_id: str) -> dict:
         """Get file metadata."""
-        self._validate_id(file_id, "file_id")
+        validate_guid(file_id, "file_id")
         endpoint = config.ENDPOINTS["file"].replace("{id}", file_id)
         return self._request(endpoint)
 
     def get_file_content(self, file_id: str) -> str:
         """Get file content as raw text."""
-        self._validate_id(file_id, "file_id")
+        validate_guid(file_id, "file_id")
         endpoint = config.ENDPOINTS["file_content"].replace("{id}", file_id)
         result = self._request(endpoint)
         # If _request already returned a string (non-JSON), return it directly
@@ -453,7 +483,7 @@ class ElnoraClient:
 
     def get_file_versions(self, file_id: str, *, page: int = 1, page_size: int = 25) -> dict:
         """Get version history for a file."""
-        self._validate_id(file_id, "file_id")
+        validate_guid(file_id, "file_id")
         endpoint = config.ENDPOINTS["file_versions"].replace("{id}", file_id)
         return self._request(endpoint, query_params={"page": page, "pageSize": page_size})
 

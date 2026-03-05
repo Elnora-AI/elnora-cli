@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security Issue
+    url: mailto:security@elnora.ai
+    about: Please report security vulnerabilities via email or GitHub Security Advisories. Do not open a public issue.
+  - name: Account or Billing Question
+    url: mailto:support@elnora.ai
+    about: For account, billing, or platform questions, contact our support team.

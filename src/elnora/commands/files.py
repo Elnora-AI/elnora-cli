@@ -156,6 +156,7 @@ def upload_file(ctx, project: str, file_path: str, file_name: str | None, conten
             )
 
         import urllib.request
+
         file_data = path.read_bytes()
         put_req = urllib.request.Request(
             presigned_url,

@@ -134,6 +134,9 @@ class ElnoraClient:
     def save_config(api_key: str) -> Path:
         """Write API key to ~/.elnora/config.toml."""
         CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+        if os.name != "nt":
+            # Ensure directory is owner-only (umask may have made it world-readable)
+            CONFIG_DIR.chmod(0o700)
         content = f'# Elnora CLI configuration\n# Created by: elnora auth login\n\napi_key = "{api_key}"\n'
         if os.name != "nt":
             # Atomic create with restricted permissions — no TOCTOU window

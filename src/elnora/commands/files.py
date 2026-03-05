@@ -55,11 +55,22 @@ def get_file(ctx, file_id):
 @click.argument("file_id")
 @click.pass_context
 def get_content(ctx, file_id):
-    """Get raw file content."""
+    """Get raw file content.
+
+    Outputs raw text by default. Use --output json to wrap in {"content": "..."}.
+    """
     with handle_errors(ctx):
         client = ElnoraClient.from_env()
         content = client.get_file_content(file_id)
-        click.echo(content)
+        if ctx.obj["fmt"] == "json" and ctx.obj["compact"]:
+            output_success({"content": content}, compact=True)
+        elif ctx.obj["fmt"] != "json" or ctx.obj["fields"]:
+            output_success(
+                {"content": content},
+                compact=ctx.obj["compact"], fmt=ctx.obj["fmt"], fields=ctx.obj["fields"],
+            )
+        else:
+            click.echo(content)
 
 
 @files.command("versions")

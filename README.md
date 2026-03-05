@@ -32,7 +32,7 @@ This prompts for your API key (get one from [platform.elnora.ai](https://platfor
 Alternatively, set an environment variable:
 
 ```bash
-export ELNORA_API_KEY=elnora_live_...
+export ELNORA_API_KEY=your_api_key
 ```
 
 ### Verify
@@ -180,8 +180,6 @@ The CLI resolves `ELNORA_API_KEY` in this order:
 3. `.env` file in the nearest project root (directory containing `pyproject.toml`, `package.json`, `.git`, etc.)
 4. `~/.elnora/config.toml` (written by `elnora auth login`)
 
-API keys must start with `elnora_live_` and be at least 20 characters.
-
 **Security best practices:**
 - Never commit API keys to version control
 - Use `elnora auth login` (saves to `~/.elnora/config.toml` with 600 permissions)
@@ -219,31 +217,15 @@ uv run pytest
 
 ## Claude Code Plugin
 
-This repo ships as a [Claude Code plugin](https://docs.anthropic.com/en/docs/claude-code/plugins) with 5 built-in skills that teach Claude how to use every CLI command.
+This package includes a [Claude Code plugin](https://docs.anthropic.com/en/docs/claude-code/plugins) with built-in skills that teach Claude how to use every CLI command. Skills are bundled with the package — no separate installation needed.
 
-### Install
-
-```bash
-claude plugin add /path/to/elnora-cli
-```
-
-### Included Skills
-
-| Skill | Auto-triggers on |
-|-------|-----------------|
-| `elnora-platform` | "elnora CLI", "platform API" — routes to sub-skills |
-| `elnora-projects` | "list projects", "create project" |
-| `elnora-tasks` | "create task", "send message", "generate protocol" |
-| `elnora-files` | "list files", "file content", "version history" |
-| `elnora-search` | "search tasks", "find protocol" |
-
-Skills provide Claude with exact command syntax, pagination patterns, error handling, and agent-optimized recipes (e.g. `--compact --fields "id,name"` for minimal token usage).
+When Claude Code detects the Elnora CLI, it automatically gets access to command syntax, pagination patterns, error handling, and agent-optimized recipes.
 
 ### Example
 
 Tell Claude: *"Create a new Elnora project called PCR Library and generate a BRCA1 protocol"*
 
-Claude will use the skills to run the right sequence of CLI commands automatically.
+Claude will run the right sequence of CLI commands automatically.
 
 ## Related
 

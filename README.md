@@ -3,7 +3,7 @@
 Command-line interface for the [Elnora](https://elnora.ai) bioprotocol optimization platform.
 
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
-[![Python](https://img.shields.io/badge/python-%3E%3D3.13-blue.svg)](https://www.python.org/)
+[![Python](https://img.shields.io/badge/python-%3E%3D3.10-blue.svg)](https://www.python.org/)
 
 ## What is Elnora?
 
@@ -23,16 +23,16 @@ pip install elnora
 
 ### Authenticate
 
-Set your API key (get one from [platform.elnora.ai](https://platform.elnora.ai) > Settings > API Keys):
+```bash
+elnora auth login
+```
+
+This prompts for your API key (get one from [platform.elnora.ai](https://platform.elnora.ai) > Settings > API Keys), verifies it, and saves it to `~/.elnora/config.toml`.
+
+Alternatively, set an environment variable:
 
 ```bash
 export ELNORA_API_KEY=elnora_live_...
-```
-
-Or add it to a `.env` file in your project root:
-
-```
-ELNORA_API_KEY=elnora_live_...
 ```
 
 ### Verify
@@ -173,18 +173,21 @@ This makes the CLI easy to integrate with `jq`, scripts, and AI agents.
 
 ## Authentication
 
-The CLI reads `ELNORA_API_KEY` from:
+The CLI resolves `ELNORA_API_KEY` in this order:
 
-1. Environment variable `ELNORA_API_KEY`
-2. Environment variable `ELNORA_MCP_API_KEY` (alias)
-3. `.env` file in the nearest parent directory containing `CLAUDE.md` or `pyproject.toml`
+1. `ELNORA_API_KEY` environment variable
+2. `ELNORA_MCP_API_KEY` environment variable (alias)
+3. `.env` file in the nearest project root (directory containing `pyproject.toml`, `package.json`, `.git`, etc.)
+4. `~/.elnora/config.toml` (written by `elnora auth login`)
 
 API keys must start with `elnora_live_` and be at least 20 characters.
 
 **Security best practices:**
 - Never commit API keys to version control
-- Use environment variables or a `.env` file (gitignored)
+- Use `elnora auth login` (saves to `~/.elnora/config.toml` with 600 permissions)
+- Or use environment variables / a gitignored `.env` file
 - Rotate keys periodically via the Elnora dashboard
+- Run `elnora auth logout` to remove saved credentials
 
 ## Development
 
@@ -207,7 +210,7 @@ uv run pytest
 
 | Error | Cause | Solution |
 |-------|-------|----------|
-| `AUTH_FAILED` | Missing or invalid API key | Set `ELNORA_API_KEY` environment variable or add to `.env` |
+| `AUTH_FAILED` | Missing or invalid API key | Run `elnora auth login` or set `ELNORA_API_KEY` env var |
 | `VALIDATION_ERROR` | Invalid UUID format | Check the ID — use `elnora <resource> list` to find valid IDs |
 | `NOT_FOUND` | Resource doesn't exist | Verify the ID with `elnora <resource> list` |
 | `RATE_LIMITED` | Too many requests | Wait a moment and retry |

@@ -20,7 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Global options: `--compact`, `--output json|csv`, `--fields`
 - Shell completions for bash, zsh, and fish
 - Structured JSON/CSV output with machine-readable error codes
-- API key authentication via environment variable or `.env` file
+- Interactive `auth login` command with guided setup and `auth logout`
+- API key resolution: env var, `.env` file, or `~/.elnora/config.toml`
 - Credential scrubbing in all error output
 - SSRF protection and redirect blocking
 - Request throttling (100ms minimum between requests)

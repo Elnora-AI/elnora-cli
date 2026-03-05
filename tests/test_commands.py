@@ -81,10 +81,16 @@ class TestTaskCommands:
     def test_send(self):
         mock = _mock_client()
         with patch("elnora.commands.tasks.ElnoraClient.from_env", return_value=mock):
-            result = runner.invoke(cli, [
-                "tasks", "send", "bfdc6fbd-40ed-4042-9ea7-c79a5ec90085",
-                "--message", "Hello",
-            ])
+            result = runner.invoke(
+                cli,
+                [
+                    "tasks",
+                    "send",
+                    "bfdc6fbd-40ed-4042-9ea7-c79a5ec90085",
+                    "--message",
+                    "Hello",
+                ],
+            )
         assert result.exit_code == 0
         mock.send_message.assert_called_once()
 
@@ -97,10 +103,16 @@ class TestTaskCommands:
     def test_update_success(self):
         mock = _mock_client()
         with patch("elnora.commands.tasks.ElnoraClient.from_env", return_value=mock):
-            result = runner.invoke(cli, [
-                "tasks", "update", "bfdc6fbd-40ed-4042-9ea7-c79a5ec90085",
-                "--status", "completed",
-            ])
+            result = runner.invoke(
+                cli,
+                [
+                    "tasks",
+                    "update",
+                    "bfdc6fbd-40ed-4042-9ea7-c79a5ec90085",
+                    "--status",
+                    "completed",
+                ],
+            )
         assert result.exit_code == 0
 
     def test_update_requires_field(self):

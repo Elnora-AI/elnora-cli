@@ -152,7 +152,7 @@ class TestLoadEnv:
         # Create a project root with .git marker and .env
         (tmp_path / ".git").mkdir()
         env_file = tmp_path / ".env"
-        env_file.write_text('ELNORA_API_KEY=elnora_live_fromenv1234567890\n')
+        env_file.write_text("ELNORA_API_KEY=elnora_live_fromenv1234567890\n")
         monkeypatch.chdir(tmp_path)
         monkeypatch.delenv("ELNORA_API_KEY", raising=False)
         monkeypatch.delenv("ELNORA_MCP_API_KEY", raising=False)
@@ -162,7 +162,7 @@ class TestLoadEnv:
     def test_ignores_non_whitelisted_key(self, tmp_path, monkeypatch):
         (tmp_path / ".git").mkdir()
         env_file = tmp_path / ".env"
-        env_file.write_text('SECRET_KEY=should_not_load\nELNORA_API_KEY=elnora_live_test12345678901234\n')
+        env_file.write_text("SECRET_KEY=should_not_load\nELNORA_API_KEY=elnora_live_test12345678901234\n")
         monkeypatch.chdir(tmp_path)
         monkeypatch.delenv("ELNORA_API_KEY", raising=False)
         monkeypatch.delenv("SECRET_KEY", raising=False)
@@ -173,7 +173,7 @@ class TestLoadEnv:
     def test_handles_export_prefix(self, tmp_path, monkeypatch):
         (tmp_path / "pyproject.toml").write_text("")
         env_file = tmp_path / ".env"
-        env_file.write_text('export ELNORA_API_KEY=elnora_live_exported123456789\n')
+        env_file.write_text("export ELNORA_API_KEY=elnora_live_exported123456789\n")
         monkeypatch.chdir(tmp_path)
         monkeypatch.delenv("ELNORA_API_KEY", raising=False)
         ElnoraClient._load_env()
@@ -197,7 +197,7 @@ class TestLoadEnv:
     def test_does_not_override_existing_env(self, tmp_path, monkeypatch):
         (tmp_path / ".git").mkdir()
         env_file = tmp_path / ".env"
-        env_file.write_text('ELNORA_API_KEY=elnora_live_fromfile123456789\n')
+        env_file.write_text("ELNORA_API_KEY=elnora_live_fromfile123456789\n")
         monkeypatch.chdir(tmp_path)
         monkeypatch.setenv("ELNORA_API_KEY", "elnora_live_fromenv_original1234")
         ElnoraClient._load_env()
@@ -207,7 +207,7 @@ class TestLoadEnv:
         """An empty env var should be overridden by the .env file value."""
         (tmp_path / ".git").mkdir()
         env_file = tmp_path / ".env"
-        env_file.write_text('ELNORA_API_KEY=elnora_live_fromfile123456789\n')
+        env_file.write_text("ELNORA_API_KEY=elnora_live_fromfile123456789\n")
         monkeypatch.chdir(tmp_path)
         monkeypatch.setenv("ELNORA_API_KEY", "")
         ElnoraClient._load_env()
@@ -216,7 +216,7 @@ class TestLoadEnv:
     def test_handles_inline_comment(self, tmp_path, monkeypatch):
         (tmp_path / ".git").mkdir()
         env_file = tmp_path / ".env"
-        env_file.write_text('ELNORA_API_KEY=elnora_live_inlinecomment123 # my key\n')
+        env_file.write_text("ELNORA_API_KEY=elnora_live_inlinecomment123 # my key\n")
         monkeypatch.chdir(tmp_path)
         monkeypatch.delenv("ELNORA_API_KEY", raising=False)
         ElnoraClient._load_env()
@@ -236,11 +236,15 @@ class TestNoRedirectHandler:
     def test_shows_hostname_not_full_url(self):
         from elnora.lib.client import _NoRedirectHandler
 
+        redirect_target = "https://attacker.example.com/path?secret=key"  # noqa: S105
         handler = _NoRedirectHandler()
         with pytest.raises(ElnoraError) as exc_info:
-            handler.redirect_request(None, None, 301, "Moved", {}, "https://evil.com/path?secret=key")
-        assert "evil.com" in str(exc_info.value)
-        assert "secret=key" not in str(exc_info.value)
+            handler.redirect_request(None, None, 301, "Moved", {}, redirect_target)
+        error_msg = str(exc_info.value)
+        # Verify hostname is shown but sensitive URL parts are not leaked
+        assert "attacker.example.com" in error_msg
+        assert "secret" not in error_msg
+        assert "/path" not in error_msg
 
 
 class TestSaveConfig:

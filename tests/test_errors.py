@@ -172,6 +172,7 @@ class TestHandleErrors:
     def _make_ctx(self, compact=False):
         class FakeCtx:
             obj = {"compact": compact}
+
         return FakeCtx()
 
     def test_passes_through_on_success(self):

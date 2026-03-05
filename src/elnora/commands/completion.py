@@ -94,23 +94,25 @@ compdef _elnora elnora""")
 
     elif shell == "fish":
         lines = ["# elnora fish completion — save to ~/.config/fish/completions/elnora.fish"]
-        help_map = {name: (cmd.get_short_help_str() if hasattr(cmd, "get_short_help_str") else f"Manage {name}")
-                    for name, cmd in cli_group.commands.items()}
+        help_map = {
+            name: (cmd.get_short_help_str() if hasattr(cmd, "get_short_help_str") else f"Manage {name}")
+            for name, cmd in cli_group.commands.items()
+        }
         for cmd_name in sorted(cmd_map.keys()):
             desc = help_map.get(cmd_name, f"Manage {cmd_name}")
             lines.append(f'complete -c elnora -n "__fish_use_subcommand" -a "{cmd_name}" -d "{desc}"')
         for cmd_name, subcmds in sorted(cmd_map.items()):
             for sub in subcmds:
-                lines.append(
-                    f'complete -c elnora -n "__fish_seen_subcommand_from {cmd_name}" -a "{sub}"'
-                )
-        lines.extend([
-            'complete -c elnora -l help -d "Show help"',
-            'complete -c elnora -l version -d "Show version"',
-            'complete -c elnora -l compact -d "Compact JSON output"',
-            'complete -c elnora -l output -d "Output format" -xa "json csv"',
-            'complete -c elnora -l fields -d "Comma-separated fields"',
-        ])
+                lines.append(f'complete -c elnora -n "__fish_seen_subcommand_from {cmd_name}" -a "{sub}"')
+        lines.extend(
+            [
+                'complete -c elnora -l help -d "Show help"',
+                'complete -c elnora -l version -d "Show version"',
+                'complete -c elnora -l compact -d "Compact JSON output"',
+                'complete -c elnora -l output -d "Output format" -xa "json csv"',
+                'complete -c elnora -l fields -d "Comma-separated fields"',
+            ]
+        )
         click.echo("\n".join(lines))
 
     elif shell == "powershell":

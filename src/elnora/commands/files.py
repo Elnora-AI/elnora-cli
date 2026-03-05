@@ -66,7 +66,9 @@ def get_content(ctx, file_id):
             # Structured output when explicitly requested
             output_success(
                 {"content": content},
-                compact=ctx.obj["compact"], fmt=ctx.obj["fmt"], fields=ctx.obj["fields"],
+                compact=ctx.obj["compact"],
+                fmt=ctx.obj["fmt"],
+                fields=ctx.obj["fields"],
             )
         else:
             # Raw text output (default) — CSV and plain JSON both get raw text

@@ -134,13 +134,16 @@ class ElnoraClient:
     def save_config(api_key: str) -> Path:
         """Write API key to ~/.elnora/config.toml."""
         CONFIG_DIR.mkdir(parents=True, exist_ok=True)
-        CONFIG_FILE.write_text(
-            f'# Elnora CLI configuration\n# Created by: elnora auth login\n\napi_key = "{api_key}"\n',
-            encoding="utf-8",
-        )
-        # Restrict permissions (owner-only read/write) — no-op on Windows
+        content = f'# Elnora CLI configuration\n# Created by: elnora auth login\n\napi_key = "{api_key}"\n'
         if os.name != "nt":
-            CONFIG_FILE.chmod(0o600)
+            # Atomic create with restricted permissions — no TOCTOU window
+            fd = os.open(CONFIG_FILE, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+            try:
+                os.write(fd, content.encode("utf-8"))
+            finally:
+                os.close(fd)
+        else:
+            CONFIG_FILE.write_text(content, encoding="utf-8")
         return CONFIG_FILE
 
     @staticmethod

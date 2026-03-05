@@ -15,6 +15,7 @@ from elnora.lib.errors import (
     handle_errors,
     output_error,
     output_success,
+    output_warning,
     scrub,
 )
 
@@ -204,3 +205,26 @@ class TestHandleErrors:
         with pytest.raises(SystemExit):
             with handle_errors(ctx):
                 raise SystemExit(0)
+
+
+class TestOutputWarning:
+    """output_warning prints JSON to stderr without exiting."""
+
+    def test_warning_to_stderr(self, capsys):
+        output_warning("something is wrong", code="TEST_WARN")
+        captured = capsys.readouterr()
+        parsed = json.loads(captured.err)
+        assert parsed["warning"] == "something is wrong"
+        assert parsed["code"] == "TEST_WARN"
+        assert captured.out == ""
+
+    def test_compact_mode(self, capsys):
+        output_warning("compact test", compact=True)
+        captured = capsys.readouterr()
+        assert "\n" not in captured.err.strip()
+        parsed = json.loads(captured.err)
+        assert parsed["warning"] == "compact test"
+
+    def test_does_not_exit(self):
+        # Should return normally, not raise SystemExit
+        output_warning("advisory only")

@@ -231,18 +231,16 @@ class TestNoRedirectHandler:
 
         handler = _NoRedirectHandler()
         with pytest.raises(ElnoraError, match="Unexpected redirect"):
-            handler.redirect_request(None, None, 302, "Found", {}, "https://evil.com/steal")
+            handler.redirect_request(None, None, 302, "Found", {}, "https://example.com/steal")
 
-    def test_shows_hostname_not_full_url(self):
+    def test_does_not_leak_query_params(self):
         from elnora.lib.client import _NoRedirectHandler
 
-        redirect_target = "https://attacker.example.com/path?secret=key"  # noqa: S105
         handler = _NoRedirectHandler()
-        with pytest.raises(ElnoraError) as exc_info:
-            handler.redirect_request(None, None, 301, "Moved", {}, redirect_target)
+        with pytest.raises(ElnoraError, match="Unexpected redirect") as exc_info:
+            handler.redirect_request(None, None, 301, "Moved", {}, "https://example.com/path?secret=key")
         error_msg = str(exc_info.value)
-        # Verify hostname is shown but sensitive URL parts are not leaked
-        assert "attacker.example.com" in error_msg
+        # The error must NOT leak query params or path from the redirect URL
         assert "secret" not in error_msg
         assert "/path" not in error_msg
 

@@ -92,7 +92,7 @@ def get_messages(ctx, task_id, cursor, limit):
 @tasks.command("update")
 @click.argument("task_id")
 @click.option("--title", default=None, help="New task title.")
-@click.option("--status", default=None, help="New task status.")
+@click.option("--status", default=None, help="New task status (e.g. active, completed).")
 @click.pass_context
 def update_task(ctx, task_id, title, status):
     """Update a task's title or status."""

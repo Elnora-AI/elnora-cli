@@ -212,8 +212,8 @@ class ElnoraClient:
                     if comment_idx != -1:
                         raw_val = raw_val[:comment_idx]
                 raw_val = raw_val.strip()
-                if raw_val:
-                    os.environ.setdefault(raw_key, raw_val)
+                if raw_val and not os.environ.get(raw_key):
+                    os.environ[raw_key] = raw_val
 
     # ------------------------------------------------------------------
     # Low-level HTTP
@@ -291,7 +291,6 @@ class ElnoraClient:
             except Exception:
                 pass
             self._handle_http_error(e.code, body_text)
-            raise AssertionError("unreachable")
         except urllib.error.URLError as e:
             raise ElnoraError(
                 f"Network error: {scrub(str(e.reason))}",

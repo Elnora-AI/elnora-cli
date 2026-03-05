@@ -1,6 +1,8 @@
 """Elnora API configuration — endpoints, headers, limits."""
 
-from .. import __version__
+from importlib.metadata import version
+
+__version__ = version("elnora")
 
 BASE_URL = "https://platform.elnora.ai/api/v1"
 

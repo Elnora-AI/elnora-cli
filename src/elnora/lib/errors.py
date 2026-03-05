@@ -31,10 +31,10 @@ class ElnoraError(Exception):
 
 
 class AuthError(ElnoraError):
-    def __init__(self, message: str | None = None):
+    def __init__(self, message: str | None = None, *, suggestion: str | None = None):
         super().__init__(
             message or "No Elnora API key found. Set ELNORA_API_KEY environment variable.",
-            suggestion="Get your API key from platform.elnora.ai > Settings > API Keys",
+            suggestion=suggestion or "Get your API key from platform.elnora.ai > Settings > API Keys",
             code="AUTH_FAILED",
         )
 

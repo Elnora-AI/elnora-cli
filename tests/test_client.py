@@ -202,3 +202,72 @@ class TestLoadEnv:
         monkeypatch.setenv("ELNORA_API_KEY", "elnora_live_fromenv_original1234")
         ElnoraClient._load_env()
         assert os.environ.get("ELNORA_API_KEY") == "elnora_live_fromenv_original1234"
+
+    def test_overrides_empty_env_var(self, tmp_path, monkeypatch):
+        """An empty env var should be overridden by the .env file value."""
+        (tmp_path / ".git").mkdir()
+        env_file = tmp_path / ".env"
+        env_file.write_text('ELNORA_API_KEY=elnora_live_fromfile123456789\n')
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setenv("ELNORA_API_KEY", "")
+        ElnoraClient._load_env()
+        assert os.environ.get("ELNORA_API_KEY") == "elnora_live_fromfile123456789"
+
+    def test_handles_inline_comment(self, tmp_path, monkeypatch):
+        (tmp_path / ".git").mkdir()
+        env_file = tmp_path / ".env"
+        env_file.write_text('ELNORA_API_KEY=elnora_live_inlinecomment123 # my key\n')
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.delenv("ELNORA_API_KEY", raising=False)
+        ElnoraClient._load_env()
+        assert os.environ.get("ELNORA_API_KEY") == "elnora_live_inlinecomment123"
+
+
+class TestNoRedirectHandler:
+    """Redirect blocking prevents credential forwarding."""
+
+    def test_blocks_redirect(self):
+        from elnora.lib.client import _NoRedirectHandler
+
+        handler = _NoRedirectHandler()
+        with pytest.raises(ElnoraError, match="Unexpected redirect"):
+            handler.redirect_request(None, None, 302, "Found", {}, "https://evil.com/steal")
+
+    def test_shows_hostname_not_full_url(self):
+        from elnora.lib.client import _NoRedirectHandler
+
+        handler = _NoRedirectHandler()
+        with pytest.raises(ElnoraError) as exc_info:
+            handler.redirect_request(None, None, 301, "Moved", {}, "https://evil.com/path?secret=key")
+        assert "evil.com" in str(exc_info.value)
+        assert "secret=key" not in str(exc_info.value)
+
+
+class TestSaveConfig:
+    """Config file writing and permissions."""
+
+    def test_writes_valid_toml(self, tmp_path, monkeypatch):
+        monkeypatch.setattr("elnora.lib.client.CONFIG_DIR", tmp_path)
+        monkeypatch.setattr("elnora.lib.client.CONFIG_FILE", tmp_path / "config.toml")
+        key = "elnora_live_testkey1234567890"
+        result_path = ElnoraClient.save_config(key)
+        assert result_path.is_file()
+        content = result_path.read_text()
+        assert f'api_key = "{key}"' in content
+
+    def test_creates_directory(self, tmp_path, monkeypatch):
+        config_dir = tmp_path / "subdir" / ".elnora"
+        monkeypatch.setattr("elnora.lib.client.CONFIG_DIR", config_dir)
+        monkeypatch.setattr("elnora.lib.client.CONFIG_FILE", config_dir / "config.toml")
+        ElnoraClient.save_config("elnora_live_testkey1234567890")
+        assert config_dir.is_dir()
+
+    def test_sets_permissions_on_unix(self, tmp_path, monkeypatch):
+        if os.name == "nt":
+            pytest.skip("Unix-only test")
+        monkeypatch.setattr("elnora.lib.client.CONFIG_DIR", tmp_path)
+        config_file = tmp_path / "config.toml"
+        monkeypatch.setattr("elnora.lib.client.CONFIG_FILE", config_file)
+        ElnoraClient.save_config("elnora_live_testkey1234567890")
+        mode = config_file.stat().st_mode & 0o777
+        assert mode == 0o600

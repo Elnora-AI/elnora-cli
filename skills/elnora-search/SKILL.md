@@ -2,13 +2,14 @@
 name: elnora-search
 description: >
   This skill should be used when the user asks to "search tasks", "find a protocol",
-  "search files", "find tasks about", "look up", "query Elnora", or any task
-  involving searching the Elnora Platform for tasks or files by keyword.
+  "search files", "find tasks about", "look up", "query Elnora", "search everything",
+  or any task involving searching the Elnora Platform for tasks, files, or all resources
+  by keyword.
 ---
 
 # Elnora Search
 
-Search tasks and files across all projects by keyword query.
+Search tasks, files, or all resources across all projects by keyword query.
 
 ## Invocation
 
@@ -44,9 +45,18 @@ $CLI --compact search files --query "template" --page 2
 
 Same pagination shape. Use file IDs from results with `files get` or `files content`.
 
+### Search All
+
+```bash
+$CLI --compact search all --query "BRCA1"
+$CLI --compact search all --query "transfection" --page-size 50
+```
+
+Searches both tasks and files in a single call. Results include a `type` field ("task" or "file") to distinguish.
+
 ## Options
 
-Both commands share:
+All three commands share:
 
 | Flag | Default | Notes |
 |------|---------|-------|
@@ -67,4 +77,10 @@ $CLI --compact tasks messages "$TASK_ID"
 
 ```bash
 $CLI --compact --fields "id,name" search files --query "PCR"
+```
+
+**Broad search across everything:**
+
+```bash
+$CLI --compact search all --query "HEK 293"
 ```

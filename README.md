@@ -32,7 +32,7 @@ This prompts for your API key (get one from [platform.elnora.ai](https://platfor
 Alternatively, set an environment variable:
 
 ```bash
-export ELNORA_API_KEY=elnora_live_...
+export ELNORA_API_KEY=your_api_key
 ```
 
 ### Verify
@@ -179,8 +179,6 @@ The CLI resolves `ELNORA_API_KEY` in this order:
 2. `ELNORA_MCP_API_KEY` environment variable (alias)
 3. `.env` file in the nearest project root (directory containing `pyproject.toml`, `package.json`, `.git`, etc.)
 4. `~/.elnora/config.toml` (written by `elnora auth login`)
-
-API keys must start with `elnora_live_` and be at least 20 characters.
 
 **Security best practices:**
 - Never commit API keys to version control

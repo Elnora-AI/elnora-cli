@@ -1,0 +1,9 @@
+{
+  "name": "elnora-platform",
+  "version": "0.1.0",
+  "description": "Elnora AI Platform CLI and skills",
+  "author": {
+    "name": "Elnora AI",
+    "email": "support@elnora.ai"
+  }
+}

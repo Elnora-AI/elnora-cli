@@ -44,11 +44,3 @@ line-length = 120
 
 [tool.ruff.lint]
 select = ["E", "F", "I"]
-
-[tool.semantic_release]
-version_toml = ["pyproject.toml:project.version"]
-branch = "main"
-changelog_file = "CHANGELOG.md"
-build_command = "uv build"
-commit_message = "chore(release): v{version}"
-tag_format = "v{version}"

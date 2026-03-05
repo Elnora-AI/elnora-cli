@@ -217,6 +217,34 @@ uv run pytest
 | `NETWORK_ERROR` | Can't reach Elnora API | Check your internet connection |
 | `SERVER_ERROR` | Elnora API issue | Try again later; contact support@elnora.ai if persistent |
 
+## Claude Code Plugin
+
+This repo ships as a [Claude Code plugin](https://docs.anthropic.com/en/docs/claude-code/plugins) with 5 built-in skills that teach Claude how to use every CLI command.
+
+### Install
+
+```bash
+claude plugin add /path/to/elnora-cli
+```
+
+### Included Skills
+
+| Skill | Auto-triggers on |
+|-------|-----------------|
+| `elnora-platform` | "elnora CLI", "platform API" — routes to sub-skills |
+| `elnora-projects` | "list projects", "create project" |
+| `elnora-tasks` | "create task", "send message", "generate protocol" |
+| `elnora-files` | "list files", "file content", "version history" |
+| `elnora-search` | "search tasks", "find protocol" |
+
+Skills provide Claude with exact command syntax, pagination patterns, error handling, and agent-optimized recipes (e.g. `--compact --fields "id,name"` for minimal token usage).
+
+### Example
+
+Tell Claude: *"Create a new Elnora project called PCR Library and generate a BRCA1 protocol"*
+
+Claude will use the skills to run the right sequence of CLI commands automatically.
+
 ## Related
 
 - [Elnora MCP Server](https://github.com/Elnora-AI/elnora-mcp-server) — Connect AI agents to Elnora via the Model Context Protocol

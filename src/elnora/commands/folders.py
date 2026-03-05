@@ -5,7 +5,6 @@ from __future__ import annotations
 import click
 
 from ..lib.client import ElnoraClient
-from ..lib.config import DEFAULT_PAGE_SIZE
 from ..lib.errors import handle_errors, output_success
 from ..lib.validation import validate_guid
 

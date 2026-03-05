@@ -27,6 +27,7 @@ from .errors import (
 )
 from .validation import validate_guid
 
+
 def anon_request(endpoint, body=None, *, method="GET", query_params=None):
     """Call Elnora API without authentication (for public endpoints)."""
     url = f"{config.BASE_URL}{endpoint}"
@@ -642,7 +643,8 @@ class ElnoraClient:
 
     def move_folder(self, folder_id: str, *, parent_id: str | None) -> dict:
         validate_guid(folder_id, "folder_id")
-        return self._request(config.ENDPOINTS["folder_move"].replace("{id}", folder_id), {"parentId": parent_id}, method="PUT")
+        endpoint = config.ENDPOINTS["folder_move"].replace("{id}", folder_id)
+        return self._request(endpoint, {"parentId": parent_id}, method="PUT")
 
     def delete_folder(self, folder_id: str) -> dict:
         validate_guid(folder_id, "folder_id")
@@ -691,7 +693,9 @@ class ElnoraClient:
     # Projects (new methods)
     # ------------------------------------------------------------------
 
-    def update_project(self, project_id: str, *, name: str | None = None, description: str | None = None, icon: str | None = None) -> dict:
+    def update_project(
+        self, project_id: str, *, name: str | None = None, description: str | None = None, icon: str | None = None
+    ) -> dict:
         validate_guid(project_id, "project_id")
         body: dict[str, Any] = {}
         if name is not None:
@@ -736,7 +740,9 @@ class ElnoraClient:
     # Files (new methods)
     # ------------------------------------------------------------------
 
-    def create_file(self, *, project_id: str, name: str, folder_id: str | None = None, file_type: str | None = None) -> dict:
+    def create_file(
+        self, *, project_id: str, name: str, folder_id: str | None = None, file_type: str | None = None
+    ) -> dict:
         validate_guid(project_id, "project_id")
         body: dict[str, Any] = {"projectId": project_id, "name": name}
         if folder_id is not None:
@@ -745,7 +751,9 @@ class ElnoraClient:
             body["fileType"] = file_type
         return self._request(config.ENDPOINTS["files"], body, method="POST")
 
-    def initiate_upload(self, *, project_id: str, file_name: str, content_type: str = "application/octet-stream") -> dict:
+    def initiate_upload(
+        self, *, project_id: str, file_name: str, content_type: str = "application/octet-stream"
+    ) -> dict:
         validate_guid(project_id, "project_id")
         return self._request(
             config.ENDPOINTS["file_upload"],
@@ -795,19 +803,22 @@ class ElnoraClient:
 
     def promote_file(self, file_id: str, *, visibility: str) -> dict:
         validate_guid(file_id, "file_id")
-        return self._request(config.ENDPOINTS["file_promote"].replace("{id}", file_id), {"visibility": visibility}, method="POST")
+        endpoint = config.ENDPOINTS["file_promote"].replace("{id}", file_id)
+        return self._request(endpoint, {"visibility": visibility}, method="POST")
 
     def fork_file(self, file_id: str, *, target_project_id: str) -> dict:
         validate_guid(file_id, "file_id")
         validate_guid(target_project_id, "target_project_id")
-        return self._request(config.ENDPOINTS["file_fork"].replace("{id}", file_id), {"targetProjectId": target_project_id}, method="POST")
+        endpoint = config.ENDPOINTS["file_fork"].replace("{id}", file_id)
+        return self._request(endpoint, {"targetProjectId": target_project_id}, method="POST")
 
     def create_working_copy(self, file_id: str, *, task_id: str | None = None) -> dict:
         validate_guid(file_id, "file_id")
         params = {}
         if task_id is not None:
             params["taskId"] = task_id
-        return self._request(config.ENDPOINTS["file_working_copy"].replace("{id}", file_id), query_params=params if params else None, method="POST")
+        endpoint = config.ENDPOINTS["file_working_copy"].replace("{id}", file_id)
+        return self._request(endpoint, query_params=params if params else None, method="POST")
 
     def commit_working_copy(self, file_id: str) -> dict:
         validate_guid(file_id, "file_id")
@@ -851,7 +862,9 @@ class ElnoraClient:
     # Audit
     # ------------------------------------------------------------------
 
-    def list_audit_log(self, org_id: str, *, page: int = 1, page_size: int = 25, action: str | None = None, user_id: str | None = None) -> dict:
+    def list_audit_log(
+        self, org_id: str, *, page: int = 1, page_size: int = 25, action: str | None = None, user_id: str | None = None
+    ) -> dict:
         validate_guid(org_id, "org_id")
         params: dict[str, Any] = {"page": page, "pageSize": page_size}
         if action is not None:
@@ -887,7 +900,9 @@ class ElnoraClient:
     # ------------------------------------------------------------------
 
     def accept_agreement(self, *, document_version_id: int) -> dict:
-        return self._request(config.ENDPOINTS["user_agreement"], {"documentVersionId": document_version_id}, method="POST")
+        return self._request(
+            config.ENDPOINTS["user_agreement"], {"documentVersionId": document_version_id}, method="POST"
+        )
 
     def list_agreements(self) -> dict:
         return self._request(config.ENDPOINTS["user_agreements"])

@@ -104,8 +104,8 @@ def logout(ctx):
 def validate(ctx, token):
     """Validate a JWT or API key token."""
     with handle_errors(ctx):
-        from ..lib.client import ElnoraClient, anon_request
         from ..lib import config
+        from ..lib.client import ElnoraClient, anon_request
 
         if token is None:
             # Use current API key

@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import click
 
-from ..lib.client import anon_request
 from ..lib import config
+from ..lib.client import anon_request
 from ..lib.errors import handle_errors, output_success
 
 

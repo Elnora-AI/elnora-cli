@@ -5,6 +5,13 @@ All notable changes to the Elnora CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.5.0](https://github.com/Elnora-AI/elnora-cli/compare/elnora-v0.4.0...elnora-v0.5.0) (2026-03-06)
+
+
+### Features
+
+* add automatic update check on CLI startup ([#23](https://github.com/Elnora-AI/elnora-cli/issues/23)) ([6754d92](https://github.com/Elnora-AI/elnora-cli/commit/6754d92f8f6147b2c1db24df6270b3f54dccff43))
+
 ## [0.4.0](https://github.com/Elnora-AI/elnora-cli/compare/elnora-v0.3.0...elnora-v0.4.0) (2026-03-05)
 
 

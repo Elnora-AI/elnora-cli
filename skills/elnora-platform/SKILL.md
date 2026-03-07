@@ -54,7 +54,7 @@ Get keys: platform.elnora.ai > Settings > API Keys
 | Find tasks or files by keyword | `elnora-search` | search, find, query |
 | Manage project folder trees | `elnora-folders` | folder, create folder, move folder |
 | Org management, members, billing, invitations, shared library | `elnora-orgs` | organization, org, billing, invite, library |
-| Auth, API keys, account, health, diagnostics | `elnora-admin` | login, logout, api key, health, account, feedback, audit, flags, completion |
+| Auth, API keys, account, health, diagnostics | `elnora-admin` | login, logout, api key, health, account, feedback, audit, completion |
 
 ## ID Format
 
@@ -110,7 +110,6 @@ elnora auth         Manage authentication
 elnora completion   Generate shell completion script
 elnora feedback     Submit feedback
 elnora files        Manage project files
-elnora flags        View global feature flags
 elnora folders      Manage project folders
 elnora health       Check platform reachability
 elnora library      Manage organization library

@@ -56,8 +56,9 @@ from .commands.tasks import tasks  # noqa: E402
     help="Output format.",
 )
 @click.option("--fields", default=None, help="Comma-separated fields to include.")
+@click.option("--org", default=None, help="Organization UUID — operate on a different org for this command.")
 @click.pass_context
-def cli(ctx, compact, fmt, fields):
+def cli(ctx, compact, fmt, fields, org):
     """Elnora AI Platform CLI.
 
     \b
@@ -70,6 +71,13 @@ def cli(ctx, compact, fmt, fields):
     ctx.obj["compact"] = compact
     ctx.obj["fmt"] = fmt
     ctx.obj["fields"] = [f.strip() for f in fields.split(",") if f.strip()] if fields else None
+    ctx.obj["org"] = org
+
+    # Set global org override so all ElnoraClient instances pick it up
+    if org:
+        from .lib.client import ElnoraClient
+
+        ElnoraClient._global_org_id = org
 
 
 cli.add_command(account)

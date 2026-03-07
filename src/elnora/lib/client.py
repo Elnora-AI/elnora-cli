@@ -99,8 +99,11 @@ class _NoRedirectHandler(urllib.request.HTTPRedirectHandler):
 class ElnoraClient:
     """Thin wrapper around the Elnora Platform REST API."""
 
-    def __init__(self, api_key: str):
+    _global_org_id: str | None = None  # Set by CLI --org flag
+
+    def __init__(self, api_key: str, org_id: str | None = None):
         self._api_key = api_key
+        self._org_id = org_id or self._global_org_id
         self._last_request_time = 0.0
         self._opener = urllib.request.build_opener(_NoRedirectHandler)
 
@@ -318,6 +321,8 @@ class ElnoraClient:
             )
 
         headers = {**config.DEFAULT_HEADERS, "X-API-Key": self._api_key}
+        if self._org_id:
+            headers["X-Organization-Id"] = self._org_id
 
         data = None
         if method in ("POST", "PUT", "PATCH") and body is not None:

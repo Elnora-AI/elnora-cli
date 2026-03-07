@@ -72,9 +72,6 @@ ENDPOINTS = {
     # User agreements
     "user_agreements": "/userAgreement/userAgreements",
     "user_agreement": "/userAgreement/userAgreement",
-    # Feature flags (anonymous)
-    "feature_flags": "/globalFeatureFlags",
-    "feature_flag": "/globalFeatureFlags/{key}",
     # Legal docs (anonymous)
     "legal_docs": "/userAgreement/legalDocumentVersion/list",
     # Auth

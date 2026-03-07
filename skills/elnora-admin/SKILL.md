@@ -2,14 +2,14 @@
 name: elnora-admin
 description: >
   This skill should be used when the user asks to "log in", "check auth", "create API key",
-  "revoke API key", "check health", "submit feedback", "view audit log", "feature flags",
+  "revoke API key", "check health", "submit feedback", "view audit log",
   "shell completions", "account details", "accept terms", "validate token", "elnora setup",
   or any task involving Elnora Platform authentication, administration, or diagnostics.
 ---
 
 # Elnora Admin & Diagnostics
 
-Authentication, API key management, account settings, health checks, feature flags, audit logs, feedback, and shell completions.
+Authentication, API key management, account settings, health checks, audit logs, feedback, and shell completions.
 
 ## Invocation
 
@@ -129,18 +129,6 @@ $CLI health
 ```
 
 No auth required. Checks if the Elnora platform is reachable. Returns `{"status":"ok","httpStatus":200}` on success. Exits 6 if unhealthy or unreachable.
-
-## Feature Flags
-
-No auth required.
-
-```bash
-# List all flags
-$CLI --compact flags list
-
-# Get a specific flag
-$CLI --compact flags get <FLAG_KEY>
-```
 
 ## Audit Log
 

@@ -21,7 +21,10 @@ def files():
 @click.option("--page-size", default=DEFAULT_PAGE_SIZE, type=int, show_default=True, help="Results per page.")
 @click.pass_context
 def list_files(ctx, project, page, page_size):
-    """List files in a project."""
+    """List files in a project.
+
+    Use --org UUID to list files in a different organization.
+    """
     with handle_errors(ctx):
         validate_page(page)
         validate_page_size(page_size)
@@ -102,7 +105,10 @@ def get_versions(ctx, file_id, page, page_size):
 @click.option("--type", "type_", required=True, help="File type (e.g. Document, Protocol, Dataset).")
 @click.pass_context
 def create_file(ctx, project: str, name: str, folder: str | None, type_: str | None):
-    """Create a new file in a project."""
+    """Create a new file in a project.
+
+    Use --org UUID to create the file in a different organization.
+    """
     with handle_errors(ctx):
         validate_guid(project, "project")
         if folder:

@@ -20,7 +20,10 @@ def projects():
 @click.option("--page-size", default=DEFAULT_PAGE_SIZE, type=int, show_default=True, help="Results per page.")
 @click.pass_context
 def list_projects(ctx, page: int, page_size: int):
-    """List all projects."""
+    """List all projects.
+
+    Use --org UUID to list projects in a different organization.
+    """
     with handle_errors(ctx):
         validate_page(page)
         validate_page_size(page_size)
@@ -56,7 +59,10 @@ def get_project(ctx, project_id: str):
 @click.option("--icon", default=None, help="Project icon.")
 @click.pass_context
 def create_project(ctx, name: str, description: str | None, icon: str | None):
-    """Create a new project."""
+    """Create a new project.
+
+    Use --org UUID to create the project in a different organization.
+    """
     with handle_errors(ctx):
         client = ElnoraClient.from_env()
         result = client.create_project(name=name, description=description, icon=icon)

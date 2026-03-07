@@ -5,6 +5,13 @@ All notable changes to the Elnora CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.6.1](https://github.com/Elnora-AI/elnora-cli/compare/elnora-v0.6.0...elnora-v0.6.1) (2026-03-07)
+
+
+### Bug Fixes
+
+* remove flags command (feature flags are SystemAdmin-only) ([#27](https://github.com/Elnora-AI/elnora-cli/issues/27)) ([394e747](https://github.com/Elnora-AI/elnora-cli/commit/394e7470a826e7658a0ceeb5c581ca560cf713b6))
+
 ## [0.6.0](https://github.com/Elnora-AI/elnora-cli/compare/elnora-v0.5.0...elnora-v0.6.0) (2026-03-07)
 
 

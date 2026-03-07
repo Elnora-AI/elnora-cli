@@ -21,7 +21,10 @@ def tasks():
 @click.option("--page-size", default=DEFAULT_PAGE_SIZE, type=int, show_default=True, help="Results per page.")
 @click.pass_context
 def list_tasks(ctx, project, page, page_size):
-    """List tasks, optionally filtered by project."""
+    """List tasks, optionally filtered by project.
+
+    Use --org UUID to list tasks in a different organization.
+    """
     with handle_errors(ctx):
         validate_page(page)
         validate_page_size(page_size)
@@ -50,7 +53,10 @@ def get_task(ctx, task_id):
 @click.option("--message", default=None, help="Initial message content.")
 @click.pass_context
 def create_task(ctx, project, title, message):
-    """Create a new task in a project."""
+    """Create a new task in a project.
+
+    Use --org UUID to create the task in a different organization.
+    """
     with handle_errors(ctx):
         client = ElnoraClient.from_env()
         result = client.create_task(project_id=project, title=title, initial_message=message)

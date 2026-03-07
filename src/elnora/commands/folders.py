@@ -18,7 +18,10 @@ def folders():
 @click.option("--project", required=True, help="Project GUID (required).")
 @click.pass_context
 def list_folders(ctx, project):
-    """List folders in a project."""
+    """List folders in a project.
+
+    Use --org UUID to list folders in a different organization.
+    """
     with handle_errors(ctx):
         validate_guid(project, "project")
         client = ElnoraClient.from_env()
@@ -32,7 +35,10 @@ def list_folders(ctx, project):
 @click.option("--parent", default=None, help="Parent folder GUID (optional).")
 @click.pass_context
 def create_folder(ctx, project, name, parent):
-    """Create a new folder in a project."""
+    """Create a new folder in a project.
+
+    Use --org UUID to create the folder in a different organization.
+    """
     with handle_errors(ctx):
         validate_guid(project, "project")
         if parent:

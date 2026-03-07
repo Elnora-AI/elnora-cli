@@ -21,7 +21,10 @@ def search():
 @click.option("--page-size", default=DEFAULT_PAGE_SIZE, type=int, show_default=True, help="Results per page.")
 @click.pass_context
 def tasks(ctx, query: str, page: int, page_size: int):
-    """Search tasks by query string."""
+    """Search tasks by query string.
+
+    Use --org UUID to search in a different organization.
+    """
     with handle_errors(ctx):
         validate_page(page)
         validate_page_size(page_size)
@@ -41,7 +44,10 @@ def tasks(ctx, query: str, page: int, page_size: int):
 @click.option("--page-size", default=DEFAULT_PAGE_SIZE, type=int, show_default=True, help="Results per page.")
 @click.pass_context
 def files(ctx, query: str, page: int, page_size: int):
-    """Search files by query string."""
+    """Search files by query string.
+
+    Use --org UUID to search in a different organization.
+    """
     with handle_errors(ctx):
         validate_page(page)
         validate_page_size(page_size)
@@ -61,7 +67,10 @@ def files(ctx, query: str, page: int, page_size: int):
 @click.option("--page-size", default=DEFAULT_PAGE_SIZE, type=int, show_default=True, help="Results per page.")
 @click.pass_context
 def all_(ctx, query: str, page: int, page_size: int):
-    """Search all resources by query string."""
+    """Search all resources by query string.
+
+    Use --org UUID to search in a different organization.
+    """
     with handle_errors(ctx):
         validate_page(page)
         validate_page_size(page_size)

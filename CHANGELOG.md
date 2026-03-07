@@ -5,6 +5,13 @@ All notable changes to the Elnora CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.6.0](https://github.com/Elnora-AI/elnora-cli/compare/elnora-v0.5.0...elnora-v0.6.0) (2026-03-07)
+
+
+### Features
+
+* add global --org flag for multi-org support ([#25](https://github.com/Elnora-AI/elnora-cli/issues/25)) ([b5cc651](https://github.com/Elnora-AI/elnora-cli/commit/b5cc651330d093a5db0a013952917fc593ce3e08))
+
 ## [0.5.0](https://github.com/Elnora-AI/elnora-cli/compare/elnora-v0.4.0...elnora-v0.5.0) (2026-03-06)
 
 

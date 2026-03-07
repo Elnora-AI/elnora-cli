@@ -1,16 +1,14 @@
 """Tests for --org flag propagation and X-Organization-Id header injection."""
 
-import json
 import urllib.error
 import urllib.request
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 from click.testing import CliRunner
 
 from elnora.cli import cli
 from elnora.lib.client import ElnoraClient
-
 
 FAKE_ORG = "00000000-1111-2222-3333-444444444444"
 FAKE_KEY = "elnora_live_" + "x" * 30
@@ -26,8 +24,6 @@ class TestOrgFlagPropagation:
         # Invoke a command that will fail (no server), but --org should be set
         # before the command runs. We patch from_env to capture state.
         captured_org = {}
-
-        original_from_env = ElnoraClient.from_env
 
         @classmethod
         def mock_from_env(cls):

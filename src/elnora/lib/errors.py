@@ -167,9 +167,10 @@ def output_success(data: object, *, compact: bool = False, fmt: str = "json", fi
             data = {k: data[k] for k in fields if k in data}
 
     if compact:
-        print(json.dumps(data, separators=(",", ":"), default=str))
+        json.dump(data, sys.stdout, separators=(",", ":"), default=str)
     else:
-        print(json.dumps(data, indent=2, default=str))
+        json.dump(data, sys.stdout, indent=2, default=str)
+    sys.stdout.write("\n")
 
 
 # Exit code mapping: distinct codes help scripts and agents branch on error type

@@ -105,8 +105,25 @@ def _filter_fields(data: list[dict], fields: list[str]) -> list[dict]:
     return [{k: row[k] for k in fields if k in row} for row in data]
 
 
+def _scrub_data(obj: object) -> object:
+    """Recursively scrub sensitive strings from a data structure before serialization."""
+    if isinstance(obj, str):
+        return scrub(obj)
+    if isinstance(obj, dict):
+        return {k: _scrub_data(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_scrub_data(item) for item in obj]
+    return obj
+
+
 def output_success(data: object, *, compact: bool = False, fmt: str = "json", fields: list[str] | None = None) -> None:
-    """Print success payload to stdout."""
+    """Print success payload to stdout.
+
+    All string values are scrubbed for credentials before output.
+    """
+    # Scrub sensitive data before any serialization
+    data = _scrub_data(data)
+
     if fmt == "csv":
         import csv
         import io
@@ -137,7 +154,7 @@ def output_success(data: object, *, compact: bool = False, fmt: str = "json", fi
         writer = csv.DictWriter(buf, fieldnames=all_keys, extrasaction="ignore")
         writer.writeheader()
         writer.writerows(rows)
-        print(scrub(buf.getvalue()), end="")
+        print(buf.getvalue(), end="")
         return
 
     # JSON output
@@ -150,9 +167,9 @@ def output_success(data: object, *, compact: bool = False, fmt: str = "json", fi
             data = {k: data[k] for k in fields if k in data}
 
     if compact:
-        print(scrub(json.dumps(data, separators=(",", ":"), default=str)))
+        print(json.dumps(data, separators=(",", ":"), default=str))
     else:
-        print(scrub(json.dumps(data, indent=2, default=str)))
+        print(json.dumps(data, indent=2, default=str))
 
 
 # Exit code mapping: distinct codes help scripts and agents branch on error type

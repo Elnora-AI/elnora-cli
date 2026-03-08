@@ -4,7 +4,7 @@ Success: JSON to stdout, exit 0
 Error:   JSON to stderr, exit 1
 Warning: JSON to stderr, exit 0
 
-Credentials are scrubbed from all error output.
+Credentials are scrubbed from all output (success, error, and warning).
 """
 
 from __future__ import annotations
@@ -137,7 +137,7 @@ def output_success(data: object, *, compact: bool = False, fmt: str = "json", fi
         writer = csv.DictWriter(buf, fieldnames=all_keys, extrasaction="ignore")
         writer.writeheader()
         writer.writerows(rows)
-        print(buf.getvalue(), end="")
+        print(scrub(buf.getvalue()), end="")
         return
 
     # JSON output
@@ -150,9 +150,9 @@ def output_success(data: object, *, compact: bool = False, fmt: str = "json", fi
             data = {k: data[k] for k in fields if k in data}
 
     if compact:
-        print(json.dumps(data, separators=(",", ":"), default=str))
+        print(scrub(json.dumps(data, separators=(",", ":"), default=str)))
     else:
-        print(json.dumps(data, indent=2, default=str))
+        print(scrub(json.dumps(data, indent=2, default=str)))
 
 
 # Exit code mapping: distinct codes help scripts and agents branch on error type

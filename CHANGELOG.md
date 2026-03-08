@@ -5,6 +5,13 @@ All notable changes to the Elnora CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.7.0](https://github.com/Elnora-AI/elnora-cli/compare/elnora-v0.6.1...elnora-v0.7.0) (2026-03-08)
+
+
+### Features
+
+* add profile support for multi-org API key management ([#29](https://github.com/Elnora-AI/elnora-cli/issues/29)) ([e82059c](https://github.com/Elnora-AI/elnora-cli/commit/e82059c0cf185082a13b4e2a7355db66b69f5acb))
+
 ## [0.6.1](https://github.com/Elnora-AI/elnora-cli/compare/elnora-v0.6.0...elnora-v0.6.1) (2026-03-07)
 
 

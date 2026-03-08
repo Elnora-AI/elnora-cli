@@ -136,10 +136,7 @@ class ElnoraClient:
 
             migrate_config_if_needed()
             effective_profile = (
-                profile
-                or cls._active_profile
-                or os.environ.get("ELNORA_PROFILE", "").strip()
-                or "default"
+                profile or cls._active_profile or os.environ.get("ELNORA_PROFILE", "").strip() or "default"
             )
             try:
                 key = get_api_key(effective_profile)

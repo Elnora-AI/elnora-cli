@@ -66,7 +66,7 @@ class TestLoadProfiles:
     def test_load_multiple_profiles(self, tmp_path, monkeypatch):
         profiles_file = tmp_path / "profiles.toml"
         profiles_file.write_text(
-            '[default]\n'
+            "[default]\n"
             'api_key = "elnora_live_default_key12345"\n'
             "\n"
             "[profiles.university]\n"
@@ -85,7 +85,7 @@ class TestLoadProfiles:
     def test_comments_ignored(self, tmp_path, monkeypatch):
         profiles_file = tmp_path / "profiles.toml"
         profiles_file.write_text(
-            "# This is a comment\n" '[default]\n' '# api_key = "old_key"\n' 'api_key = "elnora_live_real_key12345678"\n'
+            '# This is a comment\n[default]\n# api_key = "old_key"\napi_key = "elnora_live_real_key12345678"\n'
         )
         monkeypatch.setattr("elnora.lib.profiles.PROFILES_FILE", profiles_file)
         result = load_profiles()
@@ -99,7 +99,7 @@ class TestSaveProfile:
         path = save_profile("default", "elnora_live_testkey1234567890")
         assert path.is_file()
         content = path.read_text()
-        assert '[default]' in content
+        assert "[default]" in content
         assert 'api_key = "elnora_live_testkey1234567890"' in content
 
     def test_save_named_profile(self, tmp_path, monkeypatch):

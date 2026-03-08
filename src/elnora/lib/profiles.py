@@ -63,7 +63,7 @@ def _parse_profiles_toml(text: str) -> tuple[dict[str, dict[str, str]], list[str
                 current_section = "default"
                 profiles.setdefault("default", {})
             elif header.startswith("profiles."):
-                name = header[len("profiles."):]
+                name = header[len("profiles.") :]
                 current_section = name
                 profiles.setdefault(name, {})
             else:

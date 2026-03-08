@@ -55,6 +55,13 @@ def test_auth_help():
     assert "login" in result.output
     assert "status" in result.output
     assert "logout" in result.output
+    assert "profiles" in result.output
+
+
+def test_profile_flag_in_help():
+    result = runner.invoke(cli, ["--help"])
+    assert result.exit_code == 0
+    assert "--profile" in result.output
 
 
 def test_completion_help():

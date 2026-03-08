@@ -99,10 +99,13 @@ class TestFromEnv:
     def test_rejects_missing_key(self, monkeypatch):
         monkeypatch.delenv("ELNORA_API_KEY", raising=False)
         monkeypatch.delenv("ELNORA_MCP_API_KEY", raising=False)
+        monkeypatch.delenv("ELNORA_PROFILE", raising=False)
         with patch.object(ElnoraClient, "_load_config_file", return_value=""):
             with patch.object(ElnoraClient, "_load_env"):
-                with pytest.raises(AuthError, match="No Elnora API key found"):
-                    ElnoraClient.from_env()
+                with patch("elnora.lib.profiles.migrate_config_if_needed", return_value=False):
+                    with patch("elnora.lib.profiles.get_api_key", side_effect=AuthError("not found")):
+                        with pytest.raises(AuthError, match="No Elnora API key found"):
+                            ElnoraClient.from_env()
 
     def test_rejects_wrong_prefix(self, monkeypatch):
         monkeypatch.setenv("ELNORA_API_KEY", "wrong_prefix_" + "x" * 30)
@@ -271,3 +274,99 @@ class TestSaveConfig:
         ElnoraClient.save_config("elnora_live_testkey1234567890")
         mode = config_file.stat().st_mode & 0o777
         assert mode == 0o600
+
+
+class TestFromEnvWithProfiles:
+    """Profile-based auth resolution."""
+
+    def test_uses_profiles_toml_default(self, tmp_path, monkeypatch):
+        from elnora.lib.profiles import save_profile
+
+        monkeypatch.delenv("ELNORA_API_KEY", raising=False)
+        monkeypatch.delenv("ELNORA_MCP_API_KEY", raising=False)
+        monkeypatch.delenv("ELNORA_PROFILE", raising=False)
+        monkeypatch.setattr("elnora.lib.profiles.CONFIG_DIR", tmp_path)
+        monkeypatch.setattr("elnora.lib.profiles.PROFILES_FILE", tmp_path / "profiles.toml")
+        monkeypatch.setattr("elnora.lib.profiles.LEGACY_CONFIG_FILE", tmp_path / "config.toml")
+        monkeypatch.setattr("elnora.lib.client.CONFIG_FILE", tmp_path / "config.toml")
+        key = "elnora_live_" + "p" * 30
+        save_profile("default", key)
+        with patch.object(ElnoraClient, "_load_env"):
+            client = ElnoraClient.from_env()
+        assert client._api_key == key
+
+    def test_uses_named_profile(self, tmp_path, monkeypatch):
+        from elnora.lib.profiles import save_profile
+
+        monkeypatch.delenv("ELNORA_API_KEY", raising=False)
+        monkeypatch.delenv("ELNORA_MCP_API_KEY", raising=False)
+        monkeypatch.delenv("ELNORA_PROFILE", raising=False)
+        monkeypatch.setattr("elnora.lib.profiles.CONFIG_DIR", tmp_path)
+        monkeypatch.setattr("elnora.lib.profiles.PROFILES_FILE", tmp_path / "profiles.toml")
+        monkeypatch.setattr("elnora.lib.profiles.LEGACY_CONFIG_FILE", tmp_path / "config.toml")
+        monkeypatch.setattr("elnora.lib.client.CONFIG_FILE", tmp_path / "config.toml")
+        save_profile("default", "elnora_live_" + "d" * 30)
+        work_key = "elnora_live_" + "w" * 30
+        save_profile("work", work_key)
+        with patch.object(ElnoraClient, "_load_env"):
+            client = ElnoraClient.from_env(profile="work")
+        assert client._api_key == work_key
+
+    def test_env_var_overrides_profile(self, tmp_path, monkeypatch):
+        from elnora.lib.profiles import save_profile
+
+        env_key = "elnora_live_" + "e" * 30
+        monkeypatch.setenv("ELNORA_API_KEY", env_key)
+        monkeypatch.setattr("elnora.lib.profiles.CONFIG_DIR", tmp_path)
+        monkeypatch.setattr("elnora.lib.profiles.PROFILES_FILE", tmp_path / "profiles.toml")
+        save_profile("default", "elnora_live_" + "p" * 30)
+        client = ElnoraClient.from_env(profile="default")
+        assert client._api_key == env_key
+
+    def test_elnora_profile_env_var(self, tmp_path, monkeypatch):
+        from elnora.lib.profiles import save_profile
+
+        monkeypatch.delenv("ELNORA_API_KEY", raising=False)
+        monkeypatch.delenv("ELNORA_MCP_API_KEY", raising=False)
+        monkeypatch.setenv("ELNORA_PROFILE", "work")
+        monkeypatch.setattr("elnora.lib.profiles.CONFIG_DIR", tmp_path)
+        monkeypatch.setattr("elnora.lib.profiles.PROFILES_FILE", tmp_path / "profiles.toml")
+        monkeypatch.setattr("elnora.lib.profiles.LEGACY_CONFIG_FILE", tmp_path / "config.toml")
+        monkeypatch.setattr("elnora.lib.client.CONFIG_FILE", tmp_path / "config.toml")
+        save_profile("default", "elnora_live_" + "d" * 30)
+        work_key = "elnora_live_" + "w" * 30
+        save_profile("work", work_key)
+        with patch.object(ElnoraClient, "_load_env"):
+            client = ElnoraClient.from_env()
+        assert client._api_key == work_key
+
+    def test_auto_migrates_config_toml(self, tmp_path, monkeypatch):
+        monkeypatch.delenv("ELNORA_API_KEY", raising=False)
+        monkeypatch.delenv("ELNORA_MCP_API_KEY", raising=False)
+        monkeypatch.delenv("ELNORA_PROFILE", raising=False)
+        monkeypatch.setattr("elnora.lib.profiles.CONFIG_DIR", tmp_path)
+        monkeypatch.setattr("elnora.lib.profiles.PROFILES_FILE", tmp_path / "profiles.toml")
+        legacy = tmp_path / "config.toml"
+        key = "elnora_live_" + "m" * 30
+        legacy.write_text(f'api_key = "{key}"\n')
+        monkeypatch.setattr("elnora.lib.profiles.LEGACY_CONFIG_FILE", legacy)
+        monkeypatch.setattr("elnora.lib.client.CONFIG_FILE", legacy)
+        with patch.object(ElnoraClient, "_load_env"):
+            client = ElnoraClient.from_env()
+        assert client._api_key == key
+        # Verify profiles.toml was created
+        assert (tmp_path / "profiles.toml").is_file()
+
+    def test_falls_back_to_config_toml(self, tmp_path, monkeypatch):
+        monkeypatch.delenv("ELNORA_API_KEY", raising=False)
+        monkeypatch.delenv("ELNORA_MCP_API_KEY", raising=False)
+        monkeypatch.delenv("ELNORA_PROFILE", raising=False)
+        monkeypatch.setattr("elnora.lib.profiles.PROFILES_FILE", tmp_path / "profiles.toml")
+        monkeypatch.setattr("elnora.lib.profiles.LEGACY_CONFIG_FILE", tmp_path / "nonexistent.toml")
+        legacy = tmp_path / "config.toml"
+        key = "elnora_live_" + "f" * 30
+        legacy.write_text(f'api_key = "{key}"\n')
+        monkeypatch.setattr("elnora.lib.client.CONFIG_FILE", legacy)
+        with patch.object(ElnoraClient, "_load_env"):
+            client = ElnoraClient.from_env()
+        assert client._api_key == key

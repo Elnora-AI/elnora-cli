@@ -27,12 +27,27 @@ pip install elnora
 elnora auth login
 ```
 
-This prompts for your API key (get one from [platform.elnora.ai](https://platform.elnora.ai) > Settings > API Keys), verifies it, and saves it to `~/.elnora/config.toml`.
+This prompts for your API key (get one from [platform.elnora.ai](https://platform.elnora.ai) > Settings > API Keys), verifies it, and saves it to `~/.elnora/profiles.toml`.
 
 Alternatively, set an environment variable:
 
 ```bash
 export ELNORA_API_KEY=your_api_key
+```
+
+### Multi-Org Setup
+
+If you belong to multiple organizations, save a separate API key per org as a named profile:
+
+```bash
+elnora auth login --profile university
+elnora auth login --profile work
+
+# Use a specific profile
+elnora --profile university projects list
+
+# List all profiles
+elnora auth profiles
 ```
 
 ### Verify
@@ -118,6 +133,7 @@ elnora health
 
 | Option | Description |
 |--------|-------------|
+| `--profile` | Named profile to use (default: `default`) |
 | `--compact` | Token-efficient minimal JSON output |
 | `--output json\|csv` | Output format (default: `json`) |
 | `--fields` | Comma-separated fields to include in output |
@@ -190,16 +206,19 @@ This makes the CLI easy to integrate with `jq`, scripts, and AI agents.
 
 ## Authentication
 
-The CLI resolves `ELNORA_API_KEY` in this order:
+The CLI resolves API keys in this order:
 
 1. `ELNORA_API_KEY` environment variable
 2. `ELNORA_MCP_API_KEY` environment variable (alias)
 3. `.env` file in the nearest project root (directory containing `pyproject.toml`, `package.json`, `.git`, etc.)
-4. `~/.elnora/config.toml` (written by `elnora auth login`)
+4. `~/.elnora/profiles.toml` — active profile (selected by `--profile` flag or `ELNORA_PROFILE` env var, default: `default`)
+5. `~/.elnora/config.toml` (legacy fallback)
+
+Existing `config.toml` credentials are automatically migrated to `profiles.toml` on first use.
 
 **Security best practices:**
 - Never commit API keys to version control
-- Use `elnora auth login` (saves to `~/.elnora/config.toml` with 600 permissions)
+- Use `elnora auth login` (saves to `~/.elnora/profiles.toml` with 600 permissions)
 - Or use environment variables / a gitignored `.env` file
 - Rotate keys periodically via the Elnora dashboard
 - Run `elnora auth logout` to remove saved credentials

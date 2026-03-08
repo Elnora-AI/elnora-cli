@@ -23,7 +23,7 @@ def files():
 def list_files(ctx, project, page, page_size):
     """List files in a project.
 
-    Use --org UUID to list files in a different organization.
+    Use --profile to list files in a different organization.
     """
     with handle_errors(ctx):
         validate_page(page)
@@ -107,7 +107,7 @@ def get_versions(ctx, file_id, page, page_size):
 def create_file(ctx, project: str, name: str, folder: str | None, type_: str | None):
     """Create a new file in a project.
 
-    Use --org UUID to create the file in a different organization.
+    Use --profile to create the file in a different organization.
     """
     with handle_errors(ctx):
         validate_guid(project, "project")

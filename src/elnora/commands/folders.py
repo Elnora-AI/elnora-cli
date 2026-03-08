@@ -20,7 +20,7 @@ def folders():
 def list_folders(ctx, project):
     """List folders in a project.
 
-    Use --org UUID to list folders in a different organization.
+    Use --profile to list folders in a different organization.
     """
     with handle_errors(ctx):
         validate_guid(project, "project")
@@ -37,7 +37,7 @@ def list_folders(ctx, project):
 def create_folder(ctx, project, name, parent):
     """Create a new folder in a project.
 
-    Use --org UUID to create the folder in a different organization.
+    Use --profile to create the folder in a different organization.
     """
     with handle_errors(ctx):
         validate_guid(project, "project")

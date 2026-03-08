@@ -23,7 +23,7 @@ def search():
 def tasks(ctx, query: str, page: int, page_size: int):
     """Search tasks by query string.
 
-    Use --org UUID to search in a different organization.
+    Use --profile to search in a different organization.
     """
     with handle_errors(ctx):
         validate_page(page)
@@ -46,7 +46,7 @@ def tasks(ctx, query: str, page: int, page_size: int):
 def files(ctx, query: str, page: int, page_size: int):
     """Search files by query string.
 
-    Use --org UUID to search in a different organization.
+    Use --profile to search in a different organization.
     """
     with handle_errors(ctx):
         validate_page(page)
@@ -69,7 +69,7 @@ def files(ctx, query: str, page: int, page_size: int):
 def all_(ctx, query: str, page: int, page_size: int):
     """Search all resources by query string.
 
-    Use --org UUID to search in a different organization.
+    Use --profile to search in a different organization.
     """
     with handle_errors(ctx):
         validate_page(page)

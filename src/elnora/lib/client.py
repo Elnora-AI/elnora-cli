@@ -99,11 +99,10 @@ class _NoRedirectHandler(urllib.request.HTTPRedirectHandler):
 class ElnoraClient:
     """Thin wrapper around the Elnora Platform REST API."""
 
-    _global_org_id: str | None = None  # Set by CLI --org flag
+    _active_profile: str | None = None  # Set by CLI --profile flag
 
-    def __init__(self, api_key: str, org_id: str | None = None):
+    def __init__(self, api_key: str):
         self._api_key = api_key
-        self._org_id = org_id or self._global_org_id
         self._last_request_time = 0.0
         self._opener = urllib.request.build_opener(_NoRedirectHandler)
 
@@ -112,14 +111,15 @@ class ElnoraClient:
     # ------------------------------------------------------------------
 
     @classmethod
-    def from_env(cls) -> ElnoraClient:
+    def from_env(cls, profile: str | None = None) -> ElnoraClient:
         """Build client from environment.
 
         Resolution order:
         1. ELNORA_API_KEY env var
         2. ELNORA_MCP_API_KEY env var (alias)
         3. .env file in nearest project root
-        4. ~/.elnora/config.toml
+        4. ~/.elnora/profiles.toml (active profile)
+        5. ~/.elnora/config.toml (legacy fallback)
 
         Validates key starts with ``elnora_live_``.
         """
@@ -131,6 +131,17 @@ class ElnoraClient:
             key = os.environ.get("ELNORA_API_KEY", "").strip()
             if not key:
                 key = os.environ.get("ELNORA_MCP_API_KEY", "").strip()
+        if not key:
+            from .profiles import get_api_key, migrate_config_if_needed
+
+            migrate_config_if_needed()
+            effective_profile = (
+                profile or cls._active_profile or os.environ.get("ELNORA_PROFILE", "").strip() or "default"
+            )
+            try:
+                key = get_api_key(effective_profile)
+            except AuthError:
+                pass
         if not key:
             key = cls._load_config_file()
         if not key:
@@ -321,8 +332,6 @@ class ElnoraClient:
             )
 
         headers = {**config.DEFAULT_HEADERS, "X-API-Key": self._api_key}
-        if self._org_id:
-            headers["X-Organization-Id"] = self._org_id
 
         data = None
         if method in ("POST", "PUT", "PATCH") and body is not None:

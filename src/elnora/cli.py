@@ -55,9 +55,10 @@ from .commands.tasks import tasks  # noqa: E402
     help="Output format.",
 )
 @click.option("--fields", default=None, help="Comma-separated fields to include.")
-@click.option("--org", default=None, help="Organization UUID — operate on a different org for this command.")
+@click.option("--profile", default=None, help="Named profile to use (default: 'default').")
+@click.option("--org", default=None, hidden=True, help="[DEPRECATED] Organization UUID — ignored for API key auth.")
 @click.pass_context
-def cli(ctx, compact, fmt, fields, org):
+def cli(ctx, compact, fmt, fields, profile, org):
     """Elnora AI Platform CLI.
 
     \b
@@ -65,18 +66,32 @@ def cli(ctx, compact, fmt, fields, org):
       1. Get an API key from https://platform.elnora.ai > Settings > API Keys
       2. Run: elnora auth login
       3. Try:  elnora projects list
+
+    \b
+    Multi-org setup:
+      elnora auth login --profile university
+      elnora --profile university projects list
     """
     ctx.ensure_object(dict)
     ctx.obj["compact"] = compact
     ctx.obj["fmt"] = fmt
     ctx.obj["fields"] = [f.strip() for f in fields.split(",") if f.strip()] if fields else None
-    ctx.obj["org"] = org
+    ctx.obj["profile"] = profile
 
-    # Set global org override so all ElnoraClient instances pick it up
-    if org:
+    # Set active profile so ElnoraClient.from_env() picks it up
+    if profile:
         from .lib.client import ElnoraClient
 
-        ElnoraClient._global_org_id = org
+        ElnoraClient._active_profile = profile
+
+    if org:
+        from .lib.errors import output_warning
+
+        output_warning(
+            "--org is deprecated and has no effect with API key auth. "
+            "Use --profile instead to switch between organizations.",
+            code="DEPRECATED_FLAG",
+        )
 
 
 cli.add_command(account)

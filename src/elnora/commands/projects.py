@@ -22,7 +22,7 @@ def projects():
 def list_projects(ctx, page: int, page_size: int):
     """List all projects.
 
-    Use --org UUID to list projects in a different organization.
+    Use --profile to list projects in a different organization.
     """
     with handle_errors(ctx):
         validate_page(page)
@@ -61,7 +61,7 @@ def get_project(ctx, project_id: str):
 def create_project(ctx, name: str, description: str | None, icon: str | None):
     """Create a new project.
 
-    Use --org UUID to create the project in a different organization.
+    Use --profile to create the project in a different organization.
     """
     with handle_errors(ctx):
         client = ElnoraClient.from_env()

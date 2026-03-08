@@ -23,7 +23,7 @@ def tasks():
 def list_tasks(ctx, project, page, page_size):
     """List tasks, optionally filtered by project.
 
-    Use --org UUID to list tasks in a different organization.
+    Use --profile to list tasks in a different organization.
     """
     with handle_errors(ctx):
         validate_page(page)
@@ -55,7 +55,7 @@ def get_task(ctx, task_id):
 def create_task(ctx, project, title, message):
     """Create a new task in a project.
 
-    Use --org UUID to create the task in a different organization.
+    Use --profile to create the task in a different organization.
     """
     with handle_errors(ctx):
         client = ElnoraClient.from_env()

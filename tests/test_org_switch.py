@@ -1,146 +1,174 @@
-"""Tests for --org flag propagation and X-Organization-Id header injection."""
+"""Tests for --profile flag propagation and --org deprecation."""
 
-import urllib.error
-import urllib.request
-from unittest.mock import MagicMock
+import json
 
-import pytest
 from click.testing import CliRunner
 
 from elnora.cli import cli
 from elnora.lib.client import ElnoraClient
 
-FAKE_ORG = "00000000-1111-2222-3333-444444444444"
 FAKE_KEY = "elnora_live_" + "x" * 30
 
 
-class TestOrgFlagPropagation:
-    """--org sets _global_org_id and propagates to client."""
+class TestProfileFlagPropagation:
+    """--profile sets _active_profile and propagates to client."""
 
-    def test_org_flag_sets_global_org_id(self, monkeypatch):
-        """--org flag sets ElnoraClient._global_org_id."""
+    def test_profile_flag_sets_active_profile(self, monkeypatch):
+        """--profile flag sets ElnoraClient._active_profile."""
         monkeypatch.setenv("ELNORA_API_KEY", FAKE_KEY)
         runner = CliRunner()
-        # Invoke a command that will fail (no server), but --org should be set
-        # before the command runs. We patch from_env to capture state.
-        captured_org = {}
+        captured = {}
 
         @classmethod
-        def mock_from_env(cls):
-            captured_org["global"] = cls._global_org_id
+        def mock_from_env(cls, profile=None):
+            captured["active_profile"] = cls._active_profile
+            captured["profile_arg"] = profile
             raise RuntimeError("stop here")
 
         monkeypatch.setattr(ElnoraClient, "from_env", mock_from_env)
-        runner.invoke(cli, ["--org", FAKE_ORG, "projects", "list"])
-        assert captured_org.get("global") == FAKE_ORG
+        runner.invoke(cli, ["--profile", "university", "projects", "list"])
+        assert captured.get("active_profile") == "university"
 
-    def test_no_org_flag_leaves_global_none(self, monkeypatch):
-        """Without --org, _global_org_id stays None."""
+    def test_no_profile_flag_leaves_active_none(self, monkeypatch):
+        """Without --profile, _active_profile stays None."""
         monkeypatch.setenv("ELNORA_API_KEY", FAKE_KEY)
-        # Reset class state
-        ElnoraClient._global_org_id = None
+        ElnoraClient._active_profile = None
         runner = CliRunner()
-
-        captured_org = {}
+        captured = {}
 
         @classmethod
-        def mock_from_env(cls):
-            captured_org["global"] = cls._global_org_id
+        def mock_from_env(cls, profile=None):
+            captured["active_profile"] = cls._active_profile
             raise RuntimeError("stop here")
 
         monkeypatch.setattr(ElnoraClient, "from_env", mock_from_env)
         runner.invoke(cli, ["projects", "list"])
-        assert captured_org.get("global") is None
-
-    def test_client_inherits_global_org_id(self):
-        """ElnoraClient.__init__ picks up _global_org_id."""
-        ElnoraClient._global_org_id = FAKE_ORG
-        try:
-            client = ElnoraClient(FAKE_KEY)
-            assert client._org_id == FAKE_ORG
-        finally:
-            ElnoraClient._global_org_id = None
-
-    def test_explicit_org_id_overrides_global(self):
-        """Explicit org_id kwarg takes priority over _global_org_id."""
-        other_org = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
-        ElnoraClient._global_org_id = FAKE_ORG
-        try:
-            client = ElnoraClient(FAKE_KEY, org_id=other_org)
-            assert client._org_id == other_org
-        finally:
-            ElnoraClient._global_org_id = None
+        assert captured.get("active_profile") is None
 
 
-class TestOrgHeaderInjection:
-    """X-Organization-Id header is sent when org_id is set."""
+class TestOrgFlagDeprecation:
+    """--org flag shows deprecation warning."""
 
-    def test_header_present_when_org_set(self, monkeypatch):
-        """Request includes X-Organization-Id when org_id is set."""
-        client = ElnoraClient(FAKE_KEY, org_id=FAKE_ORG)
+    def test_org_flag_shows_warning(self, monkeypatch):
+        monkeypatch.setenv("ELNORA_API_KEY", FAKE_KEY)
+        runner = CliRunner()
 
-        captured_req = {}
+        @classmethod
+        def mock_from_env(cls, profile=None):
+            raise RuntimeError("stop here")
 
-        def mock_open(opener_self, req, timeout=None):
-            captured_req["headers"] = dict(req.headers)
-            captured_req["url"] = req.full_url
-            # Return a mock response
-            resp = MagicMock()
-            resp.read.return_value = b'{"items": []}'
-            resp.__enter__ = lambda s: s
-            resp.__exit__ = lambda s, *a: None
-            return resp
+        monkeypatch.setattr(ElnoraClient, "from_env", mock_from_env)
+        result = runner.invoke(cli, ["--org", "some-uuid", "projects", "list"])
+        assert "deprecated" in result.output.lower() or "deprecated" in (result.stderr or "").lower()
 
-        monkeypatch.setattr(urllib.request.OpenerDirector, "open", mock_open)
-        client._last_request_time = 0  # skip throttle
-        client._request("/projects")
-
-        assert captured_req["headers"].get("X-organization-id") == FAKE_ORG
-
-    def test_header_absent_when_no_org(self, monkeypatch):
-        """Request does NOT include X-Organization-Id when org_id is None."""
-        ElnoraClient._global_org_id = None
-        client = ElnoraClient(FAKE_KEY)
-
-        captured_req = {}
-
-        def mock_open(opener_self, req, timeout=None):
-            captured_req["headers"] = dict(req.headers)
-            resp = MagicMock()
-            resp.read.return_value = b'{"items": []}'
-            resp.__enter__ = lambda s: s
-            resp.__exit__ = lambda s, *a: None
-            return resp
-
-        monkeypatch.setattr(urllib.request.OpenerDirector, "open", mock_open)
-        client._last_request_time = 0
-        client._request("/projects")
-
-        assert "X-organization-id" not in captured_req["headers"]
+    def test_org_flag_hidden_from_help(self):
+        runner = CliRunner()
+        result = runner.invoke(cli, ["--help"])
+        assert result.exit_code == 0
+        # --org should be hidden, --profile should be visible
+        assert "--profile" in result.output
+        # --org should not appear as a documented option in help
+        assert "--org" not in result.output or "DEPRECATED" in result.output.upper()
 
 
-class TestOrgHelpText:
-    """Org-scoped commands mention --org in help."""
+class TestProfileInHelp:
+    """--profile flag appears in help text."""
 
     runner = CliRunner()
 
-    @pytest.mark.parametrize(
-        "cmd",
-        [
-            ["projects", "list", "--help"],
-            ["projects", "create", "--help"],
-            ["tasks", "list", "--help"],
-            ["tasks", "create", "--help"],
-            ["search", "tasks", "--help"],
-            ["search", "files", "--help"],
-            ["search", "all", "--help"],
-            ["files", "list", "--help"],
-            ["files", "create", "--help"],
-            ["folders", "list", "--help"],
-            ["folders", "create", "--help"],
-        ],
-    )
-    def test_org_mentioned_in_help(self, cmd):
-        result = self.runner.invoke(cli, cmd)
+    def test_profile_in_main_help(self):
+        result = self.runner.invoke(cli, ["--help"])
         assert result.exit_code == 0
-        assert "--org" in result.output or "org" in result.output.lower()
+        assert "--profile" in result.output
+
+    def test_multi_org_in_help(self):
+        result = self.runner.invoke(cli, ["--help"])
+        assert result.exit_code == 0
+        assert "Multi-org" in result.output or "multi-org" in result.output.lower()
+
+
+class TestAuthProfilesCommand:
+    """elnora auth profiles subcommand."""
+
+    runner = CliRunner()
+
+    def test_profiles_in_auth_help(self):
+        result = self.runner.invoke(cli, ["auth", "--help"])
+        assert result.exit_code == 0
+        assert "profiles" in result.output
+
+    def test_profiles_empty(self, tmp_path, monkeypatch):
+        monkeypatch.setattr("elnora.lib.profiles.PROFILES_FILE", tmp_path / "profiles.toml")
+        result = self.runner.invoke(cli, ["auth", "profiles"])
+        assert result.exit_code == 0
+        data = json.loads(result.output)
+        assert data["profiles"] == []
+
+    def test_profiles_lists_all(self, tmp_path, monkeypatch):
+        from elnora.lib.profiles import save_profile
+
+        monkeypatch.setattr("elnora.lib.profiles.CONFIG_DIR", tmp_path)
+        monkeypatch.setattr("elnora.lib.profiles.PROFILES_FILE", tmp_path / "profiles.toml")
+        save_profile("default", "elnora_live_default12345678901")
+        save_profile("work", "elnora_live_workkey12345678901")
+        result = self.runner.invoke(cli, ["auth", "profiles"])
+        assert result.exit_code == 0
+        data = json.loads(result.output)
+        names = [p["name"] for p in data["profiles"]]
+        assert "default" in names
+        assert "work" in names
+        # Keys should be masked
+        for p in data["profiles"]:
+            assert "..." in p["apiKey"]
+
+
+class TestAuthLoginProfile:
+    """elnora auth login --profile saves to correct profile."""
+
+    runner = CliRunner()
+
+    def test_login_help_shows_profile(self):
+        result = self.runner.invoke(cli, ["auth", "login", "--help"])
+        assert result.exit_code == 0
+        assert "--profile" in result.output
+
+
+class TestAuthLogoutProfile:
+    """elnora auth logout --profile removes correct profile."""
+
+    runner = CliRunner()
+
+    def test_logout_help_shows_profile(self):
+        result = self.runner.invoke(cli, ["auth", "logout", "--help"])
+        assert result.exit_code == 0
+        assert "--profile" in result.output
+
+    def test_logout_help_shows_all(self):
+        result = self.runner.invoke(cli, ["auth", "logout", "--help"])
+        assert result.exit_code == 0
+        assert "--all" in result.output
+
+    def test_logout_removes_profile(self, tmp_path, monkeypatch):
+        from elnora.lib.profiles import load_profiles, save_profile
+
+        monkeypatch.setattr("elnora.lib.profiles.CONFIG_DIR", tmp_path)
+        monkeypatch.setattr("elnora.lib.profiles.PROFILES_FILE", tmp_path / "profiles.toml")
+        save_profile("default", "elnora_live_default12345678901")
+        save_profile("work", "elnora_live_workkey12345678901")
+        result = self.runner.invoke(cli, ["auth", "logout", "--profile", "work"])
+        assert result.exit_code == 0
+        remaining = load_profiles()
+        assert "work" not in remaining
+        assert "default" in remaining
+
+    def test_logout_all(self, tmp_path, monkeypatch):
+        from elnora.lib.profiles import save_profile
+
+        monkeypatch.setattr("elnora.lib.profiles.CONFIG_DIR", tmp_path)
+        profiles_file = tmp_path / "profiles.toml"
+        monkeypatch.setattr("elnora.lib.profiles.PROFILES_FILE", profiles_file)
+        save_profile("default", "elnora_live_default12345678901")
+        save_profile("work", "elnora_live_workkey12345678901")
+        result = self.runner.invoke(cli, ["auth", "logout", "--all"])
+        assert result.exit_code == 0
+        assert not profiles_file.is_file()

@@ -60,6 +60,7 @@ ENDPOINTS = {
     "search_tasks": "/search/tasks",
     "search_files": "/search/files",
     "search_all": "/search",
+    "search_file_content": "/search/file-content",
     # API Keys
     "api_keys": "/api-keys",
     "api_key": "/api-keys/{id}",

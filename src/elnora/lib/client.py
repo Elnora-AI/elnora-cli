@@ -565,6 +565,13 @@ class ElnoraClient:
             query_params={"q": query, "page": page, "pageSize": page_size},
         )
 
+    def search_file_content(self, query: str, project_id: str | None = None, page: int = 1, page_size: int = 25) -> dict:
+        """Search file contents via full-text search."""
+        params: dict[str, Any] = {"q": query, "page": str(page), "pageSize": str(page_size)}
+        if project_id:
+            params["projectId"] = project_id
+        return self._request(config.ENDPOINTS["search_file_content"], query_params=params)
+
     # ------------------------------------------------------------------
     # Organizations
     # ------------------------------------------------------------------

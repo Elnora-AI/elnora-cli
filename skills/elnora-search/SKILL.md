@@ -2,7 +2,8 @@
 name: elnora-search
 description: >
   This skill should be used when the user asks to "search tasks", "find a protocol",
-  "search files", "find tasks about", "look up", "query Elnora", "search everything",
+  "search files", "search file content", "search inside files", "find tasks about",
+  "look up", "query Elnora", "search everything", "full text search",
   or any task involving searching the Elnora Platform for tasks, files, or all resources
   by keyword.
 ---
@@ -45,6 +46,16 @@ $CLI --compact search files --query "template" --page 2
 
 Same pagination shape. Use file IDs from results with `files get` or `files content`.
 
+### Search File Content
+
+```bash
+$CLI --compact search file-content --query "annealing temperature"
+$CLI --compact search file-content --query "BRCA1" --project <PROJECT_ID>
+$CLI --compact files search-content -q "gel electrophoresis" --page-size 10
+```
+
+Full-text search inside file contents. Optional `--project` filter to limit to a specific project. Also available as `files search-content`.
+
 ### Search All
 
 ```bash
@@ -56,7 +67,7 @@ Searches both tasks and files in a single call. Results include a `type` field (
 
 ## Options
 
-All three commands share:
+All four commands share:
 
 | Flag | Default | Notes |
 |------|---------|-------|

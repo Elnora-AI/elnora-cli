@@ -3,9 +3,9 @@ name: elnora-files
 description: >
   This skill should be used when the user asks to "list files", "read a file",
   "get file content", "view protocol output", "file versions", "version history",
-  "download protocol", "upload file", "create file", "archive file", "fork file",
-  "promote file", "working copy", "restore version", or any task involving
-  Elnora Platform file management.
+  "download protocol", "upload file", "upload batch", "bulk upload", "create file",
+  "archive file", "fork file", "promote file", "working copy", "restore version",
+  "search file content", or any task involving Elnora Platform file management.
 ---
 
 # Elnora Files
@@ -127,6 +127,23 @@ Three-step process (handled automatically): gets presigned URL, uploads content,
 | `--file` | Yes | Local file path |
 | `--file-name` | No | Override filename (defaults to local name) |
 | `--content-type` | No | MIME type (auto-detected if omitted) |
+
+### Upload Batch
+
+```bash
+$CLI --compact files upload-batch --project <PROJECT_ID> --files "a.pdf,b.docx,c.txt"
+$CLI --compact files upload-batch --project <PROJECT_ID> --files "file1.md,file2.md" --folder <FOLDER_ID>
+```
+
+Uploads up to 50 files in a single batch. Gets presigned URLs in bulk, uploads each file, and confirms all.
+
+| Flag | Required | Notes |
+|------|----------|-------|
+| `--project` | Yes | Project UUID |
+| `--files` | Yes | Comma-separated local file paths |
+| `--folder` | No | Folder UUID (applies to all files) |
+
+Returns a list of results per file with status (success/failed).
 
 ### Confirm Upload
 

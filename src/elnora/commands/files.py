@@ -181,6 +181,83 @@ def upload_file(ctx, project: str, file_path: str, file_name: str | None, conten
             output_success(upload_info, compact=ctx.obj["compact"], fmt=ctx.obj["fmt"], fields=ctx.obj["fields"])
 
 
+@files.command("upload-batch")
+@click.option("--project", required=True, help="Project GUID (required).")
+@click.option("--files", "file_paths", required=True, help="Comma-separated local file paths to upload.")
+@click.option("--folder", default=None, help="Folder GUID (optional, applies to all files).")
+@click.pass_context
+def upload_batch(ctx, project: str, file_paths: str, folder: str | None):
+    """Upload multiple local files to a project in a single batch.
+
+    Gets presigned URLs for up to 50 files, uploads them in sequence, and confirms each.
+
+    \b
+    Example:
+      elnora files upload-batch --project <ID> --files "a.pdf,b.docx,c.txt"
+    """
+    import mimetypes
+    from pathlib import Path
+
+    with handle_errors(ctx):
+        validate_guid(project, "project")
+        if folder:
+            validate_guid(folder, "folder")
+        paths = [Path(p.strip()) for p in file_paths.split(",") if p.strip()]
+        if not paths:
+            raise ValidationError("No files specified.", suggestion="Provide comma-separated file paths with --files.")
+        if len(paths) > 50:
+            raise ValidationError(
+                f"Too many files ({len(paths)}). Maximum is 50 per batch.",
+                suggestion="Split into multiple batches of 50 or fewer.",
+            )
+        for p in paths:
+            if not p.exists():
+                raise ValidationError(f"File not found: {p}")
+            if p.stat().st_size == 0:
+                raise ValidationError(f"File is empty: {p}", suggestion="Provide non-empty files.")
+
+        # Build batch request items
+        items = []
+        for p in paths:
+            ct = mimetypes.guess_type(p.name)[0] or "application/octet-stream"
+            item = {
+                "fileName": p.name,
+                "contentType": ct,
+                "fileSizeBytes": p.stat().st_size,
+                "projectId": project,
+            }
+            if folder:
+                item["folderId"] = folder
+            items.append(item)
+
+        client = ElnoraClient.from_env()
+        batch_result = client.batch_initiate_upload(items=items)
+
+        # Upload each file to its presigned URL and confirm
+        import urllib.request
+
+        result_items = batch_result if isinstance(batch_result, list) else batch_result.get("items", [])
+        results = []
+        for i, entry in enumerate(result_items):
+            if entry.get("status") == "failed":
+                results.append({"file": paths[i].name, "status": "failed", "error": entry.get("error", "unknown")})
+                continue
+            data = entry.get("data", entry)
+            presigned_url = data.get("uploadUrl") or data.get("url")
+            file_id = data.get("fileId") or data.get("id")
+            if not presigned_url or not file_id:
+                results.append({"file": paths[i].name, "status": "failed", "error": "no upload URL returned"})
+                continue
+            ct = mimetypes.guess_type(paths[i].name)[0] or "application/octet-stream"
+            file_data = paths[i].read_bytes()
+            put_req = urllib.request.Request(presigned_url, data=file_data, headers={"Content-Type": ct}, method="PUT")
+            urllib.request.urlopen(put_req, timeout=120).read()
+            confirm = client.confirm_upload(file_id)
+            results.append({"file": paths[i].name, "status": "success", "fileId": file_id, "detail": confirm})
+
+        output_success(results, compact=ctx.obj["compact"], fmt=ctx.obj["fmt"], fields=ctx.obj["fields"])
+
+
 @files.command("confirm-upload")
 @click.argument("file_id")
 @click.pass_context
@@ -339,3 +416,26 @@ def commit_working_copy(ctx, file_id: str):
         client = ElnoraClient.from_env()
         result = client.commit_working_copy(file_id)
         output_success(result, compact=ctx.obj["compact"], fmt=ctx.obj["fmt"], fields=ctx.obj["fields"])
+
+
+@files.command("search-content")
+@click.option("--project", "project_id", default=None, help="Limit to project (UUID).")
+@click.option("--query", "-q", required=True, help="Search query.")
+@click.option("--page", default=1, type=int, show_default=True, help="Page number.")
+@click.option("--page-size", default=DEFAULT_PAGE_SIZE, type=int, show_default=True, help="Results per page.")
+@click.pass_context
+def search_file_content(ctx, project_id, query, page, page_size):
+    """Search inside file contents."""
+    with handle_errors(ctx):
+        validate_page(page)
+        validate_page_size(page_size)
+        if project_id:
+            validate_guid(project_id, "project")
+        client = ElnoraClient.from_env()
+        result = client.search_file_content(query, project_id, page=page, page_size=page_size)
+        output_success(
+            result,
+            compact=ctx.obj["compact"],
+            fmt=ctx.obj["fmt"],
+            fields=ctx.obj["fields"],
+        )

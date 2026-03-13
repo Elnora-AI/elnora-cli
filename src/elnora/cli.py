@@ -35,6 +35,7 @@ from .commands.auth import auth  # noqa: E402
 from .commands.completion import completion  # noqa: E402
 from .commands.feedback import feedback  # noqa: E402
 from .commands.files import files  # noqa: E402
+from .commands.flags import flags  # noqa: E402
 from .commands.folders import folders  # noqa: E402
 from .commands.health import health  # noqa: E402
 from .commands.library import library  # noqa: E402
@@ -101,6 +102,7 @@ cli.add_command(auth)
 cli.add_command(completion)
 cli.add_command(feedback)
 cli.add_command(files)
+cli.add_command(flags)
 cli.add_command(folders)
 cli.add_command(health)
 cli.add_command(library)

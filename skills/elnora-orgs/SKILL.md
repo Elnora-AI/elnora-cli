@@ -3,8 +3,9 @@ name: elnora-orgs
 description: >
   This skill should be used when the user asks to "list organizations", "create org",
   "org members", "billing", "invite member", "manage invitations", "organization library",
-  "shared library", "library files", "library folders", or any task involving Elnora
-  Platform organization management and shared library resources.
+  "shared library", "library files", "library folders", "set default org", "delete org",
+  "list all orgs", "set stripe",
+  or any task involving Elnora Platform organization management and shared library resources.
 ---
 
 # Elnora Organizations & Library
@@ -86,6 +87,51 @@ $CLI --compact orgs billing <ORG_ID>
 ```
 
 Returns billing information for the organization.
+
+### List All Org Files (Admin Compliance View)
+
+```bash
+$CLI --compact orgs files --org <ORG_ID>
+$CLI --compact orgs files --org <ORG_ID> --page 2 --page-size 50
+```
+
+`--org` is required. Lists all files across all projects in the organization. Useful for admin compliance and auditing.
+
+### Set Default Organization
+
+```bash
+$CLI --compact orgs set-default <ORG_ID>
+# -> {"updated":true,"defaultOrgId":"<UUID>"}
+```
+
+Sets the specified organization as your default. Used when no `--profile` is specified.
+
+### Set Stripe Customer ID (SystemAdmin)
+
+```bash
+$CLI --compact orgs set-stripe <ORG_ID> --customer-id cus_xxx
+```
+
+SystemAdmin only. Sets the Stripe billing customer ID for an organization.
+
+### List All Organizations (SystemAdmin)
+
+```bash
+$CLI --compact orgs list-all
+```
+
+SystemAdmin only. Lists ALL organizations on the platform (not just the user's).
+
+### Delete Organization (SystemAdmin)
+
+```bash
+$CLI --compact orgs delete <ORG_ID>
+$CLI --compact orgs delete <ORG_ID> --yes
+# -> {"deleted":true,"orgId":"<UUID>"}
+```
+
+**DANGEROUS: Permanently deletes the organization and ALL its data. Irreversible.**
+Requires typing the organization name to confirm. Use `--yes` to skip (non-interactive/CI only).
 
 ## Invitation Commands
 

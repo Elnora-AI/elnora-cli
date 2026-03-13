@@ -1,4 +1,4 @@
-"""API key commands — create, list, and revoke API keys."""
+"""API key commands — create, list, revoke, and manage creation policy."""
 
 from __future__ import annotations
 
@@ -48,6 +48,46 @@ def revoke_api_key(ctx, key_id):
         client.revoke_api_key(key_id)
         output_success(
             {"revoked": True, "keyId": key_id},
+            compact=ctx.obj["compact"],
+            fmt=ctx.obj["fmt"],
+            fields=ctx.obj["fields"],
+        )
+
+
+@api_keys.command("get-policy")
+@click.pass_context
+def get_policy(ctx):
+    """Get the API key creation policy for your organization.
+
+    Shows whether all members or only admins can create API keys.
+    """
+    with handle_errors(ctx):
+        client = ElnoraClient.from_env()
+        result = client.get_api_key_policy()
+        output_success(result, compact=ctx.obj["compact"], fmt=ctx.obj["fmt"], fields=ctx.obj["fields"])
+
+
+@api_keys.command("set-policy")
+@click.option(
+    "--policy",
+    required=True,
+    type=click.Choice(["all_members", "admins_only"]),
+    help="Who can create API keys: all_members or admins_only.",
+)
+@click.pass_context
+def set_policy(ctx, policy):
+    """Set the API key creation policy (org admin only).
+
+    \b
+    Values:
+      all_members  — any org member can create API keys
+      admins_only  — only org admins/owners can create API keys
+    """
+    with handle_errors(ctx):
+        client = ElnoraClient.from_env()
+        client.set_api_key_policy(policy=policy)
+        output_success(
+            {"updated": True, "policy": policy},
             compact=ctx.obj["compact"],
             fmt=ctx.obj["fmt"],
             fields=ctx.obj["fields"],

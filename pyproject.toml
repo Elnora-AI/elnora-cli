@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "elnora"
-version = "0.7.0"
+version = "0.7.1"
 description = "CLI for the Elnora AI platform"
 requires-python = ">=3.10"
 dependencies = ["click>=8.1,<9"]

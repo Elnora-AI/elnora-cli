@@ -116,15 +116,39 @@ def get_billing(ctx, org_id):
         output_success(result, compact=ctx.obj["compact"], fmt=ctx.obj["fmt"], fields=ctx.obj["fields"])
 
 
+@orgs.command("set-stripe")
+@click.argument("org_id")
+@click.option("--customer-id", required=True, help="Stripe customer ID (cus_xxx).")
+@click.pass_context
+def set_stripe(ctx, org_id, customer_id):
+    """Set the Stripe customer ID for an organization (SystemAdmin only)."""
+    with handle_errors(ctx):
+        client = ElnoraClient.from_env()
+        result = client.update_organization_stripe_customer(org_id, stripe_customer_id=customer_id)
+        output_success(result, compact=ctx.obj["compact"], fmt=ctx.obj["fmt"], fields=ctx.obj["fields"])
+
+
 @orgs.command("invite")
 @click.argument("org_id")
 @click.option("--email", required=True, help="Email address to invite (required).")
 @click.option("--role", default="Member", show_default=True, help="Role for the invitee.")
 @click.pass_context
 def invite(ctx, org_id, email, role):
-    """Send an invitation to join an organization."""
+    """Send an invitation to join an organization.
+
+    Idempotent: if a pending invitation already exists for this email,
+    returns the existing invitation instead of raising an error.
+    """
     with handle_errors(ctx):
         client = ElnoraClient.from_env()
+        # Check for existing pending invitation to make this idempotent
+        existing = client.list_invitations(org_id)
+        invitations = existing if isinstance(existing, list) else existing.get("items", existing)
+        for inv in invitations:
+            if inv.get("email", "").lower() == email.lower() and not inv.get("isExpired", False):
+                inv["_note"] = "existing pending invitation returned (idempotent)"
+                output_success(inv, compact=ctx.obj["compact"], fmt=ctx.obj["fmt"], fields=ctx.obj["fields"])
+                return
         result = client.send_invitation(org_id, email=email, role=role)
         output_success(result, compact=ctx.obj["compact"], fmt=ctx.obj["fmt"], fields=ctx.obj["fields"])
 
@@ -177,3 +201,67 @@ def accept_invite(ctx, token):
         client = ElnoraClient.from_env()
         result = client.accept_invitation(token)
         output_success(result, compact=ctx.obj["compact"], fmt=ctx.obj["fmt"], fields=ctx.obj["fields"])
+
+
+@orgs.command("set-default")
+@click.argument("org_id")
+@click.pass_context
+def set_default(ctx, org_id):
+    """Set an organization as your default.
+
+    Your default organization is used when no --profile is specified.
+    """
+    with handle_errors(ctx):
+        client = ElnoraClient.from_env()
+        client.set_default_organization(org_id)
+        output_success(
+            {"updated": True, "defaultOrgId": org_id},
+            compact=ctx.obj["compact"],
+            fmt=ctx.obj["fmt"],
+            fields=ctx.obj["fields"],
+        )
+
+
+@orgs.command("list-all")
+@click.pass_context
+def list_all_orgs(ctx):
+    """List ALL organizations on the platform (SystemAdmin only)."""
+    with handle_errors(ctx):
+        client = ElnoraClient.from_env()
+        result = client.list_all_organizations()
+        output_success(result, compact=ctx.obj["compact"], fmt=ctx.obj["fmt"], fields=ctx.obj["fields"])
+
+
+@orgs.command("delete")
+@click.argument("org_id")
+@click.option("--yes", is_flag=True, help="Skip confirmation prompt.")
+@click.pass_context
+def delete_org(ctx, org_id, yes):
+    """Delete an organization (SystemAdmin only).
+
+    WARNING: This permanently deletes the organization and all its data.
+    This action is irreversible. You will be asked to confirm unless --yes is passed.
+    """
+    with handle_errors(ctx):
+        if not yes:
+            # Show org info before confirming
+            client = ElnoraClient.from_env()
+            org = client.get_organization(org_id)
+            org_name = org.get("name", org_id) if isinstance(org, dict) else org_id
+            click.echo(f"You are about to permanently delete organization: {org_name} ({org_id})", err=True)
+            click.echo("This action is IRREVERSIBLE. All org data will be lost.", err=True)
+            confirmation = click.prompt("Type the organization name to confirm", default="", show_default=False)
+            if confirmation != org_name:
+                raise ValidationError(
+                    "Confirmation did not match organization name. Aborting.",
+                    suggestion=f"Type exactly: {org_name}",
+                )
+        else:
+            client = ElnoraClient.from_env()
+        client.delete_organization(org_id)
+        output_success(
+            {"deleted": True, "orgId": org_id},
+            compact=ctx.obj["compact"],
+            fmt=ctx.obj["fmt"],
+            fields=ctx.obj["fields"],
+        )

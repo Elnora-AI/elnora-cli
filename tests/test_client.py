@@ -312,16 +312,16 @@ class TestFromEnvWithProfiles:
             client = ElnoraClient.from_env(profile="work")
         assert client._api_key == work_key
 
-    def test_env_var_overrides_profile(self, tmp_path, monkeypatch):
+    def test_explicit_profile_overrides_env_var(self, tmp_path, monkeypatch):
         from elnora.lib.profiles import save_profile
 
-        env_key = "elnora_live_" + "e" * 30
-        monkeypatch.setenv("ELNORA_API_KEY", env_key)
+        monkeypatch.setenv("ELNORA_API_KEY", "elnora_live_" + "e" * 30)
         monkeypatch.setattr("elnora.lib.profiles.CONFIG_DIR", tmp_path)
         monkeypatch.setattr("elnora.lib.profiles.PROFILES_FILE", tmp_path / "profiles.toml")
-        save_profile("default", "elnora_live_" + "p" * 30)
+        profile_key = "elnora_live_" + "p" * 30
+        save_profile("default", profile_key)
         client = ElnoraClient.from_env(profile="default")
-        assert client._api_key == env_key
+        assert client._api_key == profile_key
 
     def test_elnora_profile_env_var(self, tmp_path, monkeypatch):
         from elnora.lib.profiles import save_profile

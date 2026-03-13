@@ -4,6 +4,8 @@ description: >
   This skill should be used when the user asks to "log in", "check auth", "create API key",
   "revoke API key", "check health", "submit feedback", "view audit log",
   "shell completions", "account details", "accept terms", "validate token", "elnora setup",
+  "api key policy", "delete account", "list users", "feature flags", "legal documents",
+  "set feature flag", "manage legal docs", "list profiles", "show profiles",
   or any task involving Elnora Platform authentication, administration, or diagnostics.
 ---
 
@@ -46,7 +48,16 @@ $CLI --compact auth logout
 # -> {"loggedOut":true,"removed":"~/.elnora/config.toml"}
 ```
 
-Removes saved credentials from disk.
+Removes saved credentials from disk. Use `--remove-all` to delete all profiles at once.
+
+### List Profiles
+
+```bash
+$CLI --compact auth profiles
+# -> {"profiles":[{"name":"default","apiKey":"elnora_live_...abcd"},{"name":"university","apiKey":"elnora_live_...wxyz"}]}
+```
+
+Shows all configured profiles with masked API keys. Useful for verifying multi-org setup.
 
 ### Validate Token
 
@@ -88,6 +99,25 @@ $CLI --compact api-keys revoke <KEY_ID>
 
 Destructive -- confirm with user first.
 
+### Get API Key Policy
+
+```bash
+$CLI --compact api-keys get-policy
+# -> {"policy":"all_members"}
+```
+
+Shows whether all org members or only admins can create API keys.
+
+### Set API Key Policy
+
+```bash
+$CLI --compact api-keys set-policy --policy admins_only
+$CLI --compact api-keys set-policy --policy all_members
+# -> {"updated":true,"policy":"admins_only"}
+```
+
+Org admin/owner only. Values: `all_members` or `admins_only`.
+
 ## Account Management
 
 ### Get Account
@@ -121,6 +151,87 @@ $CLI --compact account accept-terms --document-version-id <VERSION_ID>
 ```
 
 `--document-version-id` is required (integer).
+
+### Delete Account
+
+```bash
+$CLI --compact account delete
+$CLI --compact account delete --yes
+# -> {"deleted":true,"account":"current user"}
+```
+
+**DANGEROUS: Permanently deletes the user's account and all associated data. Irreversible.**
+Requires typing "DELETE" to confirm. Use `--yes` to skip (non-interactive/CI only).
+
+### List Users (SystemAdmin)
+
+```bash
+$CLI --compact account users
+$CLI --compact account users --state Active
+$CLI --compact account users --state Deleted --ref-code ABC123
+```
+
+SystemAdmin only. Optional filters: `--state` (Active, Pending, Deleted), `--ref-code`.
+
+### Add Legal Document Version (SystemAdmin)
+
+```bash
+$CLI --compact account add-legal-doc --document-type TermsOfService --version "2.0" --content "Terms text..." --effective-date 2026-04-01
+```
+
+| Flag | Required | Notes |
+|------|----------|-------|
+| `--document-type` | Yes | e.g. TermsOfService, PrivacyPolicy |
+| `--version` | Yes | Version string (e.g. "1.0") |
+| `--content` | Yes | Document content (text/markdown) |
+| `--effective-date` | No | ISO 8601 date |
+
+### Update Legal Document Version (SystemAdmin)
+
+```bash
+$CLI --compact account update-legal-doc <VERSION_ID> --content "Updated terms..."
+$CLI --compact account update-legal-doc <VERSION_ID> --effective-date 2026-05-01
+```
+
+Must provide at least one of `--content` or `--effective-date`.
+
+### Delete Legal Document Version (SystemAdmin)
+
+```bash
+$CLI --compact account delete-legal-doc <VERSION_ID>
+$CLI --compact account delete-legal-doc <VERSION_ID> --yes
+# -> {"deleted":true,"documentVersionId":N}
+```
+
+**DANGEROUS: Permanently deletes the legal document version. Irreversible.**
+Requires typing "DELETE" to confirm. Use `--yes` to skip.
+
+## Feature Flags (SystemAdmin)
+
+### List Feature Flags
+
+```bash
+$CLI --compact flags list
+```
+
+Returns all global feature flags with key, name, description, and value.
+
+### Get Feature Flag
+
+```bash
+$CLI --compact flags get <KEY>
+# -> {"key":"enable-new-editor","value":true}
+```
+
+### Set Feature Flag
+
+```bash
+$CLI --compact flags set enable-new-editor true
+$CLI --compact flags set enable-new-editor false --yes
+# -> {"updated":true,"key":"enable-new-editor","value":true}
+```
+
+**WARNING: Affects ALL users on the platform.** Requires confirmation unless `--yes` is passed.
 
 ## Health Check
 

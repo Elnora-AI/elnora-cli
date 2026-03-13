@@ -35,6 +35,7 @@ ENDPOINTS = {
     "file_fork": "/files/{id}/fork",
     "file_working_copy": "/files/{id}/working-copy",
     "file_commit": "/files/{id}/commit",
+    "file_upload_batch": "/files/upload/batch",
     # Folders
     "folder": "/folders/{id}",
     "folder_move": "/folders/{id}/move",
@@ -45,6 +46,10 @@ ENDPOINTS = {
     "organization_member_role": "/organizations/{id}/members/{mid}/role",
     "organization_member": "/organizations/{id}/members/{mid}",
     "organization_billing": "/organizations/{id}/billing-status",
+    "organization_stripe_customer": "/organizations/{id}/stripe-customer",
+    "organization_set_default": "/organizations/{id}/set-default",
+    "organization_delete": "/organizations/{id}",
+    "organizations_all": "/organizations/all",
     "org_files": "/organizations/{orgId}/files",
     # Organization invitations
     "org_invitations": "/organizations/{orgId}/invitations",
@@ -64,17 +69,25 @@ ENDPOINTS = {
     # API Keys
     "api_keys": "/api-keys",
     "api_key": "/api-keys/{id}",
+    "api_key_policy": "/api-keys/policy",
     # Audit
     "audit_log": "/organizations/{orgId}/audit-log",
     # Feedback
     "feedback": "/feedback",
     # Account
     "account_user": "/account/user/{id}",
+    "account_delete": "/account/me",
+    "account_users": "/account/user/list",
     # User agreements
     "user_agreements": "/userAgreement/userAgreements",
     "user_agreement": "/userAgreement/userAgreement",
     # Legal docs (anonymous)
     "legal_docs": "/userAgreement/legalDocumentVersion/list",
+    "legal_doc_version": "/userAgreement/legalDocumentVersion",
+    "legal_doc_version_id": "/userAgreement/legalDocumentVersion/{id}",
+    # Feature flags (SystemAdmin)
+    "feature_flags": "/globalFeatureFlags/",
+    "feature_flag": "/globalFeatureFlags/{key}",
     # Auth
     "auth_validate": "/auth/validate-token",
     # Health (anonymous, outside /api/v1 prefix)

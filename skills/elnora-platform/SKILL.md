@@ -54,7 +54,9 @@ Get keys: platform.elnora.ai > Settings > API Keys
 | Find tasks or files by keyword | `elnora-search` | search, find, query |
 | Manage project folder trees | `elnora-folders` | folder, create folder, move folder |
 | Org management, members, billing, invitations, shared library | `elnora-orgs` | organization, org, billing, invite, library |
-| Auth, API keys, account, health, diagnostics | `elnora-admin` | login, logout, api key, health, account, feedback, audit, completion |
+| Auth, API keys, account, health, diagnostics | `elnora-admin` | login, logout, profiles, api key, health, account, feedback, audit, completion |
+| Feature flags (SystemAdmin) | `elnora-admin` | feature flag, flags, set flag, list flags |
+| What can the Elnora Agent do? (tools, search, memory) | `elnora-agent` | agent capabilities, agent tools, what can agent do |
 
 ## ID Format
 
@@ -103,18 +105,19 @@ Projects contain tasks and files. Typical flow:
 ## All Command Groups
 
 ```
-elnora account      Manage user account and agreements
-elnora api-keys     Manage API keys
+elnora account      Manage user account, agreements, and legal docs
+elnora api-keys     Manage API keys and creation policy
 elnora audit        View audit logs
 elnora auth         Manage authentication
 elnora completion   Generate shell completion script
 elnora feedback     Submit feedback
-elnora files        Manage project files
+elnora files        Manage project files (incl. batch upload)
+elnora flags        Manage global feature flags (SystemAdmin)
 elnora folders      Manage project folders
 elnora health       Check platform reachability
 elnora library      Manage organization library
-elnora orgs         Manage organizations
+elnora orgs         Manage organizations (incl. set-default, delete, list-all)
 elnora projects     Manage projects
-elnora search       Search tasks and files
+elnora search       Search tasks, files, and file content
 elnora tasks        Manage tasks
 ```

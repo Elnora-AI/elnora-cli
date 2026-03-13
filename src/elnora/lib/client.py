@@ -114,16 +114,34 @@ class ElnoraClient:
     def from_env(cls, profile: str | None = None) -> ElnoraClient:
         """Build client from environment.
 
-        Resolution order:
+        Resolution order (when --profile is NOT given):
         1. ELNORA_API_KEY env var
         2. ELNORA_MCP_API_KEY env var (alias)
         3. .env file in nearest project root
         4. ~/.elnora/profiles.toml (active profile)
         5. ~/.elnora/config.toml (legacy fallback)
 
+        When --profile IS given explicitly, profiles.toml takes priority
+        over env vars so that profile selection is always honoured.
+
         Validates key starts with ``elnora_live_``.
         """
-        key = os.environ.get("ELNORA_API_KEY", "").strip()
+        explicit_profile = profile or cls._active_profile
+        key = ""
+
+        # When a profile is explicitly requested, try it first
+        if explicit_profile:
+            from .profiles import get_api_key, migrate_config_if_needed
+
+            migrate_config_if_needed()
+            try:
+                key = get_api_key(explicit_profile)
+            except AuthError:
+                pass
+
+        # Fall back to env vars / .env / profiles / legacy config
+        if not key:
+            key = os.environ.get("ELNORA_API_KEY", "").strip()
         if not key:
             key = os.environ.get("ELNORA_MCP_API_KEY", "").strip()
         if not key:
@@ -136,7 +154,7 @@ class ElnoraClient:
 
             migrate_config_if_needed()
             effective_profile = (
-                profile or cls._active_profile or os.environ.get("ELNORA_PROFILE", "").strip() or "default"
+                os.environ.get("ELNORA_PROFILE", "").strip() or "default"
             )
             try:
                 key = get_api_key(effective_profile)
@@ -618,6 +636,27 @@ class ElnoraClient:
         validate_guid(org_id, "org_id")
         return self._request(config.ENDPOINTS["organization_billing"].replace("{id}", org_id))
 
+    def update_organization_stripe_customer(self, org_id: str, *, stripe_customer_id: str) -> dict:
+        validate_guid(org_id, "org_id")
+        endpoint = config.ENDPOINTS["organization_stripe_customer"].replace("{id}", org_id)
+        return self._request(endpoint, {"stripeCustomerId": stripe_customer_id}, method="PUT")
+
+    def set_default_organization(self, org_id: str) -> dict:
+        """Set an organization as the user's default."""
+        validate_guid(org_id, "org_id")
+        endpoint = config.ENDPOINTS["organization_set_default"].replace("{id}", org_id)
+        return self._request(endpoint, method="PUT")
+
+    def delete_organization(self, org_id: str) -> dict:
+        """Delete an organization (SystemAdmin only). This is irreversible."""
+        validate_guid(org_id, "org_id")
+        endpoint = config.ENDPOINTS["organization_delete"].replace("{id}", org_id)
+        return self._request(endpoint, method="DELETE")
+
+    def list_all_organizations(self) -> dict:
+        """List all organizations in the platform (SystemAdmin only)."""
+        return self._request(config.ENDPOINTS["organizations_all"])
+
     # ------------------------------------------------------------------
     # Organization Invitations
     # ------------------------------------------------------------------
@@ -855,6 +894,10 @@ class ElnoraClient:
         validate_guid(file_id, "file_id")
         return self._request(config.ENDPOINTS["file_commit"].replace("{id}", file_id), method="POST")
 
+    def batch_initiate_upload(self, *, items: list[dict[str, Any]]) -> dict:
+        """Batch initiate uploads for up to 50 files."""
+        return self._request(config.ENDPOINTS["file_upload_batch"], {"items": items}, method="POST")
+
     def list_org_files(self, org_id: str, *, page: int = 1, page_size: int = 25) -> dict:
         validate_guid(org_id, "org_id")
         return self._request(
@@ -888,6 +931,14 @@ class ElnoraClient:
     def revoke_api_key(self, key_id: str) -> dict:
         validate_guid(key_id, "key_id")
         return self._request(config.ENDPOINTS["api_key"].replace("{id}", key_id), method="DELETE")
+
+    def get_api_key_policy(self) -> dict:
+        """Get the API key creation policy for the organization."""
+        return self._request(config.ENDPOINTS["api_key_policy"])
+
+    def set_api_key_policy(self, *, policy: str) -> dict:
+        """Set the API key creation policy (admins_only or all_members)."""
+        return self._request(config.ENDPOINTS["api_key_policy"], {"policy": policy}, method="PUT")
 
     # ------------------------------------------------------------------
     # Audit
@@ -937,3 +988,60 @@ class ElnoraClient:
 
     def list_agreements(self) -> dict:
         return self._request(config.ENDPOINTS["user_agreements"])
+
+    def delete_account(self) -> dict:
+        """Delete the current user's account. Irreversible."""
+        return self._request(config.ENDPOINTS["account_delete"], method="DELETE")
+
+    def list_users(self, *, state: str | None = None, ref_code: str | None = None) -> dict:
+        """List all users (SystemAdmin only)."""
+        params: dict[str, Any] = {}
+        if state is not None:
+            params["state"] = state
+        if ref_code is not None:
+            params["refCode"] = ref_code
+        return self._request(config.ENDPOINTS["account_users"], query_params=params if params else None)
+
+    # ------------------------------------------------------------------
+    # Legal Document Versions (SystemAdmin)
+    # ------------------------------------------------------------------
+
+    def add_legal_doc_version(self, *, document_type: str, version: str, content: str, effective_date: str | None = None) -> dict:
+        """Add a new legal document version (SystemAdmin only)."""
+        body: dict[str, Any] = {"documentType": document_type, "version": version, "content": content}
+        if effective_date is not None:
+            body["effectiveDate"] = effective_date
+        return self._request(config.ENDPOINTS["legal_doc_version"], body, method="POST")
+
+    def update_legal_doc_version(self, version_id: int, *, content: str | None = None, effective_date: str | None = None) -> dict:
+        """Update a legal document version (SystemAdmin only)."""
+        body: dict[str, Any] = {}
+        if content is not None:
+            body["content"] = content
+        if effective_date is not None:
+            body["effectiveDate"] = effective_date
+        endpoint = config.ENDPOINTS["legal_doc_version_id"].replace("{id}", str(version_id))
+        return self._request(endpoint, body, method="PUT")
+
+    def delete_legal_doc_version(self, version_id: int) -> dict:
+        """Delete a legal document version (SystemAdmin only). Irreversible."""
+        endpoint = config.ENDPOINTS["legal_doc_version_id"].replace("{id}", str(version_id))
+        return self._request(endpoint, method="DELETE")
+
+    # ------------------------------------------------------------------
+    # Feature Flags (SystemAdmin)
+    # ------------------------------------------------------------------
+
+    def list_feature_flags(self) -> dict:
+        """List all global feature flags (SystemAdmin only)."""
+        return self._request(config.ENDPOINTS["feature_flags"])
+
+    def get_feature_flag(self, key: str) -> dict:
+        """Get a feature flag value (SystemAdmin only)."""
+        endpoint = config.ENDPOINTS["feature_flag"].replace("{key}", key)
+        return self._request(endpoint)
+
+    def set_feature_flag(self, key: str, *, value: bool) -> dict:
+        """Set a feature flag value (SystemAdmin only)."""
+        endpoint = config.ENDPOINTS["feature_flag"].replace("{key}", key)
+        return self._request(endpoint, {"value": value}, method="PUT")

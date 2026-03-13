@@ -94,7 +94,10 @@ def delete_account(ctx, yes):
 
 @account.command("users")
 @click.option(
-    "--state", default=None, type=click.Choice(["Active", "Pending", "Deleted"]), help="Filter by user state.",
+    "--state",
+    default=None,
+    type=click.Choice(["Active", "Pending", "Deleted"]),
+    help="Filter by user state.",
 )
 @click.option("--ref-code", default=None, help="Filter by referral code.")
 @click.pass_context

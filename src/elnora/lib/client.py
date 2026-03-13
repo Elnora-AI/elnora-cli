@@ -153,9 +153,7 @@ class ElnoraClient:
             from .profiles import get_api_key, migrate_config_if_needed
 
             migrate_config_if_needed()
-            effective_profile = (
-                os.environ.get("ELNORA_PROFILE", "").strip() or "default"
-            )
+            effective_profile = os.environ.get("ELNORA_PROFILE", "").strip() or "default"
             try:
                 key = get_api_key(effective_profile)
             except AuthError:
@@ -584,7 +582,11 @@ class ElnoraClient:
         )
 
     def search_file_content(
-        self, query: str, project_id: str | None = None, page: int = 1, page_size: int = 25,
+        self,
+        query: str,
+        project_id: str | None = None,
+        page: int = 1,
+        page_size: int = 25,
     ) -> dict:
         """Search file contents via full-text search."""
         params: dict[str, Any] = {"q": query, "page": str(page), "pageSize": str(page_size)}
@@ -1009,7 +1011,12 @@ class ElnoraClient:
     # ------------------------------------------------------------------
 
     def add_legal_doc_version(
-        self, *, document_type: str, version: str, content: str, effective_date: str | None = None,
+        self,
+        *,
+        document_type: str,
+        version: str,
+        content: str,
+        effective_date: str | None = None,
     ) -> dict:
         """Add a new legal document version (SystemAdmin only)."""
         body: dict[str, Any] = {"documentType": document_type, "version": version, "content": content}
@@ -1018,7 +1025,11 @@ class ElnoraClient:
         return self._request(config.ENDPOINTS["legal_doc_version"], body, method="POST")
 
     def update_legal_doc_version(
-        self, version_id: int, *, content: str | None = None, effective_date: str | None = None,
+        self,
+        version_id: int,
+        *,
+        content: str | None = None,
+        effective_date: str | None = None,
     ) -> dict:
         """Update a legal document version (SystemAdmin only)."""
         body: dict[str, Any] = {}

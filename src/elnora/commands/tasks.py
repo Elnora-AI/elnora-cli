@@ -42,6 +42,7 @@ def list_tasks(ctx, project, page, page_size):
 def get_task(ctx, task_id):
     """Get a single task by ID."""
     with handle_errors(ctx):
+        validate_guid(task_id, "task_id")
         client = ElnoraClient.from_env()
         result = client.get_task(task_id)
         output_success(result, compact=ctx.obj["compact"], fmt=ctx.obj["fmt"], fields=ctx.obj["fields"])
@@ -58,6 +59,7 @@ def create_task(ctx, project, title, message):
     Use --profile to create the task in a different organization.
     """
     with handle_errors(ctx):
+        validate_guid(project, "project")
         client = ElnoraClient.from_env()
         result = client.create_task(project_id=project, title=title, initial_message=message)
         output_success(result, compact=ctx.obj["compact"], fmt=ctx.obj["fmt"], fields=ctx.obj["fields"])
@@ -71,6 +73,7 @@ def create_task(ctx, project, title, message):
 def send_message(ctx, task_id, message, file_refs):
     """Send a message to a task."""
     with handle_errors(ctx):
+        validate_guid(task_id, "task_id")
         file_refs_list = None
         if file_refs:
             file_refs_list = [ref.strip() for ref in file_refs.split(",") if ref.strip()]
@@ -89,6 +92,7 @@ def send_message(ctx, task_id, message, file_refs):
 def get_messages(ctx, task_id, cursor, limit):
     """Get messages for a task (cursor-based pagination)."""
     with handle_errors(ctx):
+        validate_guid(task_id, "task_id")
         validate_page_size(limit, "limit")
         client = ElnoraClient.from_env()
         result = client.get_messages(task_id, cursor=cursor, limit=limit)
@@ -103,6 +107,7 @@ def get_messages(ctx, task_id, cursor, limit):
 def update_task(ctx, task_id, title, status):
     """Update a task's title or status."""
     with handle_errors(ctx):
+        validate_guid(task_id, "task_id")
         if title is None and status is None:
             raise ValidationError(
                 "Nothing to update. Provide --title and/or --status.",
@@ -119,6 +124,7 @@ def update_task(ctx, task_id, title, status):
 def archive_task(ctx, task_id):
     """Archive (delete) a task."""
     with handle_errors(ctx):
+        validate_guid(task_id, "task_id")
         client = ElnoraClient.from_env()
         client.archive_task(task_id)
         output_success(

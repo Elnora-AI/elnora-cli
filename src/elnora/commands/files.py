@@ -44,6 +44,7 @@ def list_files(ctx, project, page, page_size):
 def get_file(ctx, file_id):
     """Get file metadata by ID."""
     with handle_errors(ctx):
+        validate_guid(file_id, "file_id")
         client = ElnoraClient.from_env()
         result = client.get_file(file_id)
         output_success(
@@ -63,6 +64,7 @@ def get_content(ctx, file_id):
     Outputs raw text by default. Use --output json to wrap in {"content": "..."}.
     """
     with handle_errors(ctx):
+        validate_guid(file_id, "file_id")
         client = ElnoraClient.from_env()
         content = client.get_file_content(file_id)
         if ctx.obj["compact"] or ctx.obj["fields"]:
@@ -86,6 +88,7 @@ def get_content(ctx, file_id):
 def get_versions(ctx, file_id, page, page_size):
     """Get version history for a file."""
     with handle_errors(ctx):
+        validate_guid(file_id, "file_id")
         validate_page(page)
         validate_page_size(page_size)
         client = ElnoraClient.from_env()
@@ -239,6 +242,11 @@ def upload_batch(ctx, project: str, file_paths: str, folder: str | None):
         result_items = batch_result if isinstance(batch_result, list) else batch_result.get("items", [])
         results = []
         for i, entry in enumerate(result_items):
+            if i >= len(paths):
+                results.append({
+                    "file": "unknown", "status": "failed", "error": "API returned more items than files sent",
+                })
+                break
             if entry.get("status") == "failed":
                 results.append({"file": paths[i].name, "status": "failed", "error": entry.get("error", "unknown")})
                 continue
@@ -248,12 +256,18 @@ def upload_batch(ctx, project: str, file_paths: str, folder: str | None):
             if not presigned_url or not file_id:
                 results.append({"file": paths[i].name, "status": "failed", "error": "no upload URL returned"})
                 continue
-            ct = mimetypes.guess_type(paths[i].name)[0] or "application/octet-stream"
-            file_data = paths[i].read_bytes()
-            put_req = urllib.request.Request(presigned_url, data=file_data, headers={"Content-Type": ct}, method="PUT")
-            urllib.request.urlopen(put_req, timeout=120).read()
-            confirm = client.confirm_upload(file_id)
-            results.append({"file": paths[i].name, "status": "success", "fileId": file_id, "detail": confirm})
+            try:
+                ct = mimetypes.guess_type(paths[i].name)[0] or "application/octet-stream"
+                file_data = paths[i].read_bytes()
+                put_req = urllib.request.Request(
+                    presigned_url, data=file_data, headers={"Content-Type": ct}, method="PUT",
+                )
+                with urllib.request.urlopen(put_req, timeout=120) as resp:
+                    resp.read()
+                confirm = client.confirm_upload(file_id)
+                results.append({"file": paths[i].name, "status": "success", "fileId": file_id, "detail": confirm})
+            except (urllib.error.URLError, urllib.error.HTTPError, OSError) as exc:
+                results.append({"file": paths[i].name, "status": "failed", "error": str(exc)})
 
         output_success(results, compact=ctx.obj["compact"], fmt=ctx.obj["fmt"], fields=ctx.obj["fields"])
 
@@ -264,6 +278,7 @@ def upload_batch(ctx, project: str, file_paths: str, folder: str | None):
 def confirm_upload(ctx, file_id: str):
     """Confirm a file upload has completed."""
     with handle_errors(ctx):
+        validate_guid(file_id, "file_id")
         client = ElnoraClient.from_env()
         result = client.confirm_upload(file_id)
         output_success(result, compact=ctx.obj["compact"], fmt=ctx.obj["fmt"], fields=ctx.obj["fields"])
@@ -275,6 +290,7 @@ def confirm_upload(ctx, file_id: str):
 def download_file(ctx, file_id: str):
     """Download raw file content."""
     with handle_errors(ctx):
+        validate_guid(file_id, "file_id")
         client = ElnoraClient.from_env()
         content = client.download_file(file_id)
         if ctx.obj["compact"] or ctx.obj["fields"]:
@@ -296,6 +312,7 @@ def download_file(ctx, file_id: str):
 def update_file(ctx, file_id: str, name: str | None, folder: str | None):
     """Update a file's name or folder."""
     with handle_errors(ctx):
+        validate_guid(file_id, "file_id")
         if name is None and folder is None:
             raise ValidationError(
                 "Nothing to update. Provide --name and/or --folder.",
@@ -314,6 +331,7 @@ def update_file(ctx, file_id: str, name: str | None, folder: str | None):
 def archive_file(ctx, file_id: str):
     """Archive a file."""
     with handle_errors(ctx):
+        validate_guid(file_id, "file_id")
         client = ElnoraClient.from_env()
         client.archive_file(file_id)
         output_success(
@@ -331,6 +349,8 @@ def archive_file(ctx, file_id: str):
 def version_content(ctx, file_id: str, version_id: str):
     """Get content of a specific file version."""
     with handle_errors(ctx):
+        validate_guid(file_id, "file_id")
+        validate_guid(version_id, "version_id")
         client = ElnoraClient.from_env()
         content = client.get_file_version_content(file_id, version_id)
         if ctx.obj["compact"] or ctx.obj["fields"]:
@@ -351,6 +371,7 @@ def version_content(ctx, file_id: str, version_id: str):
 def create_version(ctx, file_id: str, content: str | None):
     """Create a new version of a file."""
     with handle_errors(ctx):
+        validate_guid(file_id, "file_id")
         client = ElnoraClient.from_env()
         result = client.create_file_version(file_id, content=content)
         output_success(result, compact=ctx.obj["compact"], fmt=ctx.obj["fmt"], fields=ctx.obj["fields"])
@@ -363,6 +384,8 @@ def create_version(ctx, file_id: str, content: str | None):
 def restore_version(ctx, file_id: str, version_id: str):
     """Restore a file to a specific version."""
     with handle_errors(ctx):
+        validate_guid(file_id, "file_id")
+        validate_guid(version_id, "version_id")
         client = ElnoraClient.from_env()
         result = client.restore_file_version(file_id, version_id)
         output_success(result, compact=ctx.obj["compact"], fmt=ctx.obj["fmt"], fields=ctx.obj["fields"])
@@ -375,6 +398,7 @@ def restore_version(ctx, file_id: str, version_id: str):
 def promote_file(ctx, file_id: str, visibility: str):
     """Promote a file's visibility."""
     with handle_errors(ctx):
+        validate_guid(file_id, "file_id")
         client = ElnoraClient.from_env()
         result = client.promote_file(file_id, visibility=visibility)
         output_success(result, compact=ctx.obj["compact"], fmt=ctx.obj["fmt"], fields=ctx.obj["fields"])
@@ -387,6 +411,7 @@ def promote_file(ctx, file_id: str, visibility: str):
 def fork_file(ctx, file_id: str, target_project: str):
     """Fork a file into another project."""
     with handle_errors(ctx):
+        validate_guid(file_id, "file_id")
         validate_guid(target_project, "target_project")
         client = ElnoraClient.from_env()
         result = client.fork_file(file_id, target_project_id=target_project)
@@ -400,6 +425,7 @@ def fork_file(ctx, file_id: str, target_project: str):
 def working_copy(ctx, file_id: str, task: str | None):
     """Create a working copy of a file."""
     with handle_errors(ctx):
+        validate_guid(file_id, "file_id")
         if task:
             validate_guid(task, "task")
         client = ElnoraClient.from_env()
@@ -413,6 +439,7 @@ def working_copy(ctx, file_id: str, task: str | None):
 def commit_working_copy(ctx, file_id: str):
     """Commit a working copy."""
     with handle_errors(ctx):
+        validate_guid(file_id, "file_id")
         client = ElnoraClient.from_env()
         result = client.commit_working_copy(file_id)
         output_success(result, compact=ctx.obj["compact"], fmt=ctx.obj["fmt"], fields=ctx.obj["fields"])

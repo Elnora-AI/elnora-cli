@@ -19,6 +19,16 @@ _LABEL_TO_COMMAND = {
     "task_id": "elnora tasks list",
     "file_id": "elnora files list --project <PROJECT_ID>",
     "file_ref": "elnora files list --project <PROJECT_ID>",
+    "org_id": "elnora orgs list",
+    "org": "elnora orgs list",
+    "folder_id": "elnora folders list --project <PROJECT_ID>",
+    "folder": "elnora folders list --project <PROJECT_ID>",
+    "membership_id": "elnora orgs members <ORG_ID>",
+    "invitation_id": "elnora orgs invitations <ORG_ID>",
+    "user_id": "elnora account users",
+    "target_project": "elnora projects list",
+    "version_id": "elnora files versions <FILE_ID>",
+    "task": "elnora tasks list",
 }
 
 
@@ -51,3 +61,14 @@ def validate_page_size(value: int, label: str = "page size") -> int:
             suggestion=f"Use a value between 1 and {MAX_PAGE_SIZE}.",
         )
     return value
+
+
+def validate_int(value: str, label: str) -> int:
+    """Validate and convert a string to an integer."""
+    try:
+        return int(value)
+    except (ValueError, TypeError):
+        raise ValidationError(
+            f"Invalid {label}: '{value}'. Expected an integer.",
+            suggestion=f"Provide a numeric value for {label}.",
+        )

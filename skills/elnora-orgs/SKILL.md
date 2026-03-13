@@ -88,6 +88,15 @@ $CLI --compact orgs billing <ORG_ID>
 
 Returns billing information for the organization.
 
+### List All Org Files (Admin Compliance View)
+
+```bash
+$CLI --compact orgs files --org <ORG_ID>
+$CLI --compact orgs files --org <ORG_ID> --page 2 --page-size 50
+```
+
+`--org` is required. Lists all files across all projects in the organization. Useful for admin compliance and auditing.
+
 ### Set Default Organization
 
 ```bash

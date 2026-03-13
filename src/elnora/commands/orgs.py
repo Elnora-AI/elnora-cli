@@ -1,11 +1,13 @@
-"""Organization commands — manage orgs, members, billing, and invitations."""
+"""Organization commands — manage orgs, members, billing, invitations, and admin operations."""
 
 from __future__ import annotations
 
 import click
 
 from ..lib.client import ElnoraClient
+from ..lib.config import DEFAULT_PAGE_SIZE
 from ..lib.errors import ValidationError, handle_errors, output_success
+from ..lib.validation import validate_page, validate_page_size
 
 
 @click.group()
@@ -200,6 +202,21 @@ def accept_invite(ctx, token):
     with handle_errors(ctx):
         client = ElnoraClient.from_env()
         result = client.accept_invitation(token)
+        output_success(result, compact=ctx.obj["compact"], fmt=ctx.obj["fmt"], fields=ctx.obj["fields"])
+
+
+@orgs.command("files")
+@click.option("--org", required=True, help="Organization ID (GUID).")
+@click.option("--page", default=1, type=int, show_default=True, help="Page number.")
+@click.option("--page-size", default=DEFAULT_PAGE_SIZE, type=int, show_default=True, help="Results per page.")
+@click.pass_context
+def org_files(ctx, org, page, page_size):
+    """List all files across an organization (admin compliance view)."""
+    with handle_errors(ctx):
+        validate_page(page)
+        validate_page_size(page_size)
+        client = ElnoraClient.from_env()
+        result = client.list_org_files(org, page=page, page_size=page_size)
         output_success(result, compact=ctx.obj["compact"], fmt=ctx.obj["fmt"], fields=ctx.obj["fields"])
 
 

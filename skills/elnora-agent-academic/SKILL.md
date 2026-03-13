@@ -11,7 +11,9 @@ description: >
 
 # Elnora Agent — Academic & Scientific Tools (12)
 
-Free direct API access to biomedical and scientific databases. Ask the agent to use these via `tasks send`.
+> **REFERENCE ONLY — not callable from the CLI.** These are the agent's internal tools. You cannot run them directly. Instead, describe what you need in a `tasks send` message and the agent will pick the right tool. This skill exists so you know what the agent is capable of.
+
+Free direct API access to biomedical and scientific databases.
 
 ```bash
 CLI="uv run --project ${CLAUDE_PLUGIN_ROOT} elnora"

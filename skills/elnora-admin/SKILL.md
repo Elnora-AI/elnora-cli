@@ -28,7 +28,7 @@ $CLI auth login
 $CLI --compact auth login --api-key <KEY>
 ```
 
-Interactive login prompts for the API key and saves to `~/.elnora/config.toml`. The `--api-key` flag is insecure (visible in process listings) -- prefer interactive prompt or env var.
+Interactive login prompts for the API key and saves to `~/.elnora/profiles.toml`. The `--api-key` flag is insecure (visible in process listings) -- prefer interactive prompt or env var.
 
 Keys must start with `elnora_live_` and be 20+ characters.
 
@@ -45,10 +45,10 @@ Quick way to verify the CLI is properly configured.
 
 ```bash
 $CLI --compact auth logout
-# -> {"loggedOut":true,"removed":"~/.elnora/config.toml"}
+# -> {"loggedOut":true,"removed":"~/.elnora/profiles.toml"}
 ```
 
-Removes saved credentials from disk. Use `--remove-all` to delete all profiles at once.
+Removes saved credentials from disk. Use `--all` to delete all profiles at once.
 
 ### List Profiles
 

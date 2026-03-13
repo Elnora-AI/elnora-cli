@@ -10,6 +10,8 @@ description: >
 
 # Elnora Agent — Context & Memory (9 tools)
 
+> **REFERENCE ONLY — not callable from the CLI.** These are the agent's internal memory tools. You cannot run them directly. Instead, ask the agent to remember or recall things via `tasks send`. This skill exists so you know what the agent is capable of.
+
 The agent has two memory systems: context management for cross-agent sharing within a task, and long-term memory that persists across tasks.
 
 ```bash
@@ -19,14 +21,14 @@ $CLI --compact tasks send <TASK_ID> --message "Your request here"
 
 ## Context Management (4 tools)
 
-Cross-agent shared memory and findings within the current task scope.
+Cross-agent shared memory and findings scoped to the current task (14-day TTL).
 
 | Tool | Purpose | When the agent uses it |
 |------|---------|------------------------|
-| `save_finding` | Save finding for other agents (user/project scope) | Agent discovers something worth sharing |
+| `save_finding` | Save finding for other agents (task scope) | Agent discovers something worth sharing |
 | `search_findings` | Semantic search over shared findings | Agent looks for prior discoveries |
 | `get_task_context` | Get all shared findings for current task | Agent loads context at task start |
-| `save_scratchpad` | Save private agent working notes | Agent stores intermediate reasoning |
+| `save_scratchpad` | Save private agent working notes (not shared) | Agent stores intermediate reasoning |
 
 ## Memory Management (5 tools)
 

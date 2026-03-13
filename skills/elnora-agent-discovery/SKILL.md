@@ -12,6 +12,8 @@ description: >
 
 # Elnora Agent — Discovery & ToolUniverse (10 + 2,100 tools)
 
+> **REFERENCE ONLY — not callable from the CLI.** These are the agent's internal discovery tools. You cannot run them directly. Instead, describe what you need in a `tasks send` message and the agent will discover and use the right tools. This skill exists so you know what the agent is capable of.
+
 The agent has a two-tier discovery system: a catalog/skill layer for guidance, and ToolUniverse for 2,100+ executable scientific tools.
 
 ```bash
@@ -40,15 +42,15 @@ Domain-specific methodology guidance — how to approach a scientific task.
 | `load_skill` | Load full skill content | Agent needs step-by-step guidance |
 | `load_skill_reference` | Deep-dive reference docs for a skill | Agent needs detailed domain knowledge |
 
-### Available Skills (36)
+### Available Skills (35)
 
-**Tool Skills (20):** scanpy, rdkit, biopython, pysam, kegg-database, reactome-database, uniprot-database, chembl-tools, pubchem-tools, alphafold, alphafold-server, tavily-search, exa-search, valyu-search, perplexity-search, protocols-io, benchling-patterns, clinical-trials-analysis, mass-spectrometry, pydeseq2
+**Tool Skills (20):** scanpy, rdkit, biopython, pysam, kegg-database, reactome-database, uniprot-database, chembl-database, pubchem-tools, alphafold, tavily-search, exa-search, valyu-search, perplexity-search, protocols-io, benchling-patterns, clinical-trials-analysis, mass-spectrometry, pydeseq2, web-search-routing
 
 **Domain Skills (15):** hypothesis-generation, literature-review-methodology, experimental-design, statistical-analysis, research-problem-selection, drug-discovery-workflow, protein-engineering, single-cell-rna-qc, multi-omics-integration, scvi-tools, nextflow-development, scientific-writing, clinical-trial-protocol, fhir-development, allotrope-conversion
 
 ## ToolUniverse Meta-Tools (5 tools)
 
-Gateway to 2,100+ scientific tools across 24 biomedical categories.
+Gateway to 2,100+ scientific tools across 27 biomedical categories.
 
 | Tool | Purpose | When the agent uses it |
 |------|---------|------------------------|
@@ -58,9 +60,9 @@ Gateway to 2,100+ scientific tools across 24 biomedical categories.
 | `tu_execute_tool` | Execute any ToolUniverse tool | Run a discovered tool |
 | `tu_find_tools` | Semantic LLM-based tool discovery | Natural language tool search |
 
-### ToolUniverse Categories (24)
+### ToolUniverse Categories (27)
 
-uniprot, alphafold, ChEMBL, pubchem, ensembl, clinvar, reactome, kegg, pubmed, clinical_trials, openfda, and 13 more.
+Protein & structure: uniprot, alphafold, pdb_redo, pdbe_api, hpa, string_network. Chemistry & drugs: ChEMBL, pubchem, drugbank. Genomics: ensembl, ncbi_gene, clinvar, gwas_catalog. Disease & targets: opentarget, monarch. Pathways & ontology: reactome, kegg, go. Literature: pubmed, semanticscholar, europepmc, pubtator. Clinical: clinical_trials. Drug safety: openfda, dailymed, faers. Antibody/immune: sabdab.
 
 ## Agent Recipes
 

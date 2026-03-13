@@ -11,7 +11,9 @@ description: >
 
 # Elnora Agent — Web Search Tools (34)
 
-The agent has four web search providers. Ask the agent to use the right one for your task via `tasks send`.
+> **REFERENCE ONLY — not callable from the CLI.** These are the agent's internal tools. You cannot run them directly. Instead, describe what you need in a `tasks send` message and the agent will pick the right tool. This skill exists so you know what the agent is capable of.
+
+The agent has four web search providers.
 
 ```bash
 CLI="uv run --project ${CLAUDE_PLUGIN_ROOT} elnora"
@@ -28,7 +30,7 @@ General-purpose real-time web search and content extraction.
 | `tavily_context` | Get web context for a topic | Background research on a topic |
 | `tavily_extract` | Extract clean content from URLs | Pull text from a specific webpage |
 | `tavily_crawl` | Crawl website structure | Map out a website's pages |
-| `tavily_map` | Generate topic mindmap with related searches | Explore a broad topic |
+| `tavily_map` | Discover site structure (URL list, no content) | Map out a site before crawling specific pages |
 | `tavily_research` | Extended research mode | Deep-dive into a complex topic |
 
 ## Exa (8 tools)

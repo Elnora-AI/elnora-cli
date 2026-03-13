@@ -10,7 +10,9 @@ description: >
 
 # Elnora Agent — Platform Tools (11)
 
-Sync wrappers around the .NET backend API for file and task operations. These tools let the agent manage files and tasks within the Elnora platform during execution.
+> **REFERENCE ONLY — not callable from the CLI.** These are the agent's internal tools. You cannot run them directly. The agent uses them automatically when processing your task messages. This skill exists so you know what the agent is capable of.
+
+Sync wrappers around the .NET backend API for file and task operations.
 
 ```bash
 CLI="uv run --project ${CLAUDE_PLUGIN_ROOT} elnora"

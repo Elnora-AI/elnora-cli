@@ -13,7 +13,9 @@ description: >
 
 # Elnora Agent Capabilities
 
-The Elnora Agent is a LangGraph CodeAct agent with a persistent Python REPL sandbox. It has ~76 core tools + 2,100+ ToolUniverse scientific tools.
+> **This skill is REFERENCE ONLY.** It describes what the Elnora Agent can do internally — none of these tools are callable from the CLI. You interact with the agent exclusively through `tasks create` and `tasks send`. Use this context to know what to ask the agent for.
+
+The Elnora Agent is a LangGraph CodeAct agent with a persistent Python REPL sandbox. It has ~78 core tools + 2,100+ ToolUniverse scientific tools.
 
 **You interact with the agent through a single CLI endpoint:**
 
@@ -50,12 +52,12 @@ The agent executes Python code in a sandboxed REPL. All tools are callable as pl
 | Web Search (Tavily/Exa/Valyu/Perplexity) | 34 | External APIs |
 | Academic/Scientific | 12 | Free direct APIs |
 | Catalog Discovery | 2 | Internal reference system |
-| Skill Discovery | 3 + 36 skills | Internal knowledge base |
+| Skill Discovery | 3 + 35 skills | Internal knowledge base |
 | ToolUniverse Meta-Tools | 5 + 2,100 tools | Scientific tool database |
 | Context Management | 4 | LangGraph Store |
 | Memory Management | 5 | Long-term persistent store |
 | Code Execution (sandbox) | 1 | Python REPL |
-| **Total** | **~76 core + 2,100 TU** | **~2,176 tools** |
+| **Total** | **~78 core + 2,100 TU** | **~2,178 tools** |
 
 ## Code Execution (Sandbox)
 

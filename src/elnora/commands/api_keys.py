@@ -5,7 +5,7 @@ from __future__ import annotations
 import click
 
 from ..lib.client import ElnoraClient
-from ..lib.errors import ValidationError, handle_errors, output_success
+from ..lib.errors import handle_errors, output_success
 
 
 @click.group("api-keys")

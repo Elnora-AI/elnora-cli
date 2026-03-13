@@ -583,7 +583,9 @@ class ElnoraClient:
             query_params={"q": query, "page": page, "pageSize": page_size},
         )
 
-    def search_file_content(self, query: str, project_id: str | None = None, page: int = 1, page_size: int = 25) -> dict:
+    def search_file_content(
+        self, query: str, project_id: str | None = None, page: int = 1, page_size: int = 25,
+    ) -> dict:
         """Search file contents via full-text search."""
         params: dict[str, Any] = {"q": query, "page": str(page), "pageSize": str(page_size)}
         if project_id:
@@ -1006,14 +1008,18 @@ class ElnoraClient:
     # Legal Document Versions (SystemAdmin)
     # ------------------------------------------------------------------
 
-    def add_legal_doc_version(self, *, document_type: str, version: str, content: str, effective_date: str | None = None) -> dict:
+    def add_legal_doc_version(
+        self, *, document_type: str, version: str, content: str, effective_date: str | None = None,
+    ) -> dict:
         """Add a new legal document version (SystemAdmin only)."""
         body: dict[str, Any] = {"documentType": document_type, "version": version, "content": content}
         if effective_date is not None:
             body["effectiveDate"] = effective_date
         return self._request(config.ENDPOINTS["legal_doc_version"], body, method="POST")
 
-    def update_legal_doc_version(self, version_id: int, *, content: str | None = None, effective_date: str | None = None) -> dict:
+    def update_legal_doc_version(
+        self, version_id: int, *, content: str | None = None, effective_date: str | None = None,
+    ) -> dict:
         """Update a legal document version (SystemAdmin only)."""
         body: dict[str, Any] = {}
         if content is not None:

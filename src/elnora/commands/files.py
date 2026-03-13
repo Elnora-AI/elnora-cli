@@ -254,9 +254,13 @@ def upload_batch(ctx, project: str, file_paths: str, folder: str | None):
         results = []
         for i, entry in enumerate(result_items):
             if i >= len(paths):
-                results.append({
-                    "file": "unknown", "status": "failed", "error": "API returned more items than files sent",
-                })
+                results.append(
+                    {
+                        "file": "unknown",
+                        "status": "failed",
+                        "error": "API returned more items than files sent",
+                    }
+                )
                 break
             if entry.get("status") == "failed":
                 results.append({"file": paths[i].name, "status": "failed", "error": entry.get("error", "unknown")})
@@ -279,7 +283,10 @@ def upload_batch(ctx, project: str, file_paths: str, folder: str | None):
                 fsize = str(paths[i].stat().st_size)
                 with paths[i].open("rb") as fh:
                     put_req = urllib.request.Request(
-                        presigned_url, data=fh, headers={"Content-Type": ct, "Content-Length": fsize}, method="PUT",
+                        presigned_url,
+                        data=fh,
+                        headers={"Content-Type": ct, "Content-Length": fsize},
+                        method="PUT",
                     )
                     with upload_opener.open(put_req, timeout=120) as resp:
                         resp.read()

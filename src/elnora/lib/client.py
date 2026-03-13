@@ -389,9 +389,9 @@ class ElnoraClient:
                         try:
                             wait = min(float(retry_after), 30.0)
                         except (ValueError, TypeError):
-                            wait = 2 ** attempt
+                            wait = 2**attempt
                     else:
-                        wait = 2 ** attempt  # 1s, 2s, 4s
+                        wait = 2**attempt  # 1s, 2s, 4s
                     try:
                         e.read()
                     except Exception:

@@ -1,8 +1,11 @@
 """Elnora API configuration — endpoints, headers, limits."""
 
-from importlib.metadata import version
+try:
+    from importlib.metadata import version
 
-__version__ = version("elnora")
+    __version__ = version("elnora")
+except Exception:
+    __version__ = "0.0.0-dev"
 
 BASE_URL = "https://platform.elnora.ai/api/v1"
 
@@ -48,7 +51,6 @@ ENDPOINTS = {
     "organization_billing": "/organizations/{id}/billing-status",
     "organization_stripe_customer": "/organizations/{id}/stripe-customer",
     "organization_set_default": "/organizations/{id}/set-default",
-    "organization_delete": "/organizations/{id}",
     "organizations_all": "/organizations/all",
     "org_files": "/organizations/{orgId}/files",
     # Organization invitations
@@ -82,11 +84,10 @@ ENDPOINTS = {
     "user_agreements": "/userAgreement/userAgreements",
     "user_agreement": "/userAgreement/userAgreement",
     # Legal docs (anonymous)
-    "legal_docs": "/userAgreement/legalDocumentVersion/list",
     "legal_doc_version": "/userAgreement/legalDocumentVersion",
     "legal_doc_version_id": "/userAgreement/legalDocumentVersion/{id}",
     # Feature flags (SystemAdmin)
-    "feature_flags": "/globalFeatureFlags/",
+    "feature_flags": "/globalFeatureFlags",
     "feature_flag": "/globalFeatureFlags/{key}",
     # Auth
     "auth_validate": "/auth/validate-token",

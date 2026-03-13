@@ -8,90 +8,69 @@ description: >
   "search papers", "search literature", "drug discovery", "protein analysis",
   "clinical trials", "file operations", "agent skills",
   or any question about what the Elnora AI Agent can do when you send it a task.
-  Routes to domain-specific sub-skills for token-efficient guidance.
 ---
 
 # Elnora Agent Capabilities
 
-> **This skill is REFERENCE ONLY.** It describes what the Elnora Agent can do internally — none of these tools are callable from the CLI. You interact with the agent exclusively through `tasks create` and `tasks send`. Use this context to know what to ask the agent for.
-
-The Elnora Agent is a LangGraph CodeAct agent with a persistent Python REPL sandbox. It has ~78 core tools + 2,100+ ToolUniverse scientific tools.
-
-**You interact with the agent through a single CLI endpoint:**
+The Elnora Agent is a sandboxed Python environment with ~78 core tools + 2,100 ToolUniverse scientific tools. You interact via `tasks send` — don't reference internal tool names, just describe what you need in plain language.
 
 ```bash
 CLI="uv run --project ${CLAUDE_PLUGIN_ROOT} elnora"
 
-# Create a task and send the first message
-$CLI --compact tasks create --project <PROJECT_ID> --title "My task" --message "Your request here"
+# Create a task
+$CLI --compact tasks create --project <PROJECT_ID> --title "My task" --message "Your request"
 
-# Continue the conversation
+# Continue conversation
 $CLI --compact tasks send <TASK_ID> --message "Follow-up request"
 
-# Read the agent's response
+# Read response
 $CLI --compact tasks messages <TASK_ID> --limit 5
 ```
 
-The agent executes Python code in a sandboxed REPL. All tools are callable as plain Python functions in the sandbox. Variables persist across executions within the same task.
+## What the agent can do
 
-## Routing Table
+| Capability | Examples |
+|------------|----------|
+| **Web search** (34 tools) | Real-time search, neural/semantic search, deep research, URL extraction, site crawling. Providers: Tavily, Exa, Valyu, Perplexity |
+| **Academic databases** (12 tools) | PubMed, ArXiv, Semantic Scholar, bioRxiv, Europe PMC, OpenAlex, UniProt, ClinicalTrials.gov, ChEMBL, Wolfram Alpha |
+| **2,100+ scientific tools** (ToolUniverse) | Protein structure (AlphaFold, PDB), genomics (Ensembl, ClinVar), chemistry (PubChem, DrugBank), pathways (KEGG, Reactome), drug safety (OpenFDA), and 21 more categories |
+| **35 domain skills** | Literature review, experimental design, drug discovery workflow, protein engineering, single-cell RNA QC, statistical analysis, scientific writing, and more |
+| **File operations** (11 tools) | Create/read/search files, full-text grep, upload attachments, link files to tasks |
+| **Memory** (9 tools) | Remember facts across tasks, share findings between agents, recall prior context |
+| **Code execution** | Persistent Python REPL with pandas, numpy, biopython. Variables survive across executions. 30s timeout, 1MB output max |
 
-| Need | Sub-skill | Tools | Trigger keywords |
-|------|-----------|-------|------------------|
-| Web search (Tavily, Exa, Valyu, Perplexity) | `elnora-agent-search` | 34 | web search, Tavily, Exa, Valyu, Perplexity, neural search, crawl |
-| Academic/scientific databases | `elnora-agent-academic` | 12 | PubMed, ArXiv, UniProt, papers, clinical trials, ChEMBL, Wolfram |
-| Platform file/task operations | `elnora-agent-platform` | 11 | create file, save file, read file, link file, search files, progress |
-| Tool/skill/catalog discovery + ToolUniverse | `elnora-agent-discovery` | 10 + 2,100 TU | find tool, ToolUniverse, catalog, discover, skill, methodology |
-| Context & memory management | `elnora-agent-memory` | 9 | remember, recall, findings, scratchpad, conversation summary |
-
-## Summary
-
-| Category | Count | Type |
-|----------|-------|------|
-| Platform (file/task ops) | 11 | Internal — .NET backend |
-| Web Search (Tavily/Exa/Valyu/Perplexity) | 34 | External APIs |
-| Academic/Scientific | 12 | Free direct APIs |
-| Catalog Discovery | 2 | Internal reference system |
-| Skill Discovery | 3 + 35 skills | Internal knowledge base |
-| ToolUniverse Meta-Tools | 5 + 2,100 tools | Scientific tool database |
-| Context Management | 4 | LangGraph Store |
-| Memory Management | 5 | Long-term persistent store |
-| Code Execution (sandbox) | 1 | Python REPL |
-| **Total** | **~78 core + 2,100 TU** | **~2,178 tools** |
-
-## Code Execution (Sandbox)
-
-- Persistent Python REPL per task (variables survive across executions)
-- Pre-loaded: `json`, `re`, `math`, `pandas` (pd), `numpy` (np)
-- All tools injected as plain Python functions
-- Limits: 30s timeout, 1MB output max
-
-## Agent Recipes
-
-**Ask the agent to search the web:**
+## Good prompts
 
 ```bash
+# Web research
 $CLI --compact tasks create --project "$PROJECT" --title "Web research" \
-  --message "Search the web for recent CRISPR delivery methods using Tavily and Exa"
-```
+  --message "Search for recent CRISPR delivery methods and summarize the top findings"
 
-**Ask the agent to find academic papers:**
-
-```bash
+# Literature review
 $CLI --compact tasks send "$TASK" \
-  --message "Search PubMed for BRCA1 mutation papers from 2024, then check Semantic Scholar for citation counts"
-```
+  --message "Search PubMed for BRCA1 DNA repair papers from 2024, find the most cited ones"
 
-**Ask the agent to use ToolUniverse:**
-
-```bash
+# Drug target research
 $CLI --compact tasks send "$TASK" \
-  --message "Use ToolUniverse to find protein structure prediction tools, then run AlphaFold on this sequence: MVLSPADKTNVKAAWGKVGAHAGEYGAEALERMFLSFPTTKTYFPHFDLSH"
-```
+  --message "Search for compounds targeting EGFR, cross-reference with active clinical trials"
 
-**Ask the agent to remember something across tasks:**
-
-```bash
+# Scientific computation
 $CLI --compact tasks send "$TASK" \
-  --message "Remember that our lab uses Taq polymerase for all PCR protocols and annealing at 58C"
+  --message "Use ToolUniverse to run AlphaFold on this sequence: MVLSPADKTNVKAAWGKVGA"
+
+# Memory
+$CLI --compact tasks send "$TASK" \
+  --message "Remember that our lab uses Q5 polymerase for all high-fidelity PCR at 62C"
+
+# File search
+$CLI --compact tasks send "$TASK" \
+  --message "Search all project files for mentions of 'annealing temperature' and summarize"
+
+# Reference existing files
+$CLI --compact tasks send "$TASK" \
+  --message "Read the attached template and generate a new version" --file-refs "<FILE_ID>"
 ```
+
+## Full tool reference
+
+Detailed tool-by-tool documentation is in the vault at `04-engineering/elnora-agent-*-tools.md`.

@@ -28,6 +28,8 @@ def list_tasks(ctx, project, page, page_size):
     with handle_errors(ctx):
         validate_page(page)
         validate_page_size(page_size)
+        if project:
+            validate_guid(project, "project")
         client = ElnoraClient.from_env()
         if project:
             result = client.list_project_tasks(project, page=page, page_size=page_size)
@@ -122,7 +124,7 @@ def update_task(ctx, task_id, title, status):
 @click.argument("task_id")
 @click.pass_context
 def archive_task(ctx, task_id):
-    """Archive (delete) a task."""
+    """Delete a task. This action is irreversible."""
     with handle_errors(ctx):
         validate_guid(task_id, "task_id")
         client = ElnoraClient.from_env()

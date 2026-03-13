@@ -80,8 +80,8 @@ _SCRUB_KEY_VALUE_RE = re.compile(
     re.IGNORECASE,
 )
 
-# Catch bare long token-like strings (40+ alphanumeric/dash/underscore chars)
-_SCRUB_LONG_TOKEN_RE = re.compile(r"[a-zA-Z0-9_-]{40,}")
+# Catch bare token-like strings (20+ alphanumeric/dash/underscore chars, matching minimum API key length)
+_SCRUB_LONG_TOKEN_RE = re.compile(r"elnora_live_[a-zA-Z0-9_-]{8,}|[a-zA-Z0-9_-]{40,}")
 
 
 def scrub(text: str) -> str:

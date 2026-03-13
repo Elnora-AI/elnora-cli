@@ -222,7 +222,7 @@ Destructive -- confirm with user first.
 **Get org ID, then check billing:**
 
 ```bash
-ORG=$($CLI --compact orgs list | jq -r '.[0].id')
+ORG=$($CLI --compact orgs list | jq -r 'if type == "array" then .[0].id else .items[0].id end')
 $CLI --compact orgs billing "$ORG"
 ```
 

@@ -285,10 +285,8 @@ def delete_org(ctx, org_id, yes):
             click.echo("This action is IRREVERSIBLE. All org data will be lost.", err=True)
             confirmation = click.prompt("Type the organization name to confirm", default="", show_default=False)
             if confirmation != org_name:
-                raise ValidationError(
-                    "Confirmation did not match organization name. Aborting.",
-                    suggestion=f"Type exactly: {org_name}",
-                )
+                click.echo(f'{{"aborted": true, "suggestion": "Type exactly: {org_name}"}}', err=True)
+                ctx.exit(0)
         else:
             client = ElnoraClient.from_env()
         client.delete_organization(org_id)

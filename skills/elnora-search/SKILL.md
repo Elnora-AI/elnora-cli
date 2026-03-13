@@ -3,9 +3,9 @@ name: elnora-search
 description: >
   This skill should be used when the user asks to "search tasks", "find a protocol",
   "search files", "search file content", "search inside files", "find tasks about",
-  "look up", "query Elnora", "search everything", "full text search",
+  "query Elnora", "search Elnora platform", "full text search",
   or any task involving searching the Elnora Platform for tasks, files, or all resources
-  by keyword.
+  by keyword. NOT for web search — use elnora-agent-search for that.
 ---
 
 # Elnora Search

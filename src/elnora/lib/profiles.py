@@ -25,6 +25,20 @@ LEGACY_CONFIG_FILE = CONFIG_DIR / "config.toml"
 PROFILE_NAME_RE = re.compile(r"^[a-z0-9][a-z0-9-]{0,31}$")
 
 
+def _write_secure_file(path: Path, content: str) -> None:
+    """Write a file with restrictive permissions (0o600 on Unix)."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if os.name != "nt":
+        path.parent.chmod(0o700)
+        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        try:
+            os.write(fd, content.encode("utf-8"))
+        finally:
+            os.close(fd)
+    else:
+        path.write_text(content, encoding="utf-8")
+
+
 def validate_profile_name(name: str) -> str:
     """Validate and return a profile name. Raises ValidationError if invalid."""
     if not PROFILE_NAME_RE.match(name):
@@ -41,17 +55,15 @@ def validate_profile_name(name: str) -> str:
 # ---------------------------------------------------------------------------
 
 
-def _parse_profiles_toml(text: str) -> tuple[dict[str, dict[str, str]], list[str]]:
-    """Parse profiles.toml into {profile_name: {key: value}} and raw lines.
+def _parse_profiles_toml(text: str) -> dict[str, dict[str, str]]:
+    """Parse profiles.toml into {profile_name: {key: value}}.
 
     Understands [default] and [profiles.<name>] section headers.
-    Returns (profiles_dict, raw_lines).
     """
     profiles: dict[str, dict[str, str]] = {}
     current_section: str | None = None
-    lines = text.splitlines()
 
-    for line in lines:
+    for line in text.splitlines():
         stripped = line.strip()
         if not stripped or stripped.startswith("#"):
             continue
@@ -77,7 +89,7 @@ def _parse_profiles_toml(text: str) -> tuple[dict[str, dict[str, str]], list[str
             val = val.strip().strip('"').strip("'")
             profiles[current_section][raw_key] = val
 
-    return profiles, lines
+    return profiles
 
 
 def _serialize_profiles(profiles: dict[str, dict[str, str]]) -> str:
@@ -120,7 +132,7 @@ def load_profiles() -> dict[str, dict[str, str]]:
         text = PROFILES_FILE.read_text(encoding="utf-8")
     except OSError:
         return {}
-    profiles, _ = _parse_profiles_toml(text)
+    profiles = _parse_profiles_toml(text)
     return profiles
 
 
@@ -134,20 +146,8 @@ def save_profile(name: str, api_key: str) -> Path:
     profiles = load_profiles()
     profiles[name] = {"api_key": api_key}
 
-    CONFIG_DIR.mkdir(parents=True, exist_ok=True)
-    if os.name != "nt":
-        CONFIG_DIR.chmod(0o700)
-
     content = _serialize_profiles(profiles)
-
-    if os.name != "nt":
-        fd = os.open(PROFILES_FILE, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
-        try:
-            os.write(fd, content.encode("utf-8"))
-        finally:
-            os.close(fd)
-    else:
-        PROFILES_FILE.write_text(content, encoding="utf-8")
+    _write_secure_file(PROFILES_FILE, content)
 
     return PROFILES_FILE
 
@@ -168,14 +168,7 @@ def remove_profile(name: str) -> bool:
         return True
 
     content = _serialize_profiles(profiles)
-    if os.name != "nt":
-        fd = os.open(PROFILES_FILE, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
-        try:
-            os.write(fd, content.encode("utf-8"))
-        finally:
-            os.close(fd)
-    else:
-        PROFILES_FILE.write_text(content, encoding="utf-8")
+    _write_secure_file(PROFILES_FILE, content)
 
     return True
 

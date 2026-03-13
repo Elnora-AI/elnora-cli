@@ -25,7 +25,30 @@ from .errors import (
     ValidationError,
     scrub,
 )
-from .validation import validate_guid
+from .validation import validate_guid, validate_path_segment
+
+_ALLOWED_UPLOAD_HOSTS = (".amazonaws.com", ".storage.googleapis.com", ".blob.core.windows.net")
+
+
+def validate_upload_url(url: str) -> None:
+    """Validate a presigned upload URL — SSRF prevention for API-returned URLs."""
+    parsed = urllib.parse.urlparse(url)
+    if parsed.scheme != "https":
+        raise ValidationError(
+            f"Upload URL must use HTTPS, got '{parsed.scheme}'.",
+            suggestion="Contact support — the API returned an insecure upload URL.",
+        )
+    if "@" in url.split("?")[0]:
+        raise ValidationError(
+            "Upload URL contains userinfo (@).",
+            suggestion="Contact support — the API returned a suspicious upload URL.",
+        )
+    hostname = parsed.hostname or ""
+    if not any(hostname.endswith(suffix) for suffix in _ALLOWED_UPLOAD_HOSTS):
+        raise ValidationError(
+            f"Upload URL hostname '{hostname}' is not an allowed storage provider.",
+            suggestion="Contact support — the API returned an unexpected upload URL host.",
+        )
 
 
 def anon_request(endpoint, body=None, *, method="GET", query_params=None):
@@ -34,6 +57,18 @@ def anon_request(endpoint, body=None, *, method="GET", query_params=None):
     if query_params:
         qs = urllib.parse.urlencode(query_params)
         url = f"{url}?{qs}"
+    # SSRF prevention: same checks as _request()
+    parsed = urllib.parse.urlparse(url)
+    if parsed.scheme != "https" or parsed.hostname != "platform.elnora.ai":
+        raise ElnoraError(
+            f"SSRF blocked: refusing to connect to {parsed.hostname}",
+            code="SSRF_BLOCKED",
+        )
+    if "@" in url.split("?")[0]:
+        raise ElnoraError(
+            "SSRF blocked: URL contains userinfo (@)",
+            code="SSRF_BLOCKED",
+        )
     headers = {k: v for k, v in config.DEFAULT_HEADERS.items()}
     if method == "GET":
         headers.pop("Content-Type", None)
@@ -99,7 +134,8 @@ class _NoRedirectHandler(urllib.request.HTTPRedirectHandler):
 class ElnoraClient:
     """Thin wrapper around the Elnora Platform REST API."""
 
-    _active_profile: str | None = None  # Set by CLI --profile flag
+    # Profile set by CLI --profile flag, read via ctx.obj["profile"]
+    _active_profile: str | None = None
 
     def __init__(self, api_key: str):
         self._api_key = api_key
@@ -129,15 +165,12 @@ class ElnoraClient:
         explicit_profile = profile or cls._active_profile
         key = ""
 
-        # When a profile is explicitly requested, try it first
+        # When a profile is explicitly requested, try it first — fail if not found
         if explicit_profile:
             from .profiles import get_api_key, migrate_config_if_needed
 
             migrate_config_if_needed()
-            try:
-                key = get_api_key(explicit_profile)
-            except AuthError:
-                pass
+            key = get_api_key(explicit_profile)
 
         # Fall back to env vars / .env / profiles / legacy config
         if not key:
@@ -205,25 +238,6 @@ class ElnoraClient:
             val = val.strip().strip('"').strip("'")
             return val
         return ""
-
-    @staticmethod
-    def save_config(api_key: str) -> Path:
-        """Write API key to ~/.elnora/config.toml."""
-        CONFIG_DIR.mkdir(parents=True, exist_ok=True)
-        if os.name != "nt":
-            # Ensure directory is owner-only (umask may have made it world-readable)
-            CONFIG_DIR.chmod(0o700)
-        content = f'# Elnora CLI configuration\n# Created by: elnora auth login\n\napi_key = "{api_key}"\n'
-        if os.name != "nt":
-            # Atomic create with restricted permissions — no TOCTOU window
-            fd = os.open(CONFIG_FILE, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
-            try:
-                os.write(fd, content.encode("utf-8"))
-            finally:
-                os.close(fd)
-        else:
-            CONFIG_FILE.write_text(content, encoding="utf-8")
-        return CONFIG_FILE
 
     @staticmethod
     def _load_env() -> None:
@@ -358,27 +372,47 @@ class ElnoraClient:
 
         req = urllib.request.Request(url, data=data, headers=headers, method=method)
 
-        try:
-            with self._opener.open(req, timeout=30) as resp:
-                raw = resp.read().decode("utf-8")
-                # Some endpoints return raw text, not JSON
-                try:
-                    return json.loads(raw)
-                except json.JSONDecodeError:
-                    return raw
-        except urllib.error.HTTPError as e:
-            body_text = ""
+        max_retries = 3
+        for attempt in range(max_retries + 1):
             try:
-                body_text = e.read().decode("utf-8", errors="replace")
-            except Exception:
-                pass
-            self._handle_http_error(e.code, body_text)
-        except urllib.error.URLError as e:
-            raise ElnoraError(
-                f"Network error: {scrub(str(e.reason))}",
-                suggestion="Check your internet connection and try again.",
-                code="NETWORK_ERROR",
-            ) from e
+                with self._opener.open(req, timeout=30) as resp:
+                    raw = resp.read().decode("utf-8")
+                    # Some endpoints return raw text, not JSON
+                    try:
+                        return json.loads(raw)
+                    except json.JSONDecodeError:
+                        return raw
+            except urllib.error.HTTPError as e:
+                if e.code == 429 and attempt < max_retries:
+                    retry_after = e.headers.get("Retry-After")
+                    if retry_after:
+                        try:
+                            wait = min(float(retry_after), 30.0)
+                        except (ValueError, TypeError):
+                            wait = 2 ** attempt
+                    else:
+                        wait = 2 ** attempt  # 1s, 2s, 4s
+                    try:
+                        e.read()
+                    except Exception:
+                        pass
+                    time.sleep(wait)
+                    self._last_request_time = time.monotonic()
+                    # Rebuild request since data stream may be consumed
+                    req = urllib.request.Request(url, data=data, headers=headers, method=method)
+                    continue
+                body_text = ""
+                try:
+                    body_text = e.read().decode("utf-8", errors="replace")
+                except Exception:
+                    pass
+                self._handle_http_error(e.code, body_text)
+            except urllib.error.URLError as e:
+                raise ElnoraError(
+                    f"Network error: {scrub(str(e.reason))}",
+                    suggestion="Check your internet connection and try again.",
+                    code="NETWORK_ERROR",
+                ) from e
 
     def _handle_http_error(self, status: int, body: str) -> NoReturn:
         """Map HTTP status codes to typed errors."""
@@ -589,7 +623,7 @@ class ElnoraClient:
         page_size: int = 25,
     ) -> dict:
         """Search file contents via full-text search."""
-        params: dict[str, Any] = {"q": query, "page": str(page), "pageSize": str(page_size)}
+        params: dict[str, Any] = {"q": query, "page": page, "pageSize": page_size}
         if project_id:
             params["projectId"] = project_id
         return self._request(config.ENDPOINTS["search_file_content"], query_params=params)
@@ -681,9 +715,11 @@ class ElnoraClient:
         return self._request(endpoint, method="DELETE")
 
     def get_invitation_info(self, token: str) -> dict:
+        validate_path_segment(token, "invitation token")
         return self._request(config.ENDPOINTS["invitation_info"].replace("{token}", token))
 
     def accept_invitation(self, token: str) -> dict:
+        validate_path_segment(token, "invitation token")
         return self._request(config.ENDPOINTS["invitation_accept"].replace("{token}", token), method="POST")
 
     # ------------------------------------------------------------------
@@ -841,7 +877,12 @@ class ElnoraClient:
 
     def download_file(self, file_id: str) -> str:
         validate_guid(file_id, "file_id")
-        return self._request(config.ENDPOINTS["file_download"].replace("{id}", file_id))
+        result = self._request(config.ENDPOINTS["file_download"].replace("{id}", file_id))
+        if isinstance(result, str):
+            return result
+        if isinstance(result, dict) and "content" in result:
+            return result["content"]
+        return json.dumps(result)
 
     def update_file(self, file_id: str, *, name: str | None = None, folder_id: str | None = None) -> dict:
         validate_guid(file_id, "file_id")
@@ -1055,10 +1096,12 @@ class ElnoraClient:
 
     def get_feature_flag(self, key: str) -> dict:
         """Get a feature flag value (SystemAdmin only)."""
+        validate_path_segment(key, "feature flag key")
         endpoint = config.ENDPOINTS["feature_flag"].replace("{key}", key)
         return self._request(endpoint)
 
     def set_feature_flag(self, key: str, *, value: bool) -> dict:
         """Set a feature flag value (SystemAdmin only)."""
+        validate_path_segment(key, "feature flag key")
         endpoint = config.ENDPOINTS["feature_flag"].replace("{key}", key)
         return self._request(endpoint, {"value": value}, method="PUT")

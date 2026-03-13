@@ -54,7 +54,7 @@ Returns raw file content to stdout (not JSON-wrapped). Pipe to a file to save:
 $CLI files content <FILE_ID> > protocol.md
 ```
 
-Note: `--compact` and `--fields` have no effect on this command — output is always raw content.
+Note: `--compact` or `--fields` wraps output in `{"content":"..."}` JSON. Omit both to get raw text output. Same applies to `download` and `version-content`.
 
 ### Download File
 
@@ -113,6 +113,8 @@ $CLI --compact files create --project <PROJECT_ID> --name "data.csv" --type Data
 | `--folder` | No | Folder UUID to place the file in |
 
 ### Upload File
+
+**Limits:** Max 100 MB per file, filename max 255 chars, any MIME type accepted. Presigned URL expires in 15 minutes.
 
 ```bash
 $CLI --compact files upload --project <PROJECT_ID> --file /path/to/local/file.md
@@ -203,6 +205,23 @@ $CLI --compact files commit <FILE_ID>
 ```
 
 Commits a working copy back as a new version.
+
+### Search File Content
+
+```bash
+$CLI --compact files search-content -q "annealing temperature"
+$CLI --compact files search-content -q "BRCA1" --project <PROJECT_ID>
+$CLI --compact files search-content -q "gel electrophoresis" --page-size 10
+```
+
+Full-text search inside file contents. Optional `--project` to limit to a specific project. Same command is also available as `search file-content`.
+
+| Flag | Required | Notes |
+|------|----------|-------|
+| `--query` / `-q` | Yes | Search query string |
+| `--project` | No | Project UUID to filter by |
+| `--page` | No | Page number (default 1) |
+| `--page-size` | No | Results per page (default 25, max 100) |
 
 ## Agent Recipes
 

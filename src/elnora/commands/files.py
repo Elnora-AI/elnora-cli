@@ -26,6 +26,7 @@ def list_files(ctx, project, page, page_size):
     Use --profile to list files in a different organization.
     """
     with handle_errors(ctx):
+        validate_guid(project, "project")
         validate_page(page)
         validate_page_size(page_size)
         client = ElnoraClient.from_env()
@@ -164,17 +165,23 @@ def upload_file(ctx, project: str, file_path: str, file_name: str | None, conten
                 suggestion="Check API response: " + str(list(upload_info.keys())),
             )
 
+        import urllib.parse
         import urllib.request
 
-        file_data = path.read_bytes()
-        put_req = urllib.request.Request(
-            presigned_url,
-            data=file_data,
-            headers={"Content-Type": content_type},
-            method="PUT",
-        )
-        with urllib.request.urlopen(put_req, timeout=120) as resp:
-            resp.read()
+        from ..lib.client import _NoRedirectHandler, validate_upload_url
+
+        validate_upload_url(presigned_url)
+
+        upload_opener = urllib.request.build_opener(_NoRedirectHandler)
+        with path.open("rb") as fh:
+            put_req = urllib.request.Request(
+                presigned_url,
+                data=fh,
+                headers={"Content-Type": content_type, "Content-Length": str(file_size)},
+                method="PUT",
+            )
+            with upload_opener.open(put_req, timeout=120) as resp:
+                resp.read()
 
         # Step 3: Confirm upload
         if file_id:
@@ -237,8 +244,12 @@ def upload_batch(ctx, project: str, file_paths: str, folder: str | None):
         batch_result = client.batch_initiate_upload(items=items)
 
         # Upload each file to its presigned URL and confirm
+        import urllib.parse
         import urllib.request
 
+        from ..lib.client import _NoRedirectHandler
+
+        upload_opener = urllib.request.build_opener(_NoRedirectHandler)
         result_items = batch_result if isinstance(batch_result, list) else batch_result.get("items", [])
         results = []
         for i, entry in enumerate(result_items):
@@ -256,18 +267,27 @@ def upload_batch(ctx, project: str, file_paths: str, folder: str | None):
             if not presigned_url or not file_id:
                 results.append({"file": paths[i].name, "status": "failed", "error": "no upload URL returned"})
                 continue
+            from ..lib.client import validate_upload_url
+
+            try:
+                validate_upload_url(presigned_url)
+            except Exception as url_exc:
+                results.append({"file": paths[i].name, "status": "failed", "error": str(url_exc)})
+                continue
             try:
                 ct = mimetypes.guess_type(paths[i].name)[0] or "application/octet-stream"
-                file_data = paths[i].read_bytes()
-                put_req = urllib.request.Request(
-                    presigned_url, data=file_data, headers={"Content-Type": ct}, method="PUT",
-                )
-                with urllib.request.urlopen(put_req, timeout=120) as resp:
-                    resp.read()
+                fsize = str(paths[i].stat().st_size)
+                with paths[i].open("rb") as fh:
+                    put_req = urllib.request.Request(
+                        presigned_url, data=fh, headers={"Content-Type": ct, "Content-Length": fsize}, method="PUT",
+                    )
+                    with upload_opener.open(put_req, timeout=120) as resp:
+                        resp.read()
                 confirm = client.confirm_upload(file_id)
                 results.append({"file": paths[i].name, "status": "success", "fileId": file_id, "detail": confirm})
             except (urllib.error.URLError, urllib.error.HTTPError, OSError) as exc:
-                results.append({"file": paths[i].name, "status": "failed", "error": str(exc)})
+                err_type = type(exc).__name__
+                results.append({"file": paths[i].name, "status": "failed", "error": f"Upload failed: {err_type}"})
 
         output_success(results, compact=ctx.obj["compact"], fmt=ctx.obj["fmt"], fields=ctx.obj["fields"])
 

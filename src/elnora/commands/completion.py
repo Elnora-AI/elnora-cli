@@ -56,12 +56,12 @@ def completion(ctx, shell: str):
         click.echo(f"""# elnora bash completion — add to ~/.bashrc
 _elnora_completions() {{
   local cur="${{COMP_WORDS[COMP_CWORD]}}"
-  local prev="${{COMP_WORDS[COMP_CWORD-1]}}"
+  local cmd="${{COMP_WORDS[1]}}"
   if [ "${{COMP_CWORD}}" -eq 1 ]; then
     COMPREPLY=( $(compgen -W "{commands} {global_opts}" -- "${{cur}}") )
     return
   fi
-  case "${{prev}}" in
+  case "${{cmd}}" in
 {case_block}
   esac
 }}

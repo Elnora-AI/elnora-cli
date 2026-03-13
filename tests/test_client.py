@@ -1,7 +1,10 @@
 """Tests for ElnoraClient — SSRF blocking, error mapping, auth resolution, .env loading."""
 
+import http.client
+import io
 import os
-from unittest.mock import patch
+import urllib.error
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -246,36 +249,6 @@ class TestNoRedirectHandler:
         assert "/path" not in error_msg
 
 
-class TestSaveConfig:
-    """Config file writing and permissions."""
-
-    def test_writes_valid_toml(self, tmp_path, monkeypatch):
-        monkeypatch.setattr("elnora.lib.client.CONFIG_DIR", tmp_path)
-        monkeypatch.setattr("elnora.lib.client.CONFIG_FILE", tmp_path / "config.toml")
-        key = "elnora_live_testkey1234567890"
-        result_path = ElnoraClient.save_config(key)
-        assert result_path.is_file()
-        content = result_path.read_text()
-        assert f'api_key = "{key}"' in content
-
-    def test_creates_directory(self, tmp_path, monkeypatch):
-        config_dir = tmp_path / "subdir" / ".elnora"
-        monkeypatch.setattr("elnora.lib.client.CONFIG_DIR", config_dir)
-        monkeypatch.setattr("elnora.lib.client.CONFIG_FILE", config_dir / "config.toml")
-        ElnoraClient.save_config("elnora_live_testkey1234567890")
-        assert config_dir.is_dir()
-
-    def test_sets_permissions_on_unix(self, tmp_path, monkeypatch):
-        if os.name == "nt":
-            pytest.skip("Unix-only test")
-        monkeypatch.setattr("elnora.lib.client.CONFIG_DIR", tmp_path)
-        config_file = tmp_path / "config.toml"
-        monkeypatch.setattr("elnora.lib.client.CONFIG_FILE", config_file)
-        ElnoraClient.save_config("elnora_live_testkey1234567890")
-        mode = config_file.stat().st_mode & 0o777
-        assert mode == 0o600
-
-
 class TestFromEnvWithProfiles:
     """Profile-based auth resolution."""
 
@@ -370,3 +343,158 @@ class TestFromEnvWithProfiles:
         with patch.object(ElnoraClient, "_load_env"):
             client = ElnoraClient.from_env()
         assert client._api_key == key
+
+
+def _make_http_error(code, headers=None, body=b""):
+    """Create a urllib.error.HTTPError with the given status code and headers."""
+    msg = http.client.HTTPMessage()
+    if headers:
+        for k, v in headers.items():
+            msg[k] = v
+    return urllib.error.HTTPError(
+        url="https://platform.elnora.ai/api/v1/test",
+        code=code,
+        msg=f"HTTP {code}",
+        hdrs=msg,
+        fp=io.BytesIO(body),
+    )
+
+
+class TestRateLimitRetry:
+    """429 retry with exponential backoff."""
+
+    def _make_client(self):
+        return ElnoraClient("elnora_live_" + "x" * 30)
+
+    def test_retries_on_429_then_succeeds(self, monkeypatch):
+        """Should retry up to 3 times on 429, then return the successful response."""
+        client = self._make_client()
+        call_count = 0
+
+        def mock_open(req, timeout=None):
+            nonlocal call_count
+            call_count += 1
+            if call_count <= 2:
+                raise _make_http_error(429)
+            resp = MagicMock()
+            resp.read.return_value = b'{"ok": true}'
+            resp.__enter__ = lambda s: s
+            resp.__exit__ = lambda s, *a: None
+            return resp
+
+        monkeypatch.setattr(client._opener, "open", mock_open)
+        monkeypatch.setattr("time.sleep", lambda _: None)
+
+        result = client._request("/test")
+        assert result == {"ok": True}
+        assert call_count == 3
+
+    def test_raises_after_max_retries(self, monkeypatch):
+        """Should raise RateLimitError after exhausting all retries."""
+        client = self._make_client()
+
+        def mock_open(req, timeout=None):
+            raise _make_http_error(429)
+
+        monkeypatch.setattr(client._opener, "open", mock_open)
+        monkeypatch.setattr("time.sleep", lambda _: None)
+
+        with pytest.raises(RateLimitError):
+            client._request("/test")
+
+    def test_respects_retry_after_header(self, monkeypatch):
+        """Should use Retry-After header value for sleep duration."""
+        client = self._make_client()
+        sleep_values = []
+        call_count = 0
+
+        def mock_open(req, timeout=None):
+            nonlocal call_count
+            call_count += 1
+            if call_count == 1:
+                raise _make_http_error(429, headers={"Retry-After": "5"})
+            resp = MagicMock()
+            resp.read.return_value = b'{"ok": true}'
+            resp.__enter__ = lambda s: s
+            resp.__exit__ = lambda s, *a: None
+            return resp
+
+        def mock_sleep(secs):
+            sleep_values.append(secs)
+
+        monkeypatch.setattr(client._opener, "open", mock_open)
+        monkeypatch.setattr("time.sleep", mock_sleep)
+
+        result = client._request("/test")
+        assert result == {"ok": True}
+        assert any(v == 5.0 for v in sleep_values)
+
+    def test_caps_retry_after_at_30s(self, monkeypatch):
+        """Should cap Retry-After at 30 seconds."""
+        client = self._make_client()
+        sleep_values = []
+        call_count = 0
+
+        def mock_open(req, timeout=None):
+            nonlocal call_count
+            call_count += 1
+            if call_count == 1:
+                raise _make_http_error(429, headers={"Retry-After": "120"})
+            resp = MagicMock()
+            resp.read.return_value = b'{"ok": true}'
+            resp.__enter__ = lambda s: s
+            resp.__exit__ = lambda s, *a: None
+            return resp
+
+        def mock_sleep(secs):
+            sleep_values.append(secs)
+
+        monkeypatch.setattr(client._opener, "open", mock_open)
+        monkeypatch.setattr("time.sleep", mock_sleep)
+
+        client._request("/test")
+        assert all(v <= 30.0 for v in sleep_values)
+
+    def test_non_429_errors_not_retried(self, monkeypatch):
+        """Non-429 HTTP errors should not be retried."""
+        client = self._make_client()
+        call_count = 0
+
+        def mock_open(req, timeout=None):
+            nonlocal call_count
+            call_count += 1
+            raise _make_http_error(500, body=b"Internal Server Error")
+
+        monkeypatch.setattr(client._opener, "open", mock_open)
+        monkeypatch.setattr("time.sleep", lambda _: None)
+
+        with pytest.raises(ServerError):
+            client._request("/test")
+        assert call_count == 1
+
+    def test_exponential_backoff_without_retry_after(self, monkeypatch):
+        """Should use 2^attempt backoff (1s, 2s, 4s) when no Retry-After header."""
+        client = self._make_client()
+        sleep_values = []
+        call_count = 0
+
+        def mock_open(req, timeout=None):
+            nonlocal call_count
+            call_count += 1
+            if call_count <= 3:
+                raise _make_http_error(429)
+            resp = MagicMock()
+            resp.read.return_value = b'{"ok": true}'
+            resp.__enter__ = lambda s: s
+            resp.__exit__ = lambda s, *a: None
+            return resp
+
+        def mock_sleep(secs):
+            sleep_values.append(secs)
+
+        monkeypatch.setattr(client._opener, "open", mock_open)
+        monkeypatch.setattr("time.sleep", mock_sleep)
+
+        client._request("/test")
+        retry_sleeps = [v for v in sleep_values if v >= 0.5]
+        assert retry_sleeps == [1, 2, 4]

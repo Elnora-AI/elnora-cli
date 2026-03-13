@@ -144,16 +144,16 @@ elnora health
 
 ```bash
 # Compact JSON for piping
-elnora projects list --compact
+elnora --compact projects list
 
 # CSV output
-elnora tasks list --output csv
+elnora --output csv tasks list
 
 # Select specific fields
-elnora projects list --fields "id,name,createdAt"
+elnora --fields "id,name,createdAt" projects list
 
 # Combine options
-elnora tasks list --project <ID> --output csv --fields "id,title,status"
+elnora --output csv --fields "id,title,status" tasks list --project <ID>
 ```
 
 ## Shell Completions

@@ -3,8 +3,8 @@
 import pytest
 from click.testing import CliRunner
 
-from elnora import __version__
 from elnora.cli import cli
+from elnora.lib.config import __version__
 
 runner = CliRunner()
 

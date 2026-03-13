@@ -77,6 +77,8 @@ $CLI --compact tasks send <TASK_ID> --message "Optimize based on this template" 
 
 Returns the created message object.
 
+**Async processing:** After `send`, the Elnora agent processes your message asynchronously. The response is NOT immediate — you must poll `messages` to check for the assistant reply. See [Waiting for Responses](#waiting-for-responses) below.
+
 ### Get Messages
 
 ```bash
@@ -112,9 +114,38 @@ $CLI --compact tasks archive <TASK_ID>
 
 Destructive operation — confirm with user before running.
 
+## Waiting for Responses
+
+After `tasks send` or `tasks create --message`, the Elnora agent processes asynchronously. There is no streaming via the CLI — you must poll.
+
+**How to poll:**
+
+```bash
+# Poll until the last message is from the assistant with status "completed"
+LAST=$($CLI --compact tasks messages <TASK_ID> | jq '.items[-1]')
+echo "$LAST" | jq '{role: .role, status: (.metadata | fromjson? // {} | .status)}'
+# → {"role":"assistant","status":"completed"}  ← ready
+# → {"role":"user","status":null}              ← still processing, wait and retry
+```
+
+**Status values** in assistant message `metadata`:
+
+| `metadata.status` | Meaning |
+|-------------------|---------|
+| `"completed"` | Agent finished successfully — read `.content` for the response |
+| `"error"` | Agent encountered an error — `.metadata` may contain `error_type` |
+
+**Polling strategy:**
+1. Wait **5 seconds** after sending, then poll `tasks messages`
+2. Check if the last message has `role: "assistant"`
+3. If not, wait **10 seconds** and poll again (responses can take seconds to several minutes for complex multi-tool protocols)
+4. **Timeout after 5 minutes** — the platform's own processing timeout is 300 seconds
+
+**No intermediate statuses** — messages jump directly to `completed` or `error` once the agent finishes. If the last message is still `role: "user"`, the agent hasn't responded yet.
+
 ## Agent Recipes
 
-**Full protocol generation flow:**
+**Full protocol generation flow with polling:**
 
 ```bash
 # 1. Find or create project
@@ -123,16 +154,23 @@ PROJECT=$($CLI --compact --fields "id" projects list | jq -r '.items[0].id')
 # 2. Create task with initial prompt
 TASK=$($CLI --compact tasks create --project "$PROJECT" --title "PCR BRCA1" --message "Generate PCR protocol for BRCA1 exon 11" | jq -r '.id')
 
-# 3. Wait, then read assistant response
-$CLI --compact tasks messages "$TASK" --limit 5
+# 3. Poll for assistant response
+sleep 5
+while true; do
+  LAST_ROLE=$($CLI --compact tasks messages "$TASK" | jq -r '.items[-1].role')
+  [ "$LAST_ROLE" = "assistant" ] && break
+  sleep 10
+done
 
-# 4. Iterate
+# 4. Read the completed response
+$CLI --compact tasks messages "$TASK" | jq '.items[-1].content'
+
+# 5. Iterate
 $CLI --compact tasks send "$TASK" --message "Add gel electrophoresis verification step"
 ```
 
 **Check latest assistant response only:**
 
 ```bash
-$CLI --compact tasks messages <TASK_ID> --limit 1
-# Last message is the most recent — check role=="assistant"
+$CLI --compact tasks messages <TASK_ID> | jq '.items[-1] | {role, content, status: (.metadata | fromjson? // {} | .status)}'
 ```

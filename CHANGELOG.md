@@ -5,6 +5,13 @@ All notable changes to the Elnora CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.7.2](https://github.com/Elnora-AI/elnora-cli/compare/elnora-v0.7.1...elnora-v0.7.2) (2026-03-13)
+
+
+### Bug Fixes
+
+* **cli:** harden security, add rate-limit retry, and update docs ([#33](https://github.com/Elnora-AI/elnora-cli/issues/33)) ([c201367](https://github.com/Elnora-AI/elnora-cli/commit/c2013677ebc7267f098d3f815392c4b0d70bd9e3))
+
 ## [0.7.1](https://github.com/Elnora-AI/elnora-cli/compare/elnora-v0.7.0...elnora-v0.7.1) (2026-03-13)
 
 

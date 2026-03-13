@@ -43,6 +43,7 @@ def list_projects(ctx, page: int, page_size: int):
 def get_project(ctx, project_id: str):
     """Get a project by ID."""
     with handle_errors(ctx):
+        validate_guid(project_id, "project_id")
         client = ElnoraClient.from_env()
         result = client.get_project(project_id)
         output_success(
@@ -83,6 +84,7 @@ def create_project(ctx, name: str, description: str | None, icon: str | None):
 def update_project(ctx, project_id: str, name: str | None, description: str | None, icon: str | None):
     """Update a project's name, description, or icon."""
     with handle_errors(ctx):
+        validate_guid(project_id, "project_id")
         if name is None and description is None and icon is None:
             raise ValidationError(
                 "Nothing to update. Provide --name, --description, and/or --icon.",
@@ -99,6 +101,7 @@ def update_project(ctx, project_id: str, name: str | None, description: str | No
 def archive_project(ctx, project_id: str):
     """Archive a project."""
     with handle_errors(ctx):
+        validate_guid(project_id, "project_id")
         client = ElnoraClient.from_env()
         client.archive_project(project_id)
         output_success(
@@ -115,6 +118,7 @@ def archive_project(ctx, project_id: str):
 def list_members(ctx, project_id: str):
     """List members of a project."""
     with handle_errors(ctx):
+        validate_guid(project_id, "project_id")
         client = ElnoraClient.from_env()
         result = client.list_project_members(project_id)
         output_success(result, compact=ctx.obj["compact"], fmt=ctx.obj["fmt"], fields=ctx.obj["fields"])
@@ -128,6 +132,7 @@ def list_members(ctx, project_id: str):
 def add_member(ctx, project_id: str, user_id: str, role: str):
     """Add a member to a project."""
     with handle_errors(ctx):
+        validate_guid(project_id, "project_id")
         validate_guid(user_id, "user_id")
         client = ElnoraClient.from_env()
         result = client.add_project_member(project_id, user_id=user_id, role=role)
@@ -142,6 +147,7 @@ def add_member(ctx, project_id: str, user_id: str, role: str):
 def update_role(ctx, project_id: str, user_id: str, role: str):
     """Update a project member's role."""
     with handle_errors(ctx):
+        validate_guid(project_id, "project_id")
         validate_guid(user_id, "user_id")
         client = ElnoraClient.from_env()
         result = client.update_project_member_role(project_id, user_id, role=role)
@@ -155,6 +161,7 @@ def update_role(ctx, project_id: str, user_id: str, role: str):
 def remove_member(ctx, project_id: str, user_id: str):
     """Remove a member from a project."""
     with handle_errors(ctx):
+        validate_guid(project_id, "project_id")
         validate_guid(user_id, "user_id")
         client = ElnoraClient.from_env()
         client.remove_project_member(project_id, user_id)
@@ -172,6 +179,7 @@ def remove_member(ctx, project_id: str, user_id: str):
 def leave_project(ctx, project_id: str):
     """Leave a project."""
     with handle_errors(ctx):
+        validate_guid(project_id, "project_id")
         client = ElnoraClient.from_env()
         result = client.leave_project(project_id)
         output_success(result, compact=ctx.obj["compact"], fmt=ctx.obj["fmt"], fields=ctx.obj["fields"])

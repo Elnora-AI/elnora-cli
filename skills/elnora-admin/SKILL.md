@@ -32,11 +32,13 @@ Interactive login prompts for the API key and saves to `~/.elnora/profiles.toml`
 
 Keys must start with `elnora_live_` and be 20+ characters.
 
+Response: `{"authenticated":true,"profile":"<name>","configPath":"/Users/<you>/.elnora/profiles.toml","totalProjects":N}`
+
 ### Check Auth Status
 
 ```bash
 $CLI --compact auth status
-# -> {"authenticated":true,"totalProjects":N}
+# -> {"authenticated":true,"profile":"default","totalProjects":N}
 ```
 
 Quick way to verify the CLI is properly configured.
@@ -45,10 +47,15 @@ Quick way to verify the CLI is properly configured.
 
 ```bash
 $CLI --compact auth logout
-# -> {"loggedOut":true,"removed":"~/.elnora/profiles.toml"}
+# -> {"loggedOut":true,"profile":"default","message":"Profile 'default' removed."}
+
+$CLI --compact auth logout --all
+# -> {"loggedOut":true,"removed":"/Users/<you>/.elnora/profiles.toml","message":"All profiles removed."}
 ```
 
-Removes saved credentials from disk. Use `--all` to delete all profiles at once.
+Removes saved credentials from disk. Without `--all`, removes the current profile only. With `--all`, deletes the entire `profiles.toml` file.
+
+If the profile doesn't exist, exits 0 with `"message":"Profile '<name>' not found."`.
 
 ### List Profiles
 
@@ -126,7 +133,7 @@ Org admin/owner only. Values: `all_members` or `admins_only`.
 $CLI --compact account get <USER_ID>
 ```
 
-Returns account details for a user ID (integer).
+Returns account details. **`<USER_ID>` is an integer (e.g. `42`), NOT a UUID.** Get user IDs from `account users`.
 
 ### Update Account
 
@@ -134,7 +141,7 @@ Returns account details for a user ID (integer).
 $CLI --compact account update <USER_ID> --first-name Jane --last-name Doe
 ```
 
-Must provide at least one of `--first-name` or `--last-name`.
+**`<USER_ID>` is an integer, not a UUID.** Must provide at least one of `--first-name` or `--last-name`.
 
 ### List Agreements
 
@@ -231,7 +238,7 @@ $CLI --compact flags set enable-new-editor false --yes
 # -> {"updated":true,"key":"enable-new-editor","value":true}
 ```
 
-**WARNING: Affects ALL users on the platform.** Requires confirmation unless `--yes` is passed.
+**WARNING: Affects ALL users on the platform.** Without `--yes`, blocks on an interactive yes/no prompt. Always use `--yes` in agent context.
 
 ## Health Check
 
@@ -293,6 +300,6 @@ $CLI --compact api-keys revoke <OLD_KEY_ID>
 **Check audit trail for an org:**
 
 ```bash
-ORG=$($CLI --compact orgs list | jq -r '.[0].id')
+ORG=$($CLI --compact orgs list | jq -r '.items[0].id')
 $CLI --compact audit list --org "$ORG" --page-size 50
 ```

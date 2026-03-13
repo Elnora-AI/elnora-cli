@@ -5,7 +5,7 @@ from __future__ import annotations
 import click
 
 from ..lib.client import ElnoraClient
-from ..lib.errors import ValidationError, handle_errors, output_success
+from ..lib.errors import handle_errors, output_success
 
 
 @click.group()
@@ -62,7 +62,8 @@ def set_flag(ctx, key, value, yes):
                 err=True,
             )
             if not click.confirm("Are you sure?", default=False, err=True):
-                raise ValidationError("Aborted.", suggestion="Use --yes to skip confirmation.")
+                click.echo('{"aborted": true, "suggestion": "Use --yes to skip confirmation."}', err=True)
+                ctx.exit(0)
         client = ElnoraClient.from_env()
         client.set_feature_flag(key, value=bool_value)
         output_success(

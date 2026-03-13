@@ -30,8 +30,9 @@ $CLI projects list --compact            # WRONG -- fails
 | Flag | Effect |
 |------|--------|
 | `--compact` | Minified JSON -- always use for agent workflows |
-| `--output csv` | CSV output for exports |
+| `--output <json\|csv>` | Output format (default: json) |
 | `--fields "id,name"` | Return only these fields |
+| `--profile <name>` | Named profile to use (default: `default`). Set with `auth login --profile` |
 
 ## Auth
 
@@ -62,6 +63,8 @@ Get keys: platform.elnora.ai > Settings > API Keys
 
 All IDs are UUIDs: `bfdc6fbd-40ed-4042-9ea7-c79a5ec90085`. Invalid format exits 1 with a suggestion showing the correct list command.
 
+Exception: `account get` and `account update` use **integer** user IDs (e.g. `42`), not UUIDs.
+
 ## Pagination
 
 List endpoints return:
@@ -87,9 +90,34 @@ Errors -> stderr, exit code > 0:
 | `AUTH_FAILED` | 3 | Check ELNORA_API_KEY in .env |
 | `NOT_FOUND` | 4 | Verify the UUID |
 | `VALIDATION_ERROR` | 2 | Check parameters |
-| `RATE_LIMITED` | 5 | Wait and retry |
+| `RATE_LIMITED` | 5 | Wait and retry (see Rate Limits below) |
 | `SERVER_ERROR` | 6 | Retry later |
 | `INTERNAL_ERROR` | 1 | Unexpected — report bug |
+
+## Rate Limits
+
+HTTP 429 on limit. Check the `Retry-After` header for seconds to wait.
+
+| Context | Limit | Window |
+|---------|-------|--------|
+| API key (CLI/agent default) | 200 req | 1 min |
+| Agent processing endpoints | 100 req per task | 1 min |
+| AI processing (tasks send, protocol generate) | 20 req | 1 min |
+| Auth endpoints (login, register) | 5 req | 1 min |
+| Global fallback (per IP) | 1000 req | 1 min |
+
+**Agent strategy:** On exit code 5, read `Retry-After` from stderr if available, otherwise wait 60 seconds before retrying. Do not retry in a tight loop.
+
+## File Upload Limits
+
+| Constraint | Value |
+|-----------|-------|
+| Max file size | 100 MB |
+| Max filename length | 255 characters |
+| Max files per batch upload | 50 |
+| Accepted MIME types | Unrestricted (any type) |
+| Upload presigned URL expiry | 15 minutes |
+| Download presigned URL expiry | 5 minutes |
 
 ## Common Workflow
 

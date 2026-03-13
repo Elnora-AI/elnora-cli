@@ -6,6 +6,7 @@ import click
 
 from ..lib.client import ElnoraClient
 from ..lib.errors import ValidationError, handle_errors, output_success
+from ..lib.validation import validate_int
 
 
 @click.group()
@@ -19,8 +20,9 @@ def account():
 def get_account(ctx, user_id):
     """Get account details by user ID."""
     with handle_errors(ctx):
+        uid = validate_int(user_id, "user_id")
         client = ElnoraClient.from_env()
-        result = client.get_account(int(user_id))
+        result = client.get_account(uid)
         output_success(result, compact=ctx.obj["compact"], fmt=ctx.obj["fmt"], fields=ctx.obj["fields"])
 
 
@@ -32,13 +34,14 @@ def get_account(ctx, user_id):
 def update_account(ctx, user_id, first_name, last_name):
     """Update account first and/or last name."""
     with handle_errors(ctx):
+        uid = validate_int(user_id, "user_id")
         if first_name is None and last_name is None:
             raise ValidationError(
                 "Nothing to update. Provide --first-name and/or --last-name.",
                 suggestion="elnora account update <user_id> --first-name Jane --last-name Doe",
             )
         client = ElnoraClient.from_env()
-        result = client.update_account(int(user_id), first_name=first_name, last_name=last_name)
+        result = client.update_account(uid, first_name=first_name, last_name=last_name)
         output_success(result, compact=ctx.obj["compact"], fmt=ctx.obj["fmt"], fields=ctx.obj["fields"])
 
 
@@ -53,13 +56,13 @@ def list_agreements(ctx):
 
 
 @account.command("accept-terms")
-@click.option("--document-version-id", required=True, help="Document version ID to accept (integer).")
+@click.option("--document-version-id", required=True, type=int, help="Document version ID to accept (integer).")
 @click.pass_context
 def accept_terms(ctx, document_version_id):
     """Accept a terms/agreement document version."""
     with handle_errors(ctx):
         client = ElnoraClient.from_env()
-        result = client.accept_agreement(document_version_id=int(document_version_id))
+        result = client.accept_agreement(document_version_id=document_version_id)
         output_success(result, compact=ctx.obj["compact"], fmt=ctx.obj["fmt"], fields=ctx.obj["fields"])
 
 
@@ -78,10 +81,8 @@ def delete_account(ctx, yes):
             click.echo("This action is IRREVERSIBLE. All your data will be lost.", err=True)
             confirmation = click.prompt("Type DELETE to confirm", default="", show_default=False)
             if confirmation != "DELETE":
-                raise ValidationError(
-                    "Confirmation did not match. Aborting.",
-                    suggestion="Type exactly: DELETE",
-                )
+                click.echo('{"aborted": true, "suggestion": "Type exactly: DELETE"}', err=True)
+                ctx.exit(0)
         client = ElnoraClient.from_env()
         client.delete_account()
         output_success(
@@ -159,10 +160,8 @@ def delete_legal_doc(ctx, version_id, yes):
             click.echo("This action is IRREVERSIBLE.", err=True)
             confirmation = click.prompt("Type DELETE to confirm", default="", show_default=False)
             if confirmation != "DELETE":
-                raise ValidationError(
-                    "Confirmation did not match. Aborting.",
-                    suggestion="Type exactly: DELETE",
-                )
+                click.echo('{"aborted": true, "suggestion": "Type exactly: DELETE"}', err=True)
+                ctx.exit(0)
         client = ElnoraClient.from_env()
         client.delete_legal_doc_version(version_id)
         output_success(

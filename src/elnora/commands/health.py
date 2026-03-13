@@ -3,13 +3,12 @@
 from __future__ import annotations
 
 import json
-import sys
 import urllib.error
 import urllib.request
 
 import click
 
-from ..lib.errors import handle_errors
+from ..lib.errors import ServerError, handle_errors, output_error, output_success
 
 
 @click.command()
@@ -28,16 +27,14 @@ def health(ctx):
                 except json.JSONDecodeError:
                     data = {"status": body.strip()}
                 data["httpStatus"] = status
-                print(json.dumps(data, indent=2))
+                output_success(data, compact=ctx.obj["compact"], fields=ctx.obj["fields"])
         except urllib.error.HTTPError as e:
-            print(
-                json.dumps({"status": "unhealthy", "httpStatus": e.code}, indent=2),
-                file=sys.stderr,
+            output_error(
+                ServerError(f"Elnora platform returned HTTP {e.code}"),
+                compact=ctx.obj["compact"],
             )
-            sys.exit(6)
         except urllib.error.URLError as e:
-            print(
-                json.dumps({"status": "unreachable", "error": str(e.reason)}, indent=2),
-                file=sys.stderr,
+            output_error(
+                ServerError(f"Elnora platform unreachable: {e.reason}"),
+                compact=ctx.obj["compact"],
             )
-            sys.exit(6)

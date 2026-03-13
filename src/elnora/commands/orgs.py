@@ -7,7 +7,7 @@ import click
 from ..lib.client import ElnoraClient
 from ..lib.config import DEFAULT_PAGE_SIZE
 from ..lib.errors import ValidationError, handle_errors, output_success
-from ..lib.validation import validate_page, validate_page_size
+from ..lib.validation import validate_guid, validate_page, validate_page_size
 
 
 @click.group()
@@ -31,6 +31,7 @@ def list_orgs(ctx):
 def get_org(ctx, org_id):
     """Get a single organization by ID."""
     with handle_errors(ctx):
+        validate_guid(org_id, "org_id")
         client = ElnoraClient.from_env()
         result = client.get_organization(org_id)
         output_success(result, compact=ctx.obj["compact"], fmt=ctx.obj["fmt"], fields=ctx.obj["fields"])
@@ -56,6 +57,7 @@ def create_org(ctx, name, description):
 def update_org(ctx, org_id, name, description):
     """Update an organization's name or description."""
     with handle_errors(ctx):
+        validate_guid(org_id, "org_id")
         if name is None and description is None:
             raise ValidationError(
                 "Nothing to update. Provide --name and/or --description.",
@@ -72,6 +74,7 @@ def update_org(ctx, org_id, name, description):
 def list_members(ctx, org_id):
     """List members of an organization."""
     with handle_errors(ctx):
+        validate_guid(org_id, "org_id")
         client = ElnoraClient.from_env()
         result = client.list_organization_members(org_id)
         output_success(result, compact=ctx.obj["compact"], fmt=ctx.obj["fmt"], fields=ctx.obj["fields"])
@@ -85,6 +88,8 @@ def list_members(ctx, org_id):
 def update_role(ctx, org_id, membership_id, role):
     """Update a member's role within an organization."""
     with handle_errors(ctx):
+        validate_guid(org_id, "org_id")
+        validate_guid(membership_id, "membership_id")
         client = ElnoraClient.from_env()
         result = client.update_organization_member_role(org_id, membership_id, role=role)
         output_success(result, compact=ctx.obj["compact"], fmt=ctx.obj["fmt"], fields=ctx.obj["fields"])
@@ -97,6 +102,8 @@ def update_role(ctx, org_id, membership_id, role):
 def remove_member(ctx, org_id, membership_id):
     """Remove a member from an organization."""
     with handle_errors(ctx):
+        validate_guid(org_id, "org_id")
+        validate_guid(membership_id, "membership_id")
         client = ElnoraClient.from_env()
         client.remove_organization_member(org_id, membership_id)
         output_success(
@@ -113,6 +120,7 @@ def remove_member(ctx, org_id, membership_id):
 def get_billing(ctx, org_id):
     """Get billing information for an organization."""
     with handle_errors(ctx):
+        validate_guid(org_id, "org_id")
         client = ElnoraClient.from_env()
         result = client.get_organization_billing(org_id)
         output_success(result, compact=ctx.obj["compact"], fmt=ctx.obj["fmt"], fields=ctx.obj["fields"])
@@ -125,6 +133,7 @@ def get_billing(ctx, org_id):
 def set_stripe(ctx, org_id, customer_id):
     """Set the Stripe customer ID for an organization (SystemAdmin only)."""
     with handle_errors(ctx):
+        validate_guid(org_id, "org_id")
         client = ElnoraClient.from_env()
         result = client.update_organization_stripe_customer(org_id, stripe_customer_id=customer_id)
         output_success(result, compact=ctx.obj["compact"], fmt=ctx.obj["fmt"], fields=ctx.obj["fields"])
@@ -142,6 +151,7 @@ def invite(ctx, org_id, email, role):
     returns the existing invitation instead of raising an error.
     """
     with handle_errors(ctx):
+        validate_guid(org_id, "org_id")
         client = ElnoraClient.from_env()
         # Check for existing pending invitation to make this idempotent
         existing = client.list_invitations(org_id)
@@ -161,6 +171,7 @@ def invite(ctx, org_id, email, role):
 def list_invitations(ctx, org_id):
     """List pending invitations for an organization."""
     with handle_errors(ctx):
+        validate_guid(org_id, "org_id")
         client = ElnoraClient.from_env()
         result = client.list_invitations(org_id)
         output_success(result, compact=ctx.obj["compact"], fmt=ctx.obj["fmt"], fields=ctx.obj["fields"])
@@ -173,6 +184,8 @@ def list_invitations(ctx, org_id):
 def cancel_invite(ctx, org_id, invitation_id):
     """Cancel a pending invitation."""
     with handle_errors(ctx):
+        validate_guid(org_id, "org_id")
+        validate_guid(invitation_id, "invitation_id")
         client = ElnoraClient.from_env()
         client.cancel_invitation(org_id, invitation_id)
         output_success(
@@ -213,6 +226,7 @@ def accept_invite(ctx, token):
 def org_files(ctx, org, page, page_size):
     """List all files across an organization (admin compliance view)."""
     with handle_errors(ctx):
+        validate_guid(org, "org")
         validate_page(page)
         validate_page_size(page_size)
         client = ElnoraClient.from_env()
@@ -229,6 +243,7 @@ def set_default(ctx, org_id):
     Your default organization is used when no --profile is specified.
     """
     with handle_errors(ctx):
+        validate_guid(org_id, "org_id")
         client = ElnoraClient.from_env()
         client.set_default_organization(org_id)
         output_success(
@@ -260,6 +275,7 @@ def delete_org(ctx, org_id, yes):
     This action is irreversible. You will be asked to confirm unless --yes is passed.
     """
     with handle_errors(ctx):
+        validate_guid(org_id, "org_id")
         if not yes:
             # Show org info before confirming
             client = ElnoraClient.from_env()
@@ -269,10 +285,8 @@ def delete_org(ctx, org_id, yes):
             click.echo("This action is IRREVERSIBLE. All org data will be lost.", err=True)
             confirmation = click.prompt("Type the organization name to confirm", default="", show_default=False)
             if confirmation != org_name:
-                raise ValidationError(
-                    "Confirmation did not match organization name. Aborting.",
-                    suggestion=f"Type exactly: {org_name}",
-                )
+                click.echo(f'{{"aborted": true, "suggestion": "Type exactly: {org_name}"}}', err=True)
+                ctx.exit(0)
         else:
             client = ElnoraClient.from_env()
         client.delete_organization(org_id)

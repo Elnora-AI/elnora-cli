@@ -5,6 +5,13 @@ All notable changes to the Elnora CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.7.3](https://github.com/Elnora-AI/elnora-cli/compare/elnora-v0.7.2...elnora-v0.7.3) (2026-03-16)
+
+
+### Bug Fixes
+
+* **cli:** use correct endpoint key for org delete ([#35](https://github.com/Elnora-AI/elnora-cli/issues/35)) ([be041cb](https://github.com/Elnora-AI/elnora-cli/commit/be041cbd2858ffc17959c718d3c1ea89751e6b79))
+
 ## [0.7.2](https://github.com/Elnora-AI/elnora-cli/compare/elnora-v0.7.1...elnora-v0.7.2) (2026-03-13)
 
 

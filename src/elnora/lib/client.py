@@ -688,7 +688,7 @@ class ElnoraClient:
     def delete_organization(self, org_id: str) -> dict:
         """Delete an organization (SystemAdmin only). This is irreversible."""
         validate_guid(org_id, "org_id")
-        endpoint = config.ENDPOINTS["organization_delete"].replace("{id}", org_id)
+        endpoint = config.ENDPOINTS["organization"].replace("{id}", org_id)
         return self._request(endpoint, method="DELETE")
 
     def list_all_organizations(self) -> dict:

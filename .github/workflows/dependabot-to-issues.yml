@@ -1,0 +1,180 @@
+name: Create Issues from Dependabot Alerts
+
+on:
+  schedule:
+    # Run daily at 7 AM UTC
+    - cron: '0 7 * * *'
+  workflow_dispatch: # Allow manual trigger for urgent situations
+
+permissions:
+  issues: write
+
+jobs:
+  create-issues:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create Issues from Dependabot Alerts
+        uses: actions/github-script@v8
+        env:
+          DEPENDABOT_TOKEN: ${{ secrets.DEPENDABOT_PAT }}
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            // Fetch Dependabot alerts using PAT via fetch API
+            const alertsResponse = await fetch(
+              `https://api.github.com/repos/${context.repo.owner}/${context.repo.repo}/dependabot/alerts?state=open&per_page=100`,
+              {
+                headers: {
+                  'Authorization': `Bearer ${process.env.DEPENDABOT_TOKEN}`,
+                  'Accept': 'application/vnd.github+json',
+                  'X-GitHub-Api-Version': '2022-11-28'
+                }
+              }
+            );
+
+            if (!alertsResponse.ok) {
+              throw new Error(`Failed to fetch Dependabot alerts: ${alertsResponse.status} ${alertsResponse.statusText}`);
+            }
+
+            const alerts = await alertsResponse.json();
+            console.log(`Found ${alerts.length} open Dependabot alerts`);
+
+            if (alerts.length === 0) {
+              console.log('No open alerts to process');
+              return;
+            }
+
+            // Get existing issues to avoid duplicates
+            const { data: existingIssues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              labels: 'Source: Vulnerability Scan',
+              state: 'all',
+              per_page: 100
+            });
+
+            // Extract CVE/GHSA identifiers from existing issue titles
+            const existingIdentifiers = existingIssues.map(issue => {
+              const cveMatch = issue.title.match(/CVE-\d{4}-\d+/);
+              const ghsaMatch = issue.title.match(/GHSA-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}/);
+              return cveMatch ? cveMatch[0] : (ghsaMatch ? ghsaMatch[0] : null);
+            }).filter(Boolean);
+
+            console.log(`Found ${existingIdentifiers.length} existing vulnerability issues`);
+
+            let createdCount = 0;
+            let skippedCount = 0;
+
+            for (const alert of alerts) {
+              const cve = alert.security_advisory?.cve_id;
+              const ghsa = alert.security_advisory?.ghsa_id;
+              const identifier = cve || (ghsa ? `GHSA-${ghsa}` : `ALERT-${alert.number}`);
+              const severity = (alert.security_vulnerability?.severity || 'unknown').toUpperCase();
+
+              // Skip if issue already exists for this vulnerability
+              if (existingIdentifiers.includes(identifier) || existingIdentifiers.includes(cve) || existingIdentifiers.includes(ghsa)) {
+                console.log(`Skipping ${identifier} - issue already exists`);
+                skippedCount++;
+                continue;
+              }
+
+              // Determine SLA based on severity (matches company security policy)
+              const slaMap = {
+                'CRITICAL': '30 days',
+                'HIGH': '30 days',
+                'MEDIUM': '60 days',
+                'LOW': '90 days'
+              };
+              const sla = slaMap[severity] || '90 days';
+
+              // Map severity to label format
+              const severityLabelMap = {
+                'CRITICAL': 'Severity: Critical',
+                'HIGH': 'Severity: High',
+                'MEDIUM': 'Severity: Medium',
+                'LOW': 'Severity: Low'
+              };
+              const severityLabel = severityLabelMap[severity] || 'Severity: Low';
+
+              // Format the issue body with all vulnerability details
+              const packageName = alert.security_vulnerability?.package?.name || 'Unknown package';
+              const ecosystem = alert.security_vulnerability?.package?.ecosystem || 'Unknown';
+              const vulnerableRange = alert.security_vulnerability?.vulnerable_version_range || 'Unknown';
+              const patchedVersion = alert.security_vulnerability?.first_patched_version?.identifier || 'No patch available';
+              const summary = alert.security_advisory?.summary || 'No summary available';
+              const description = alert.security_advisory?.description || 'No description available';
+              const manifestPath = alert.dependency?.manifest_path || 'Unknown';
+              const alertUrl = alert.html_url;
+              const cvssScore = alert.security_advisory?.cvss?.score || 'N/A';
+              const cvssVector = alert.security_advisory?.cvss?.vector_string || 'N/A';
+
+              // Build references list
+              const references = (alert.security_advisory?.references || [])
+                .map(ref => `- ${ref.url}`)
+                .join('\n') || 'No references available';
+
+              const issueBody = `## Vulnerability Details
+
+            | Field | Value |
+            |-------|-------|
+            | **Identifier** | ${identifier} |
+            | **Severity** | ${severity} |
+            | **CVSS Score** | ${cvssScore} |
+            | **SLA** | ${sla} |
+            | **Package** | ${packageName} (${ecosystem}) |
+            | **Vulnerable Version** | ${vulnerableRange} |
+            | **Patched Version** | ${patchedVersion} |
+            | **Manifest File** | \`${manifestPath}\` |
+
+            ## Summary
+
+            ${summary}
+
+            ## Description
+
+            ${description}
+
+            ## CVSS Vector
+
+            \`${cvssVector}\`
+
+            ## References
+
+            ${references}
+
+            ## Remediation
+
+            Update \`${packageName}\` to version \`${patchedVersion}\` or later.
+
+            ## Links
+
+            - [View Dependabot Alert](${alertUrl})
+
+            ---
+
+            *Auto-generated from Dependabot alert on ${new Date().toISOString().split('T')[0]}*
+            *This issue will sync to Linear for triage and remediation tracking.*`;
+
+              // Create the issue
+              const issueTitle = `[${severity}] ${identifier}: ${summary.substring(0, 80)}`;
+
+              try {
+                await github.rest.issues.create({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  title: issueTitle,
+                  body: issueBody,
+                  labels: ['Source: Vulnerability Scan', 'Flag: security', severityLabel]
+                });
+
+                console.log(`Created issue for ${identifier}: ${packageName}`);
+                createdCount++;
+
+                // Add to tracking to prevent duplicates within same run
+                existingIdentifiers.push(identifier);
+              } catch (error) {
+                console.error(`Failed to create issue for ${identifier}: ${error.message}`);
+              }
+            }
+
+            console.log(`\nSummary: Created ${createdCount} issues, skipped ${skippedCount} (already exist)`);

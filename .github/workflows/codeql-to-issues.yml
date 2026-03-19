@@ -1,0 +1,180 @@
+name: Create Issues from CodeQL Alerts
+
+on:
+  schedule:
+    # Run daily at 8 AM UTC
+    - cron: '0 8 * * *'
+  workflow_dispatch: # Allow manual trigger for urgent situations
+
+permissions:
+  issues: write
+  security-events: read
+
+jobs:
+  create-issues:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create Issues from CodeQL Alerts
+        uses: actions/github-script@v8
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            // Fetch open CodeQL alerts via GitHub API
+            const { data: alerts } = await github.rest.codeScanning.listAlertsForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              per_page: 100
+            });
+
+            console.log(`Found ${alerts.length} open CodeQL alerts`);
+
+            if (alerts.length === 0) {
+              console.log('No open alerts to process');
+              return;
+            }
+
+            // Get existing issues to avoid duplicates
+            const { data: existingIssues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              labels: 'Source: CodeQL',
+              state: 'all',
+              per_page: 100
+            });
+
+            // Extract CodeQL alert numbers from existing issue titles
+            // Format: [SEVERITY] CodeQL #123: rule-name - description
+            const existingAlertNumbers = existingIssues.map(issue => {
+              const match = issue.title.match(/CodeQL #(\d+):/);
+              return match ? parseInt(match[1], 10) : null;
+            }).filter(Boolean);
+
+            console.log(`Found ${existingAlertNumbers.length} existing CodeQL issues`);
+
+            let createdCount = 0;
+            let skippedCount = 0;
+
+            for (const alert of alerts) {
+              const alertNumber = alert.number;
+              const ruleId = alert.rule?.id || 'unknown-rule';
+              const ruleName = alert.rule?.name || ruleId;
+              const ruleDescription = alert.rule?.description || 'No description available';
+              const severity = (alert.rule?.security_severity_level || 'low').toUpperCase();
+
+              // Skip if issue already exists for this alert
+              if (existingAlertNumbers.includes(alertNumber)) {
+                console.log(`Skipping CodeQL #${alertNumber} - issue already exists`);
+                skippedCount++;
+                continue;
+              }
+
+              // Determine SLA based on severity (matches company security policy)
+              const slaMap = {
+                'CRITICAL': '30 days',
+                'HIGH': '30 days',
+                'MEDIUM': '60 days',
+                'LOW': '90 days'
+              };
+              const sla = slaMap[severity] || '90 days';
+
+              // Map severity to label format
+              const severityLabelMap = {
+                'CRITICAL': 'Severity: Critical',
+                'HIGH': 'Severity: High',
+                'MEDIUM': 'Severity: Medium',
+                'LOW': 'Severity: Low'
+              };
+              const severityLabel = severityLabelMap[severity] || 'Severity: Low';
+
+              // Extract location information
+              const location = alert.most_recent_instance?.location || {};
+              const filePath = location.path || 'Unknown file';
+              const startLine = location.start_line || 'N/A';
+              const endLine = location.end_line || startLine;
+              const lineRange = startLine === endLine ? `Line ${startLine}` : `Lines ${startLine}-${endLine}`;
+
+              // Extract message
+              const message = alert.most_recent_instance?.message?.text || 'No message available';
+
+              // Extract tool information
+              const toolName = alert.tool?.name || 'CodeQL';
+              const toolVersion = alert.tool?.version || 'Unknown';
+
+              // Get alert URL
+              const alertUrl = alert.html_url;
+
+              // Get rule tags for context
+              const ruleTags = (alert.rule?.tags || []).join(', ') || 'None';
+
+              // Build the issue body
+              const issueBody = `## CodeQL Alert Details
+
+            | Field | Value |
+            |-------|-------|
+            | **Alert Number** | #${alertNumber} |
+            | **Severity** | ${severity} |
+            | **SLA** | ${sla} |
+            | **Rule ID** | \`${ruleId}\` |
+            | **File** | \`${filePath}\` |
+            | **Location** | ${lineRange} |
+            | **Tool** | ${toolName} v${toolVersion} |
+
+            ## Rule Description
+
+            ${ruleDescription}
+
+            ## Finding
+
+            ${message}
+
+            ## Location
+
+            \`\`\`
+            ${filePath}:${startLine}
+            \`\`\`
+
+            ## Rule Tags
+
+            ${ruleTags}
+
+            ## Remediation
+
+            Review the code at the specified location and apply the recommended fix.
+            See the CodeQL alert for detailed remediation guidance.
+
+            ## Links
+
+            - [View CodeQL Alert](${alertUrl})
+
+            ---
+
+            *Auto-generated from CodeQL alert on ${new Date().toISOString().split('T')[0]}*
+            *This issue will sync to Linear for triage and remediation tracking.*`;
+
+              // Create the issue
+              const shortDescription = ruleDescription.length > 60
+                ? ruleDescription.substring(0, 60) + '...'
+                : ruleDescription;
+              const issueTitle = `[${severity}] CodeQL #${alertNumber}: ${ruleId} - ${shortDescription}`;
+
+              try {
+                await github.rest.issues.create({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  title: issueTitle,
+                  body: issueBody,
+                  labels: ['Source: CodeQL', 'Flag: security', severityLabel]
+                });
+
+                console.log(`Created issue for CodeQL #${alertNumber}: ${ruleId}`);
+                createdCount++;
+
+                // Add to tracking to prevent duplicates within same run
+                existingAlertNumbers.push(alertNumber);
+              } catch (error) {
+                console.error(`Failed to create issue for CodeQL #${alertNumber}: ${error.message}`);
+              }
+            }
+
+            console.log(`\nSummary: Created ${createdCount} issues, skipped ${skippedCount} (already exist)`);

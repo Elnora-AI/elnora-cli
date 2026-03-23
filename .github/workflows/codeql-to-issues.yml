@@ -164,7 +164,7 @@ jobs:
                   repo: context.repo.repo,
                   title: issueTitle,
                   body: issueBody,
-                  labels: ['Source: CodeQL', 'Flag: security', severityLabel]
+                  labels: ['Source: CodeQL', 'Flag: security', 'Repo: elnora-cli', severityLabel]
                 });
 
                 console.log(`Created issue for CodeQL #${alertNumber}: ${ruleId}`);

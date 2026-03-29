@@ -138,9 +138,12 @@ Projects contain tasks and files. Typical flow:
 
 1. `projects list` -> get project ID
 2. `tasks create --project <ID> --message "..."` -> create task with initial prompt
-3. `tasks send <TASK_ID> --message "..." --wait` -> send message and wait for response
-4. `files list --project <ID>` -> browse generated outputs
-5. `files content <FILE_ID>` -> read a protocol file
+3. `tasks send <TASK_ID> --message "..."` -> send message (returns user echo only)
+4. **Poll `tasks messages <TASK_ID>`** every 5-10s until last message is `role: "assistant"` with `metadata.status: "completed"` -> AI response ready
+5. `files list --project <ID>` -> browse generated outputs
+6. `files content <FILE_ID>` -> read a protocol file
+
+**Important:** Steps 3-4 apply to all message sending (send, create with message, generate protocol). The backend is fire-and-forget — AI responses are never returned inline. See `elnora-tasks` skill for full polling details.
 
 ## All Command Groups
 

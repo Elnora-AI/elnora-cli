@@ -11,6 +11,21 @@ description: >
 
 Tasks are conversations with the Elnora AI Platform. Send messages to generate protocols, iterate on outputs, and reference uploaded files.
 
+## CRITICAL: Async Response Pattern (CLI and MCP)
+
+The Elnora backend uses fire-and-forget architecture. When you send a message (via CLI `tasks send`, MCP `elnora_send_message`, `elnora_generate_protocol`, or `elnora_create_task` with initial_message), **the AI response is NOT returned in the response**. You only get back the user message echo.
+
+**You MUST poll for the AI response:**
+
+1. After sending, wait **5 seconds**
+2. Call `tasks messages <TASK_ID>` (CLI) or `elnora_get_task_messages` (MCP)
+3. Check if the **last message** has `role: "assistant"`
+4. If still `role: "user"` → wait **10 seconds**, poll again
+5. When `role: "assistant"` and `metadata.status: "completed"` → response is ready
+6. **Timeout after 5 minutes** (platform processing limit is 300s)
+
+This applies to ALL response retrieval — there is no streaming or push channel for CLI/MCP clients. Known issue: ELN-495, ELN-496.
+
 ## Invocation
 
 ```

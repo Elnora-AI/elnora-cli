@@ -1,0 +1,40 @@
+{
+  "name": "@elnora/cli",
+  "version": "0.0.1",
+  "description": "Elnora AI Platform CLI",
+  "type": "module",
+  "bin": {
+    "elnora": "dist/cli.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "esbuild src/cli.ts --bundle --format=esm --platform=node --target=node20 --outfile=dist/cli.js --packages=external",
+    "dev": "tsx src/cli.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "biome check src/ __tests__/",
+    "lint:fix": "biome check --write src/ __tests__/",
+    "format": "biome format --write src/ __tests__/",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": ["elnora", "cli", "bioprotocol", "mcp"],
+  "author": "Elnora AI <support@elnora.ai>",
+  "license": "Apache-2.0",
+  "packageManager": "pnpm@10.33.0",
+  "dependencies": {
+    "@commander-js/extra-typings": "^14.0.0",
+    "commander": "^14.0.3",
+    "picocolors": "^1.1.1",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.4.10",
+    "@types/node": "^25.5.0",
+    "esbuild": "^0.28.0",
+    "tsx": "^4.21.0",
+    "typescript": "^6.0.2",
+    "vitest": "^4.1.2"
+  }
+}

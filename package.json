@@ -19,7 +19,12 @@
     "format": "biome format --write src/ __tests__/",
     "typecheck": "tsc --noEmit"
   },
-  "keywords": ["elnora", "cli", "bioprotocol", "mcp"],
+  "keywords": [
+    "elnora",
+    "cli",
+    "bioprotocol",
+    "mcp"
+  ],
   "author": "Elnora AI <support@elnora.ai>",
   "license": "Apache-2.0",
   "packageManager": "pnpm@10.33.0",

@@ -1,0 +1,144 @@
+/**
+ * Error hierarchy and credential scrubbing for the Elnora CLI.
+ *
+ * Port of: elnora-cli/src/elnora/lib/errors.py (220 lines)
+ *
+ * Output contract:
+ *   Success: JSON to stdout, exit 0
+ *   Error:   JSON to stderr, exit 1-6
+ *   Warning: JSON to stderr, exit 0
+ */
+
+// ---------------------------------------------------------------------------
+// Error hierarchy
+// ---------------------------------------------------------------------------
+
+export interface ElnoraErrorOptions {
+	suggestion?: string;
+	code?: string;
+}
+
+export class ElnoraError extends Error {
+	readonly code: string;
+	readonly suggestion: string | undefined;
+
+	constructor(message: string, options?: ElnoraErrorOptions) {
+		super(message);
+		this.name = "ElnoraError";
+		this.code = options?.code ?? "ELNORA_ERROR";
+		this.suggestion = options?.suggestion;
+	}
+}
+
+export class AuthError extends ElnoraError {
+	constructor(message?: string, options?: { suggestion?: string }) {
+		super(message ?? "No Elnora API key found. Set ELNORA_API_KEY environment variable.", {
+			code: "AUTH_FAILED",
+			suggestion: options?.suggestion ?? "Get your API key from platform.elnora.ai > Settings > API Keys",
+		});
+		this.name = "AuthError";
+	}
+}
+
+export class NotFoundError extends ElnoraError {
+	constructor(entity: string, identifier: string) {
+		super(`${entity} not found: ${identifier}`, {
+			code: "NOT_FOUND",
+			suggestion: "Check the identifier and try again.",
+		});
+		this.name = "NotFoundError";
+	}
+}
+
+export class RateLimitError extends ElnoraError {
+	constructor(message?: string) {
+		super(message ?? "Elnora API rate limit exceeded.", {
+			code: "RATE_LIMITED",
+			suggestion: "Wait a moment and retry.",
+		});
+		this.name = "RateLimitError";
+	}
+}
+
+export class ValidationError extends ElnoraError {
+	constructor(message: string, suggestion?: string) {
+		super(message, { code: "VALIDATION_ERROR", suggestion });
+		this.name = "ValidationError";
+	}
+}
+
+export class ServerError extends ElnoraError {
+	constructor(message?: string) {
+		super(message ?? "Elnora API server error.", {
+			code: "SERVER_ERROR",
+			suggestion: "Try again later. If the issue persists, contact support@elnora.ai.",
+		});
+		this.name = "ServerError";
+	}
+}
+
+/** Distinct exit codes per error type — matches Python CLI exactly. */
+export const EXIT_CODES = new Map<new (...args: never[]) => ElnoraError, number>([
+	[ValidationError, 2],
+	[AuthError, 3],
+	[NotFoundError, 4],
+	[RateLimitError, 5],
+	[ServerError, 6],
+]);
+
+// ---------------------------------------------------------------------------
+// Credential scrubbing
+// ---------------------------------------------------------------------------
+
+const SCRUB_KEY_VALUE_RE =
+	/"?(?:ELNORA_API_KEY|ELNORA_MCP_API_KEY|api_key|x-api-key)"?\s*[=:]\s*"?([^\s"']+)"?/gi;
+const SCRUB_LONG_TOKEN_RE = /elnora_live_[a-zA-Z0-9_-]{8,}|[a-zA-Z0-9_-]{40,}/g;
+
+export function scrub(text: string): string {
+	let result = text;
+	const envKeys = ["ELNORA_API_KEY", "ELNORA_MCP_API_KEY"];
+	for (const envVar of envKeys) {
+		const key = process.env[envVar];
+		if (key && result.includes(key)) {
+			result = result.replaceAll(key, "[REDACTED]");
+		}
+	}
+	result = result.replace(SCRUB_KEY_VALUE_RE, "[REDACTED]");
+	result = result.replace(SCRUB_LONG_TOKEN_RE, "[REDACTED]");
+	return result;
+}
+
+export function scrubData(obj: unknown): unknown {
+	if (typeof obj === "string") return scrub(obj);
+	if (Array.isArray(obj)) return obj.map(scrubData);
+	if (obj !== null && typeof obj === "object") {
+		const result: Record<string, unknown> = {};
+		for (const [k, v] of Object.entries(obj)) {
+			result[k] = scrubData(v);
+		}
+		return result;
+	}
+	return obj;
+}
+
+// ---------------------------------------------------------------------------
+// Output helpers
+// ---------------------------------------------------------------------------
+
+export function getExitCode(err: Error): number {
+	for (const [ErrorClass, code] of EXIT_CODES) {
+		if (err instanceof ErrorClass) return code;
+	}
+	return 1;
+}
+
+export function formatErrorPayload(err: Error): Record<string, string> {
+	const payload: Record<string, string> = { error: scrub(err.message) };
+	if (err instanceof ElnoraError) {
+		payload.code = err.code;
+		if (err.suggestion) payload.suggestion = err.suggestion;
+	} else {
+		payload.code = err.constructor.name;
+	}
+	return payload;
+}

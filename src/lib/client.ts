@@ -83,6 +83,7 @@ const MIN_REQUEST_INTERVAL_MS = 100;
 const REQUEST_TIMEOUT_MS = 30_000;
 const MAX_RETRIES = 3;
 const RETRY_DELAYS_MS = [1000, 2000, 4000];
+const JITTER_FACTOR = 0.25; // ±25% jitter to prevent thundering herd
 
 export interface ClientOptions {
 	baseUrl?: string;
@@ -214,8 +215,11 @@ export class ElnoraApiClient {
 				if (response.status === 429) {
 					if (attempt < MAX_RETRIES) {
 						const retryAfter = response.headers.get("retry-after");
-						const delay = retryAfter ? Number.parseInt(retryAfter, 10) * 1000 : RETRY_DELAYS_MS[attempt];
-						await new Promise((r) => setTimeout(r, delay));
+						const baseDelay = retryAfter
+							? Number.parseInt(retryAfter, 10) * 1000
+							: RETRY_DELAYS_MS[attempt];
+						const jitter = baseDelay * JITTER_FACTOR * (2 * Math.random() - 1); // ±25%
+						await new Promise((r) => setTimeout(r, baseDelay + jitter));
 						continue;
 					}
 					throw new RateLimitError();

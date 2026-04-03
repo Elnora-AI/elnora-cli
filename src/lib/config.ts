@@ -20,6 +20,7 @@ function getVersion(): string {
 
 export const VERSION = getVersion();
 export const BASE_URL = "https://platform.elnora.ai/api/v1";
+export const AI_SERVER_URL = process.env.ELNORA_AI_SERVER_URL ?? "https://ai.elnora.ai";
 
 export const ENDPOINTS: Record<string, string> = {
 	// Projects

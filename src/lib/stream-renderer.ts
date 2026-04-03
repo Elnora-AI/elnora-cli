@@ -36,13 +36,7 @@ export class StreamRenderer {
 			case "tool_end": {
 				this.stopSpinner();
 				const toolEvent = event as { tool: string; success: boolean; result?: string };
-				const icon = toolEvent.success
-					? this.useColor
-						? pc.green("✓")
-						: "✓"
-					: this.useColor
-						? pc.red("✗")
-						: "✗";
+				const icon = toolEvent.success ? (this.useColor ? pc.green("✓") : "✓") : this.useColor ? pc.red("✗") : "✗";
 				const suffix = toolEvent.result ? ` (${toolEvent.result})` : "";
 				process.stderr.write(`  ${icon} ${toolEvent.tool}${suffix}\n`);
 				break;
@@ -74,9 +68,7 @@ export class StreamRenderer {
 
 			case "timeout":
 				this.stopSpinner();
-				process.stderr.write(
-					`\n${this.useColor ? pc.yellow("Stream timed out.") : "Stream timed out."}\n`,
-				);
+				process.stderr.write(`\n${this.useColor ? pc.yellow("Stream timed out.") : "Stream timed out."}\n`);
 				break;
 		}
 	}

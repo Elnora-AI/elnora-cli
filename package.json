@@ -1,5 +1,5 @@
 {
-  "name": "@elnora/cli",
+  "name": "@elnora-ai/cli",
   "version": "0.0.1",
   "description": "Elnora AI Platform CLI",
   "type": "module",

@@ -54,7 +54,7 @@ export function addDoctorCommand(program: Command): void {
 			// 3. Version current
 			total++;
 			try {
-				const res = await fetch("https://registry.npmjs.org/@elnora/cli/latest", { signal: AbortSignal.timeout(3000) });
+				const res = await fetch("https://registry.npmjs.org/@elnora-ai/cli/latest", { signal: AbortSignal.timeout(3000) });
 				if (res.ok) {
 					const data = (await res.json()) as { version?: string };
 					const latest = data.version ?? "unknown";

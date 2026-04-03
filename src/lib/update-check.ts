@@ -12,7 +12,7 @@ import pc from "picocolors";
 import { VERSION } from "./config.js";
 import { isColorEnabled } from "./tty.js";
 
-const NPM_REGISTRY_URL = "https://registry.npmjs.org/@elnora/cli/latest";
+const NPM_REGISTRY_URL = "https://registry.npmjs.org/@elnora-ai/cli/latest";
 const CACHE_DIR = join(homedir(), ".elnora");
 const CACHE_FILE = join(CACHE_DIR, ".update-check");
 const CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000; // 24 hours

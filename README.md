@@ -3,7 +3,7 @@
 Command-line interface for the [Elnora AI Platform](https://platform.elnora.ai).
 
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
-[![npm](https://img.shields.io/npm/v/@elnora/cli)](https://www.npmjs.com/package/@elnora/cli)
+[![npm](https://img.shields.io/npm/v/@elnora-ai/cli)](https://www.npmjs.com/package/@elnora-ai/cli)
 
 ## Install
 
@@ -15,7 +15,7 @@ curl -fsSL https://cli.elnora.ai/install.sh | bash
 irm https://cli.elnora.ai/install.ps1 | iex
 
 # npm (requires Node.js 20+)
-npm install -g @elnora/cli
+npm install -g @elnora-ai/cli
 
 # Homebrew
 brew install elnora-ai/cli/elnora

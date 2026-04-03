@@ -27,7 +27,7 @@ uv tool uninstall elnora
 ```bash
 curl -fsSL https://cli.elnora.ai/install.sh | bash          # macOS/Linux
 irm https://cli.elnora.ai/install.ps1 | iex                  # Windows
-npm install -g @elnora/cli                                    # npm
+npm install -g @elnora-ai/cli                                    # npm
 brew install elnora-ai/cli/elnora                             # Homebrew
 ```
 

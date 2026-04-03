@@ -1,5 +1,5 @@
-import { describe, expect, test, vi, beforeEach, afterEach } from "vitest";
-import { streamTask, collectStreamResponse, type StreamEvent } from "../../src/lib/stream.js";
+import { afterEach, describe, expect, test, vi } from "vitest";
+import { collectStreamResponse, type StreamEvent, streamTask } from "../../src/lib/stream.js";
 
 /**
  * Create a mock fetch that returns an SSE-formatted ReadableStream.
@@ -38,10 +38,7 @@ describe("streamTask", () => {
 	});
 
 	test("parses simple SSE event", async () => {
-		globalThis.fetch = mockFetchSSE([
-			sseEvent({ type: "token", content: "Hello" }),
-			sseEvent({ type: "completed" }),
-		]);
+		globalThis.fetch = mockFetchSSE([sseEvent({ type: "token", content: "Hello" }), sseEvent({ type: "completed" })]);
 
 		const events: StreamEvent[] = [];
 		for await (const event of streamTask("task-1", "key", { aiServerBaseUrl: "http://localhost:8000" })) {
@@ -54,7 +51,10 @@ describe("streamTask", () => {
 	});
 
 	test("parses multiple events in single chunk", async () => {
-		const combined = sseEvent({ type: "think", content: "reasoning" }) + sseEvent({ type: "token", content: "Hi" }) + sseEvent({ type: "completed" });
+		const combined =
+			sseEvent({ type: "think", content: "reasoning" }) +
+			sseEvent({ type: "token", content: "Hi" }) +
+			sseEvent({ type: "completed" });
 
 		globalThis.fetch = mockFetchSSE([combined]);
 

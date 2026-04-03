@@ -107,11 +107,7 @@ export async function* streamTask(
  * Collect all streamed content into a single string.
  * Used by MCP mode to return complete response.
  */
-export async function collectStreamResponse(
-	taskId: string,
-	apiKey: string,
-	options?: StreamOptions,
-): Promise<string> {
+export async function collectStreamResponse(taskId: string, apiKey: string, options?: StreamOptions): Promise<string> {
 	let content = "";
 	for await (const event of streamTask(taskId, apiKey, options)) {
 		if (event.type === "token") {

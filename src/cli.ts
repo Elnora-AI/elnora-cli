@@ -17,6 +17,7 @@ import { registerFlagCommands } from "./commands/flags/index.js";
 import { registerFolderCommands } from "./commands/folders/index.js";
 import { healthCheck } from "./commands/health.js";
 import { registerLibraryCommands } from "./commands/library/index.js";
+import { addMcpCommands } from "./commands/mcp/serve.js";
 import { registerOrgCommands } from "./commands/orgs/index.js";
 import { registerProjectCommands } from "./commands/projects/index.js";
 import { registerSearchCommands } from "./commands/search/index.js";
@@ -76,4 +77,8 @@ for (const commands of commandGroups) {
 // ---------------------------------------------------------------------------
 
 const program = buildProgram(registry);
+
+// MCP server command — not an ElnoraCommand, wired separately
+addMcpCommands(program, registry);
+
 program.parseAsync(process.argv);

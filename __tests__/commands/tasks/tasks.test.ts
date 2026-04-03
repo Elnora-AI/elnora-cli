@@ -229,6 +229,32 @@ describe("tasks.send", () => {
 			{ pathParams: { id: TASK_ID } },
 		);
 	});
+
+	test("input schema accepts --wait and --stream flags", () => {
+		const parsed = tasksSend.inputSchema.parse({
+			taskId: TASK_ID,
+			message: "hello",
+			wait: true,
+			stream: false,
+		});
+		expect(parsed.wait).toBe(true);
+		expect(parsed.stream).toBe(false);
+	});
+
+	test("flags default to false", () => {
+		const parsed = tasksSend.inputSchema.parse({
+			taskId: TASK_ID,
+			message: "hello",
+		});
+		expect(parsed.wait).toBe(false);
+		expect(parsed.stream).toBe(false);
+	});
+
+	test("fire-and-forget returns immediately when no flags", async () => {
+		const ctx = mockContext({ postResult: { id: "msg-1", sequence: 1 } });
+		const result = await tasksSend.execute({ taskId: TASK_ID, message: "hello", wait: false, stream: false }, ctx);
+		expect(result).toEqual({ id: "msg-1", sequence: 1 });
+	});
 });
 
 // ---------------------------------------------------------------------------

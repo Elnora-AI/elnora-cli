@@ -6,19 +6,7 @@ import { foldersMove } from "./move.js";
 import { foldersRename } from "./rename.js";
 
 export function registerFolderCommands(): ElnoraCommand[] {
-	return [
-		foldersList,
-		foldersCreate,
-		foldersRename,
-		foldersMove,
-		foldersDelete,
-	];
+	return [foldersList, foldersCreate, foldersRename, foldersMove, foldersDelete];
 }
 
-export {
-	foldersCreate,
-	foldersDelete,
-	foldersList,
-	foldersMove,
-	foldersRename,
-};
+export { foldersCreate, foldersDelete, foldersList, foldersMove, foldersRename };

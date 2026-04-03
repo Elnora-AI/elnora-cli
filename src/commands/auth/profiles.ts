@@ -21,9 +21,7 @@ export const authProfiles: ElnoraCommand<Input> = {
 
 		for (const [name, data] of Object.entries(profiles)) {
 			const key = data.api_key ?? "";
-			const masked = key.length > 16
-				? key.slice(0, 12) + "..." + key.slice(-4)
-				: "[invalid]";
+			const masked = key.length > 16 ? `${key.slice(0, 12)}...${key.slice(-4)}` : "[invalid]";
 			items.push({ name, apiKey: masked });
 		}
 

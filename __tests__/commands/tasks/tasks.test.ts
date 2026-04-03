@@ -1,14 +1,14 @@
 import { describe, expect, test, vi } from "vitest";
-import type { CommandContext } from "../../../src/core/command.js";
-import { ValidationError } from "../../../src/lib/errors.js";
 import { tasksArchive } from "../../../src/commands/tasks/archive.js";
 import { tasksCreate } from "../../../src/commands/tasks/create.js";
 import { tasksGet } from "../../../src/commands/tasks/get.js";
+import { registerTaskCommands } from "../../../src/commands/tasks/index.js";
 import { tasksList } from "../../../src/commands/tasks/list.js";
 import { tasksMessages } from "../../../src/commands/tasks/messages.js";
 import { tasksSend } from "../../../src/commands/tasks/send.js";
 import { tasksUpdate } from "../../../src/commands/tasks/update.js";
-import { registerTaskCommands } from "../../../src/commands/tasks/index.js";
+import type { CommandContext } from "../../../src/core/command.js";
+import { ValidationError } from "../../../src/lib/errors.js";
 
 const TASK_ID = "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d";
 const PROJECT_ID = "d5c4b3a2-f6e5-4b7a-9d8c-1f0e2a3b4c5d";
@@ -150,10 +150,7 @@ describe("tasks.create", () => {
 
 	test("calls POST /tasks with mapped body", async () => {
 		const ctx = mockContext({ postResult: { id: TASK_ID } });
-		const result = await tasksCreate.execute(
-			{ project: PROJECT_ID, title: "My Task", message: "Hello" },
-			ctx,
-		);
+		const result = await tasksCreate.execute({ project: PROJECT_ID, title: "My Task", message: "Hello" }, ctx);
 		expect(ctx.client.post).toHaveBeenCalledWith("tasks", {
 			projectId: PROJECT_ID,
 			title: "My Task",
@@ -191,10 +188,7 @@ describe("tasks.send", () => {
 
 	test("calls POST /tasks/{id}/messages with content", async () => {
 		const ctx = mockContext({ postResult: { id: "msg-1" } });
-		const result = await tasksSend.execute(
-			{ taskId: TASK_ID, message: "Hello" },
-			ctx,
-		);
+		const result = await tasksSend.execute({ taskId: TASK_ID, message: "Hello" }, ctx);
 		expect(ctx.client.post).toHaveBeenCalledWith(
 			"task_messages",
 			{ content: "Hello", referencedFileIds: undefined },
@@ -205,10 +199,7 @@ describe("tasks.send", () => {
 
 	test("parses fileRefs into array of UUIDs", async () => {
 		const ctx = mockContext({ postResult: {} });
-		await tasksSend.execute(
-			{ taskId: TASK_ID, message: "Check these", fileRefs: `${FILE_ID_1}, ${FILE_ID_2}` },
-			ctx,
-		);
+		await tasksSend.execute({ taskId: TASK_ID, message: "Check these", fileRefs: `${FILE_ID_1}, ${FILE_ID_2}` }, ctx);
 		expect(ctx.client.post).toHaveBeenCalledWith(
 			"task_messages",
 			{ content: "Check these", referencedFileIds: [FILE_ID_1, FILE_ID_2] },
@@ -231,10 +222,7 @@ describe("tasks.send", () => {
 
 	test("handles empty fileRefs string", async () => {
 		const ctx = mockContext({ postResult: {} });
-		await tasksSend.execute(
-			{ taskId: TASK_ID, message: "test", fileRefs: "" },
-			ctx,
-		);
+		await tasksSend.execute({ taskId: TASK_ID, message: "test", fileRefs: "" }, ctx);
 		expect(ctx.client.post).toHaveBeenCalledWith(
 			"task_messages",
 			{ content: "test", referencedFileIds: undefined },
@@ -300,44 +288,25 @@ describe("tasks.update", () => {
 
 	test("throws ValidationError when no fields provided", async () => {
 		const ctx = mockContext();
-		await expect(
-			tasksUpdate.execute({ taskId: TASK_ID }, ctx),
-		).rejects.toThrow(ValidationError);
+		await expect(tasksUpdate.execute({ taskId: TASK_ID }, ctx)).rejects.toThrow(ValidationError);
 	});
 
 	test("calls PATCH /tasks/{id} with title", async () => {
 		const ctx = mockContext({ patchResult: { id: TASK_ID, title: "Updated" } });
-		const result = await tasksUpdate.execute(
-			{ taskId: TASK_ID, title: "Updated" },
-			ctx,
-		);
-		expect(ctx.client.patch).toHaveBeenCalledWith(
-			"task",
-			{ title: "Updated" },
-			{ pathParams: { id: TASK_ID } },
-		);
+		const result = await tasksUpdate.execute({ taskId: TASK_ID, title: "Updated" }, ctx);
+		expect(ctx.client.patch).toHaveBeenCalledWith("task", { title: "Updated" }, { pathParams: { id: TASK_ID } });
 		expect(result).toEqual({ id: TASK_ID, title: "Updated" });
 	});
 
 	test("calls PATCH /tasks/{id} with status", async () => {
 		const ctx = mockContext({ patchResult: {} });
-		await tasksUpdate.execute(
-			{ taskId: TASK_ID, status: "completed" },
-			ctx,
-		);
-		expect(ctx.client.patch).toHaveBeenCalledWith(
-			"task",
-			{ status: "completed" },
-			{ pathParams: { id: TASK_ID } },
-		);
+		await tasksUpdate.execute({ taskId: TASK_ID, status: "completed" }, ctx);
+		expect(ctx.client.patch).toHaveBeenCalledWith("task", { status: "completed" }, { pathParams: { id: TASK_ID } });
 	});
 
 	test("accepts both title and status", async () => {
 		const ctx = mockContext({ patchResult: {} });
-		await tasksUpdate.execute(
-			{ taskId: TASK_ID, title: "New Title", status: "active" },
-			ctx,
-		);
+		await tasksUpdate.execute({ taskId: TASK_ID, title: "New Title", status: "active" }, ctx);
 		expect(ctx.client.patch).toHaveBeenCalledWith(
 			"task",
 			{ title: "New Title", status: "active" },

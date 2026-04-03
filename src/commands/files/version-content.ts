@@ -23,7 +23,7 @@ export const filesVersionContent: ElnoraCommand<Input> = {
 		});
 	},
 
-	formatOutput(output: unknown, format: OutputFormat): string {
+	formatOutput(output: unknown, _format: OutputFormat): string {
 		if (typeof output === "string") return output;
 		return JSON.stringify(output, null, 2);
 	},

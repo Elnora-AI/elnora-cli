@@ -1,12 +1,12 @@
 import { describe, expect, test, vi } from "vitest";
-import type { CommandContext } from "../../../src/core/command.js";
-import { AuthError, ValidationError } from "../../../src/lib/errors.js";
+import { registerAuthCommands } from "../../../src/commands/auth/index.js";
 import { authLogin } from "../../../src/commands/auth/login.js";
 import { authLogout } from "../../../src/commands/auth/logout.js";
 import { authProfiles } from "../../../src/commands/auth/profiles.js";
 import { authStatus } from "../../../src/commands/auth/status.js";
 import { authValidate } from "../../../src/commands/auth/validate.js";
-import { registerAuthCommands } from "../../../src/commands/auth/index.js";
+import type { CommandContext } from "../../../src/core/command.js";
+import { AuthError, ValidationError } from "../../../src/lib/errors.js";
 
 // ---------------------------------------------------------------------------
 // Mocks
@@ -36,10 +36,7 @@ vi.mock("../../../src/lib/client.js", () => {
 	return { ElnoraApiClient: MockClient };
 });
 
-function mockContext(overrides?: {
-	getResult?: unknown;
-	postResult?: unknown;
-}): CommandContext {
+function mockContext(overrides?: { getResult?: unknown; postResult?: unknown }): CommandContext {
 	return {
 		client: {
 			get: vi.fn().mockResolvedValue(overrides?.getResult ?? {}),
@@ -71,16 +68,12 @@ describe("auth.login", () => {
 
 	test("throws AuthError when key does not start with elnora_live_", async () => {
 		const ctx = mockContext();
-		await expect(
-			authLogin.execute({ apiKey: "bad_key_1234567890123" }, ctx),
-		).rejects.toThrow(AuthError);
+		await expect(authLogin.execute({ apiKey: "bad_key_1234567890123" }, ctx)).rejects.toThrow(AuthError);
 	});
 
 	test("throws AuthError when key is too short", async () => {
 		const ctx = mockContext();
-		await expect(
-			authLogin.execute({ apiKey: "elnora_live_x" }, ctx),
-		).rejects.toThrow(AuthError);
+		await expect(authLogin.execute({ apiKey: "elnora_live_x" }, ctx)).rejects.toThrow(AuthError);
 	});
 
 	test("validates key format before making API call", async () => {
@@ -88,9 +81,7 @@ describe("auth.login", () => {
 		const { ElnoraApiClient } = await import("../../../src/lib/client.js");
 		(ElnoraApiClient as unknown as ReturnType<typeof vi.fn>).mockClear();
 
-		await expect(
-			authLogin.execute({ apiKey: "invalid_short" }, ctx),
-		).rejects.toThrow(AuthError);
+		await expect(authLogin.execute({ apiKey: "invalid_short" }, ctx)).rejects.toThrow(AuthError);
 
 		expect(ElnoraApiClient).not.toHaveBeenCalled();
 	});
@@ -98,10 +89,7 @@ describe("auth.login", () => {
 	test("saves profile on successful verification", async () => {
 		const { saveProfile } = await import("../../../src/lib/profiles.js");
 		const ctx = mockContext();
-		const result = await authLogin.execute(
-			{ apiKey: "elnora_live_test_key_1234567890", profile: "myprofile" },
-			ctx,
-		);
+		const result = await authLogin.execute({ apiKey: "elnora_live_test_key_1234567890", profile: "myprofile" }, ctx);
 		expect(saveProfile).toHaveBeenCalledWith("myprofile", "elnora_live_test_key_1234567890");
 		expect(result).toMatchObject({ profile: "myprofile", verified: true });
 	});
@@ -229,12 +217,12 @@ describe("auth.profiles", () => {
 
 		const defaultProfile = result.profiles.find((p) => p.name === "default");
 		expect(defaultProfile).toBeDefined();
-		expect(defaultProfile!.apiKey).toBe("elnora_live_...i789");
-		expect(defaultProfile!.apiKey).not.toContain("abc123def456");
+		expect(defaultProfile?.apiKey).toBe("elnora_live_...i789");
+		expect(defaultProfile?.apiKey).not.toContain("abc123def456");
 
 		const workProfile = result.profiles.find((p) => p.name === "work");
 		expect(workProfile).toBeDefined();
-		expect(workProfile!.apiKey).toBe("elnora_live_...7890");
+		expect(workProfile?.apiKey).toBe("elnora_live_...7890");
 	});
 
 	test("does not call ctx.client (local-only operation)", async () => {
@@ -245,7 +233,12 @@ describe("auth.profiles", () => {
 	});
 
 	test("formatOutput compact returns comma-separated names", () => {
-		const output = { profiles: [{ name: "default", apiKey: "x" }, { name: "work", apiKey: "y" }] };
+		const output = {
+			profiles: [
+				{ name: "default", apiKey: "x" },
+				{ name: "work", apiKey: "y" },
+			],
+		};
 		expect(authProfiles.formatOutput(output, "compact")).toBe("default, work");
 	});
 

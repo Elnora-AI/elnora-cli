@@ -18,9 +18,13 @@ export const foldersRename: ElnoraCommand<Input> = {
 	annotations: { idempotentHint: true },
 
 	async execute(input, ctx) {
-		return ctx.client.put("folder", { name: input.name }, {
-			pathParams: { id: input.folderId },
-		});
+		return ctx.client.put(
+			"folder",
+			{ name: input.name },
+			{
+				pathParams: { id: input.folderId },
+			},
+		);
 	},
 
 	formatOutput(output: unknown, format: OutputFormat): string {

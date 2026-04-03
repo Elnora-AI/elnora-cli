@@ -1,16 +1,14 @@
 import { describe, expect, test, vi } from "vitest";
-import type { CommandContext } from "../../../src/core/command.js";
-import { searchTasks } from "../../../src/commands/search/tasks.js";
-import { searchFiles } from "../../../src/commands/search/files.js";
 import { searchAll } from "../../../src/commands/search/all.js";
 import { searchFileContent } from "../../../src/commands/search/file-content.js";
+import { searchFiles } from "../../../src/commands/search/files.js";
 import { registerSearchCommands } from "../../../src/commands/search/index.js";
+import { searchTasks } from "../../../src/commands/search/tasks.js";
+import type { CommandContext } from "../../../src/core/command.js";
 
 const PROJECT_ID = "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d";
 
-function mockContext(overrides?: {
-	getResult?: unknown;
-}): CommandContext {
+function mockContext(overrides?: { getResult?: unknown }): CommandContext {
 	return {
 		client: {
 			get: vi.fn().mockResolvedValue(overrides?.getResult ?? {}),
@@ -52,10 +50,7 @@ describe("search.tasks", () => {
 
 	test("calls GET /search/tasks with query params", async () => {
 		const ctx = mockContext({ getResult: { items: [], total: 0 } });
-		const result = await searchTasks.execute(
-			{ query: "my task", page: 1, pageSize: 25 },
-			ctx,
-		);
+		const result = await searchTasks.execute({ query: "my task", page: 1, pageSize: 25 }, ctx);
 		expect(ctx.client.get).toHaveBeenCalledWith("search_tasks", {
 			queryParams: { q: "my task", page: 1, pageSize: 25 },
 		});
@@ -79,10 +74,7 @@ describe("search.files", () => {
 
 	test("calls GET /search/files with query params", async () => {
 		const ctx = mockContext({ getResult: { items: [] } });
-		const result = await searchFiles.execute(
-			{ query: "report", page: 2, pageSize: 10 },
-			ctx,
-		);
+		const result = await searchFiles.execute({ query: "report", page: 2, pageSize: 10 }, ctx);
 		expect(ctx.client.get).toHaveBeenCalledWith("search_files", {
 			queryParams: { q: "report", page: 2, pageSize: 10 },
 		});
@@ -106,10 +98,7 @@ describe("search.all", () => {
 
 	test("calls GET /search with query params", async () => {
 		const ctx = mockContext({ getResult: { tasks: [], files: [] } });
-		const result = await searchAll.execute(
-			{ query: "experiment", page: 1, pageSize: 25 },
-			ctx,
-		);
+		const result = await searchAll.execute({ query: "experiment", page: 1, pageSize: 25 }, ctx);
 		expect(ctx.client.get).toHaveBeenCalledWith("search_all", {
 			queryParams: { q: "experiment", page: 1, pageSize: 25 },
 		});
@@ -147,10 +136,7 @@ describe("search.fileContent", () => {
 
 	test("includes project filter when provided", async () => {
 		const ctx = mockContext({ getResult: { items: [] } });
-		await searchFileContent.execute(
-			{ query: "pcr", projectId: PROJECT_ID, page: 1, pageSize: 25 },
-			ctx,
-		);
+		await searchFileContent.execute({ query: "pcr", projectId: PROJECT_ID, page: 1, pageSize: 25 }, ctx);
 		expect(ctx.client.get).toHaveBeenCalledWith("search_file_content", {
 			queryParams: { q: "pcr", page: 1, pageSize: 25, project: PROJECT_ID },
 		});

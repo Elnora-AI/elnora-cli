@@ -1,25 +1,25 @@
 import { describe, expect, test, vi } from "vitest";
+import { orgsAcceptInvite } from "../../../src/commands/orgs/accept-invite.js";
+import { orgsBilling } from "../../../src/commands/orgs/billing.js";
+import { orgsCancelInvite } from "../../../src/commands/orgs/cancel-invite.js";
+import { orgsCreate } from "../../../src/commands/orgs/create.js";
+import { orgsDelete } from "../../../src/commands/orgs/delete.js";
+import { orgsFiles } from "../../../src/commands/orgs/files.js";
+import { orgsGet } from "../../../src/commands/orgs/get.js";
+import { registerOrgCommands } from "../../../src/commands/orgs/index.js";
+import { orgsInvitationInfo } from "../../../src/commands/orgs/invitation-info.js";
+import { orgsInvitations } from "../../../src/commands/orgs/invitations.js";
+import { orgsInvite } from "../../../src/commands/orgs/invite.js";
+import { orgsList } from "../../../src/commands/orgs/list.js";
+import { orgsListAll } from "../../../src/commands/orgs/list-all.js";
+import { orgsMembers } from "../../../src/commands/orgs/members.js";
+import { orgsRemoveMember } from "../../../src/commands/orgs/remove-member.js";
+import { orgsSetDefault } from "../../../src/commands/orgs/set-default.js";
+import { orgsSetStripe } from "../../../src/commands/orgs/set-stripe.js";
+import { orgsUpdate } from "../../../src/commands/orgs/update.js";
+import { orgsUpdateRole } from "../../../src/commands/orgs/update-role.js";
 import type { CommandContext } from "../../../src/core/command.js";
 import { ValidationError } from "../../../src/lib/errors.js";
-import { orgsList } from "../../../src/commands/orgs/list.js";
-import { orgsGet } from "../../../src/commands/orgs/get.js";
-import { orgsCreate } from "../../../src/commands/orgs/create.js";
-import { orgsUpdate } from "../../../src/commands/orgs/update.js";
-import { orgsDelete } from "../../../src/commands/orgs/delete.js";
-import { orgsMembers } from "../../../src/commands/orgs/members.js";
-import { orgsUpdateRole } from "../../../src/commands/orgs/update-role.js";
-import { orgsRemoveMember } from "../../../src/commands/orgs/remove-member.js";
-import { orgsBilling } from "../../../src/commands/orgs/billing.js";
-import { orgsSetStripe } from "../../../src/commands/orgs/set-stripe.js";
-import { orgsSetDefault } from "../../../src/commands/orgs/set-default.js";
-import { orgsInvite } from "../../../src/commands/orgs/invite.js";
-import { orgsInvitations } from "../../../src/commands/orgs/invitations.js";
-import { orgsCancelInvite } from "../../../src/commands/orgs/cancel-invite.js";
-import { orgsInvitationInfo } from "../../../src/commands/orgs/invitation-info.js";
-import { orgsAcceptInvite } from "../../../src/commands/orgs/accept-invite.js";
-import { orgsFiles } from "../../../src/commands/orgs/files.js";
-import { orgsListAll } from "../../../src/commands/orgs/list-all.js";
-import { registerOrgCommands } from "../../../src/commands/orgs/index.js";
 
 const ORG_ID = "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d";
 const MEMBER_ID = "d5c4b3a2-f6e5-4b7a-9d8c-1f0e2a3b4c5d";
@@ -139,11 +139,7 @@ describe("orgs.update", () => {
 	test("calls PATCH /organizations/{id} with fields", async () => {
 		const ctx = mockContext({ patchResult: { id: ORG_ID, name: "Updated" } });
 		const result = await orgsUpdate.execute({ orgId: ORG_ID, name: "Updated" }, ctx);
-		expect(ctx.client.patch).toHaveBeenCalledWith(
-			"organization",
-			{ name: "Updated" },
-			{ pathParams: { id: ORG_ID } },
-		);
+		expect(ctx.client.patch).toHaveBeenCalledWith("organization", { name: "Updated" }, { pathParams: { id: ORG_ID } });
 		expect(result).toEqual({ id: ORG_ID, name: "Updated" });
 	});
 });
@@ -213,10 +209,7 @@ describe("orgs.updateRole", () => {
 
 	test("calls PUT /organizations/{id}/members/{mid}/role", async () => {
 		const ctx = mockContext({ putResult: { role: "Admin" } });
-		const result = await orgsUpdateRole.execute(
-			{ orgId: ORG_ID, membershipId: MEMBER_ID, role: "Admin" },
-			ctx,
-		);
+		const result = await orgsUpdateRole.execute({ orgId: ORG_ID, membershipId: MEMBER_ID, role: "Admin" }, ctx);
 		expect(ctx.client.put).toHaveBeenCalledWith(
 			"organization_member_role",
 			{ role: "Admin" },
@@ -242,10 +235,7 @@ describe("orgs.removeMember", () => {
 
 	test("calls DELETE /organizations/{id}/members/{mid}", async () => {
 		const ctx = mockContext();
-		const result = await orgsRemoveMember.execute(
-			{ orgId: ORG_ID, membershipId: MEMBER_ID },
-			ctx,
-		);
+		const result = await orgsRemoveMember.execute({ orgId: ORG_ID, membershipId: MEMBER_ID }, ctx);
 		expect(ctx.client.del).toHaveBeenCalledWith("organization_member", {
 			pathParams: { id: ORG_ID, mid: MEMBER_ID },
 		});
@@ -298,10 +288,7 @@ describe("orgs.setStripe", () => {
 
 	test("calls PUT /organizations/{id}/stripe-customer", async () => {
 		const ctx = mockContext({ putResult: { customerId: "cus_abc" } });
-		const result = await orgsSetStripe.execute(
-			{ orgId: ORG_ID, customerId: "cus_abc" },
-			ctx,
-		);
+		const result = await orgsSetStripe.execute({ orgId: ORG_ID, customerId: "cus_abc" }, ctx);
 		expect(ctx.client.put).toHaveBeenCalledWith(
 			"organization_stripe_customer",
 			{ customerId: "cus_abc" },
@@ -324,11 +311,7 @@ describe("orgs.setDefault", () => {
 	test("calls PUT /organizations/{id}/set-default", async () => {
 		const ctx = mockContext({ putResult: { id: ORG_ID } });
 		const result = await orgsSetDefault.execute({ orgId: ORG_ID }, ctx);
-		expect(ctx.client.put).toHaveBeenCalledWith(
-			"organization_set_default",
-			undefined,
-			{ pathParams: { id: ORG_ID } },
-		);
+		expect(ctx.client.put).toHaveBeenCalledWith("organization_set_default", undefined, { pathParams: { id: ORG_ID } });
 		expect(result).toEqual({ id: ORG_ID });
 	});
 });
@@ -355,10 +338,7 @@ describe("orgs.invite", () => {
 	test("returns existing pending invitation if email matches", async () => {
 		const existingInvite = { id: INVITE_ID, email: "user@example.com", status: "Pending" };
 		const ctx = mockContext({ getResult: [existingInvite] });
-		const result = await orgsInvite.execute(
-			{ orgId: ORG_ID, email: "User@Example.com", role: "Member" },
-			ctx,
-		);
+		const result = await orgsInvite.execute({ orgId: ORG_ID, email: "User@Example.com", role: "Member" }, ctx);
 		expect(ctx.client.get).toHaveBeenCalledWith("org_invitations", {
 			pathParams: { orgId: ORG_ID },
 		});
@@ -371,10 +351,7 @@ describe("orgs.invite", () => {
 			getResult: [],
 			postResult: { id: INVITE_ID, email: "new@example.com" },
 		});
-		const result = await orgsInvite.execute(
-			{ orgId: ORG_ID, email: "new@example.com", role: "Admin" },
-			ctx,
-		);
+		const result = await orgsInvite.execute({ orgId: ORG_ID, email: "new@example.com", role: "Admin" }, ctx);
 		expect(ctx.client.post).toHaveBeenCalledWith(
 			"org_invitations",
 			{ email: "new@example.com", role: "Admin" },
@@ -423,10 +400,7 @@ describe("orgs.cancelInvite", () => {
 
 	test("calls DELETE /organizations/{orgId}/invitations/{invId}", async () => {
 		const ctx = mockContext();
-		const result = await orgsCancelInvite.execute(
-			{ orgId: ORG_ID, invitationId: INVITE_ID },
-			ctx,
-		);
+		const result = await orgsCancelInvite.execute({ orgId: ORG_ID, invitationId: INVITE_ID }, ctx);
 		expect(ctx.client.del).toHaveBeenCalledWith("org_invitation", {
 			pathParams: { orgId: ORG_ID, invId: INVITE_ID },
 		});

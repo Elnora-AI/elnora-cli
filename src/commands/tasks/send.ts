@@ -28,12 +28,16 @@ export const tasksSend: ElnoraCommand<Input> = {
 				.filter((s) => s.length > 0)
 				.filter((s) => UUID_RE.test(s));
 		}
-		return ctx.client.post("task_messages", {
-			content: input.message,
-			referencedFileIds,
-		}, {
-			pathParams: { id: input.taskId },
-		});
+		return ctx.client.post(
+			"task_messages",
+			{
+				content: input.message,
+				referencedFileIds,
+			},
+			{
+				pathParams: { id: input.taskId },
+			},
+		);
 	},
 
 	formatOutput(output: unknown, format: OutputFormat): string {

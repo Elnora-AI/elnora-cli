@@ -17,9 +17,13 @@ export const filesPromote: ElnoraCommand<Input> = {
 	outputSchema: z.any(),
 
 	async execute(input, ctx) {
-		return ctx.client.post("file_promote", { visibility: input.visibility }, {
-			pathParams: { id: input.fileId },
-		});
+		return ctx.client.post(
+			"file_promote",
+			{ visibility: input.visibility },
+			{
+				pathParams: { id: input.fileId },
+			},
+		);
 	},
 
 	formatOutput(output: unknown, format: OutputFormat): string {

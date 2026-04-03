@@ -1,6 +1,4 @@
 import { describe, expect, test, vi } from "vitest";
-import type { CommandContext } from "../../../src/core/command.js";
-import { ValidationError } from "../../../src/lib/errors.js";
 import { filesArchive } from "../../../src/commands/files/archive.js";
 import { filesCommit } from "../../../src/commands/files/commit.js";
 import { filesConfirmUpload } from "../../../src/commands/files/confirm-upload.js";
@@ -10,6 +8,7 @@ import { filesCreateVersion } from "../../../src/commands/files/create-version.j
 import { filesDownload } from "../../../src/commands/files/download.js";
 import { filesFork } from "../../../src/commands/files/fork.js";
 import { filesGet } from "../../../src/commands/files/get.js";
+import { registerFileCommands } from "../../../src/commands/files/index.js";
 import { filesList } from "../../../src/commands/files/list.js";
 import { filesPromote } from "../../../src/commands/files/promote.js";
 import { filesRestore } from "../../../src/commands/files/restore.js";
@@ -20,7 +19,8 @@ import { filesUploadBatch } from "../../../src/commands/files/upload-batch.js";
 import { filesVersionContent } from "../../../src/commands/files/version-content.js";
 import { filesVersions } from "../../../src/commands/files/versions.js";
 import { filesWorkingCopy } from "../../../src/commands/files/working-copy.js";
-import { registerFileCommands } from "../../../src/commands/files/index.js";
+import type { CommandContext } from "../../../src/core/command.js";
+import { ValidationError } from "../../../src/lib/errors.js";
 
 const FILE_ID = "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d";
 const PROJECT_ID = "d5c4b3a2-f6e5-4b7a-9d8c-1f0e2a3b4c5d";
@@ -146,17 +146,16 @@ describe("files.create", () => {
 	test("requires project, name, and type", () => {
 		expect(() => filesCreate.inputSchema.parse({})).toThrow();
 		expect(() => filesCreate.inputSchema.parse({ project: PROJECT_ID, name: "f" })).toThrow();
-		expect(
-			filesCreate.inputSchema.parse({ project: PROJECT_ID, name: "f.txt", type: "text" }),
-		).toEqual({ project: PROJECT_ID, name: "f.txt", type: "text" });
+		expect(filesCreate.inputSchema.parse({ project: PROJECT_ID, name: "f.txt", type: "text" })).toEqual({
+			project: PROJECT_ID,
+			name: "f.txt",
+			type: "text",
+		});
 	});
 
 	test("calls POST /files", async () => {
 		const ctx = mockContext({ postResult: { id: FILE_ID } });
-		const result = await filesCreate.execute(
-			{ project: PROJECT_ID, name: "f.txt", type: "text" },
-			ctx,
-		);
+		const result = await filesCreate.execute({ project: PROJECT_ID, name: "f.txt", type: "text" }, ctx);
 		expect(ctx.client.post).toHaveBeenCalledWith("files", {
 			projectId: PROJECT_ID,
 			name: "f.txt",
@@ -180,9 +179,10 @@ describe("files.upload", () => {
 	test("requires project and filePath", () => {
 		expect(() => filesUpload.inputSchema.parse({})).toThrow();
 		expect(() => filesUpload.inputSchema.parse({ project: PROJECT_ID })).toThrow();
-		expect(
-			filesUpload.inputSchema.parse({ project: PROJECT_ID, filePath: "/tmp/file.txt" }),
-		).toEqual({ project: PROJECT_ID, filePath: "/tmp/file.txt" });
+		expect(filesUpload.inputSchema.parse({ project: PROJECT_ID, filePath: "/tmp/file.txt" })).toEqual({
+			project: PROJECT_ID,
+			filePath: "/tmp/file.txt",
+		});
 	});
 });
 
@@ -198,9 +198,10 @@ describe("files.uploadBatch", () => {
 
 	test("requires project and filePaths", () => {
 		expect(() => filesUploadBatch.inputSchema.parse({})).toThrow();
-		expect(
-			filesUploadBatch.inputSchema.parse({ project: PROJECT_ID, filePaths: "/tmp/a.txt,/tmp/b.txt" }),
-		).toEqual({ project: PROJECT_ID, filePaths: "/tmp/a.txt,/tmp/b.txt" });
+		expect(filesUploadBatch.inputSchema.parse({ project: PROJECT_ID, filePaths: "/tmp/a.txt,/tmp/b.txt" })).toEqual({
+			project: PROJECT_ID,
+			filePaths: "/tmp/a.txt,/tmp/b.txt",
+		});
 	});
 });
 
@@ -260,22 +261,13 @@ describe("files.update", () => {
 
 	test("throws ValidationError when no fields provided", async () => {
 		const ctx = mockContext();
-		await expect(
-			filesUpdate.execute({ fileId: FILE_ID }, ctx),
-		).rejects.toThrow(ValidationError);
+		await expect(filesUpdate.execute({ fileId: FILE_ID }, ctx)).rejects.toThrow(ValidationError);
 	});
 
 	test("calls PATCH /files/{id} with name", async () => {
 		const ctx = mockContext({ patchResult: { id: FILE_ID, name: "renamed.txt" } });
-		const result = await filesUpdate.execute(
-			{ fileId: FILE_ID, name: "renamed.txt" },
-			ctx,
-		);
-		expect(ctx.client.patch).toHaveBeenCalledWith(
-			"file",
-			{ name: "renamed.txt" },
-			{ pathParams: { id: FILE_ID } },
-		);
+		const result = await filesUpdate.execute({ fileId: FILE_ID, name: "renamed.txt" }, ctx);
+		expect(ctx.client.patch).toHaveBeenCalledWith("file", { name: "renamed.txt" }, { pathParams: { id: FILE_ID } });
 		expect(result).toEqual({ id: FILE_ID, name: "renamed.txt" });
 	});
 });
@@ -324,10 +316,7 @@ describe("files.versions", () => {
 
 	test("calls GET /files/{id}/versions with pagination", async () => {
 		const ctx = mockContext({ getResult: { items: [], total: 0 } });
-		const result = await filesVersions.execute(
-			{ fileId: FILE_ID, page: 1, pageSize: 10 },
-			ctx,
-		);
+		const result = await filesVersions.execute({ fileId: FILE_ID, page: 1, pageSize: 10 }, ctx);
 		expect(ctx.client.get).toHaveBeenCalledWith("file_versions", {
 			pathParams: { id: FILE_ID },
 			queryParams: { page: 1, pageSize: 10 },
@@ -349,17 +338,15 @@ describe("files.versionContent", () => {
 	test("requires fileId and versionId", () => {
 		expect(() => filesVersionContent.inputSchema.parse({})).toThrow();
 		expect(() => filesVersionContent.inputSchema.parse({ fileId: FILE_ID })).toThrow();
-		expect(
-			filesVersionContent.inputSchema.parse({ fileId: FILE_ID, versionId: VERSION_ID }),
-		).toEqual({ fileId: FILE_ID, versionId: VERSION_ID });
+		expect(filesVersionContent.inputSchema.parse({ fileId: FILE_ID, versionId: VERSION_ID })).toEqual({
+			fileId: FILE_ID,
+			versionId: VERSION_ID,
+		});
 	});
 
 	test("calls GET /files/{id}/versions/{vid}/content", async () => {
 		const ctx = mockContext({ getResult: "version content" });
-		const result = await filesVersionContent.execute(
-			{ fileId: FILE_ID, versionId: VERSION_ID },
-			ctx,
-		);
+		const result = await filesVersionContent.execute({ fileId: FILE_ID, versionId: VERSION_ID }, ctx);
 		expect(ctx.client.get).toHaveBeenCalledWith("file_version_content", {
 			pathParams: { id: FILE_ID, vid: VERSION_ID },
 		});
@@ -379,10 +366,7 @@ describe("files.createVersion", () => {
 
 	test("calls POST /files/{id}/versions", async () => {
 		const ctx = mockContext({ postResult: { id: VERSION_ID } });
-		const result = await filesCreateVersion.execute(
-			{ fileId: FILE_ID, content: "new content" },
-			ctx,
-		);
+		const result = await filesCreateVersion.execute({ fileId: FILE_ID, content: "new content" }, ctx);
 		expect(ctx.client.post).toHaveBeenCalledWith(
 			"file_versions",
 			{ content: "new content" },
@@ -394,11 +378,7 @@ describe("files.createVersion", () => {
 	test("sends empty body when no content provided", async () => {
 		const ctx = mockContext({ postResult: { id: VERSION_ID } });
 		await filesCreateVersion.execute({ fileId: FILE_ID }, ctx);
-		expect(ctx.client.post).toHaveBeenCalledWith(
-			"file_versions",
-			{},
-			{ pathParams: { id: FILE_ID } },
-		);
+		expect(ctx.client.post).toHaveBeenCalledWith("file_versions", {}, { pathParams: { id: FILE_ID } });
 	});
 });
 
@@ -414,10 +394,7 @@ describe("files.restore", () => {
 
 	test("calls POST /files/{id}/versions/{vid}/restore", async () => {
 		const ctx = mockContext({ postResult: { restored: true } });
-		const result = await filesRestore.execute(
-			{ fileId: FILE_ID, versionId: VERSION_ID },
-			ctx,
-		);
+		const result = await filesRestore.execute({ fileId: FILE_ID, versionId: VERSION_ID }, ctx);
 		expect(ctx.client.post).toHaveBeenCalledWith("file_version_restore", undefined, {
 			pathParams: { id: FILE_ID, vid: VERSION_ID },
 		});
@@ -437,10 +414,7 @@ describe("files.promote", () => {
 
 	test("calls POST /files/{id}/promote", async () => {
 		const ctx = mockContext({ postResult: { promoted: true } });
-		const result = await filesPromote.execute(
-			{ fileId: FILE_ID, visibility: "public" },
-			ctx,
-		);
+		const result = await filesPromote.execute({ fileId: FILE_ID, visibility: "public" }, ctx);
 		expect(ctx.client.post).toHaveBeenCalledWith(
 			"file_promote",
 			{ visibility: "public" },
@@ -463,17 +437,15 @@ describe("files.fork", () => {
 	test("requires fileId and targetProject", () => {
 		expect(() => filesFork.inputSchema.parse({})).toThrow();
 		expect(() => filesFork.inputSchema.parse({ fileId: FILE_ID })).toThrow();
-		expect(
-			filesFork.inputSchema.parse({ fileId: FILE_ID, targetProject: PROJECT_ID }),
-		).toEqual({ fileId: FILE_ID, targetProject: PROJECT_ID });
+		expect(filesFork.inputSchema.parse({ fileId: FILE_ID, targetProject: PROJECT_ID })).toEqual({
+			fileId: FILE_ID,
+			targetProject: PROJECT_ID,
+		});
 	});
 
 	test("calls POST /files/{id}/fork", async () => {
 		const ctx = mockContext({ postResult: { id: "new-file-id" } });
-		const result = await filesFork.execute(
-			{ fileId: FILE_ID, targetProject: PROJECT_ID },
-			ctx,
-		);
+		const result = await filesFork.execute({ fileId: FILE_ID, targetProject: PROJECT_ID }, ctx);
 		expect(ctx.client.post).toHaveBeenCalledWith(
 			"file_fork",
 			{ targetProjectId: PROJECT_ID },
@@ -496,11 +468,7 @@ describe("files.workingCopy", () => {
 	test("calls POST /files/{id}/working-copy", async () => {
 		const ctx = mockContext({ postResult: { id: "wc-id" } });
 		const result = await filesWorkingCopy.execute({ fileId: FILE_ID }, ctx);
-		expect(ctx.client.post).toHaveBeenCalledWith(
-			"file_working_copy",
-			{},
-			{ pathParams: { id: FILE_ID } },
-		);
+		expect(ctx.client.post).toHaveBeenCalledWith("file_working_copy", {}, { pathParams: { id: FILE_ID } });
 		expect(result).toEqual({ id: "wc-id" });
 	});
 
@@ -508,11 +476,7 @@ describe("files.workingCopy", () => {
 		const taskId = "c3d4e5f6-a7b8-4c9d-0e1f-2a3b4c5d6e7f";
 		const ctx = mockContext({ postResult: { id: "wc-id" } });
 		await filesWorkingCopy.execute({ fileId: FILE_ID, task: taskId }, ctx);
-		expect(ctx.client.post).toHaveBeenCalledWith(
-			"file_working_copy",
-			{ taskId },
-			{ pathParams: { id: FILE_ID } },
-		);
+		expect(ctx.client.post).toHaveBeenCalledWith("file_working_copy", { taskId }, { pathParams: { id: FILE_ID } });
 	});
 });
 
@@ -561,10 +525,7 @@ describe("files.searchContent", () => {
 
 	test("calls GET /search/file-content with query params", async () => {
 		const ctx = mockContext({ getResult: { items: [], total: 0 } });
-		const result = await filesSearchContent.execute(
-			{ query: "PCR", page: 1, pageSize: 25 },
-			ctx,
-		);
+		const result = await filesSearchContent.execute({ query: "PCR", page: 1, pageSize: 25 }, ctx);
 		expect(ctx.client.get).toHaveBeenCalledWith("search_file_content", {
 			queryParams: { q: "PCR", page: 1, pageSize: 25 },
 		});
@@ -573,10 +534,7 @@ describe("files.searchContent", () => {
 
 	test("includes projectId when project is provided", async () => {
 		const ctx = mockContext({ getResult: { items: [] } });
-		await filesSearchContent.execute(
-			{ query: "PCR", project: PROJECT_ID, page: 1, pageSize: 25 },
-			ctx,
-		);
+		await filesSearchContent.execute({ query: "PCR", project: PROJECT_ID, page: 1, pageSize: 25 }, ctx);
 		expect(ctx.client.get).toHaveBeenCalledWith("search_file_content", {
 			queryParams: { q: "PCR", projectId: PROJECT_ID, page: 1, pageSize: 25 },
 		});

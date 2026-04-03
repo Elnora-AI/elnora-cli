@@ -31,9 +31,13 @@ export const foldersMove: ElnoraCommand<Input> = {
 				"Provide a folder UUID or the literal string 'root'.",
 			);
 		}
-		return ctx.client.put("folder_move", { parentId: parentValue }, {
-			pathParams: { id: input.folderId },
-		});
+		return ctx.client.put(
+			"folder_move",
+			{ parentId: parentValue },
+			{
+				pathParams: { id: input.folderId },
+			},
+		);
 	},
 
 	formatOutput(output: unknown, format: OutputFormat): string {

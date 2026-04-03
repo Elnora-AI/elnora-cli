@@ -2,8 +2,8 @@ import { readFileSync, statSync } from "node:fs";
 import { basename } from "node:path";
 import { z } from "zod";
 import type { ElnoraCommand } from "../../core/command.js";
-import { ValidationError } from "../../lib/errors.js";
 import { validateUploadUrl } from "../../lib/client.js";
+import { ValidationError } from "../../lib/errors.js";
 import type { OutputFormat } from "../../lib/output.js";
 
 const inputSchema = z.object({
@@ -29,7 +29,10 @@ export const filesUploadBatch: ElnoraCommand<Input> = {
 	outputSchema: z.any(),
 
 	async execute(input, ctx) {
-		const paths = input.filePaths.split(",").map((p) => p.trim()).filter(Boolean);
+		const paths = input.filePaths
+			.split(",")
+			.map((p) => p.trim())
+			.filter(Boolean);
 		if (paths.length === 0) {
 			throw new ValidationError("No file paths provided.", "Provide comma-separated file paths.");
 		}

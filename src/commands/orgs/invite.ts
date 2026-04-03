@@ -23,10 +23,9 @@ export const orgsInvite: ElnoraCommand<Input> = {
 		const existing = await ctx.client.get("org_invitations", {
 			pathParams: { orgId: input.orgId },
 		});
-		const items = Array.isArray(existing) ? existing : (existing as any)?.items ?? [];
+		const items = Array.isArray(existing) ? existing : ((existing as any)?.items ?? []);
 		const match = items.find(
-			(inv: any) =>
-				inv.email?.toLowerCase() === input.email.toLowerCase() && inv.status === "Pending",
+			(inv: any) => inv.email?.toLowerCase() === input.email.toLowerCase() && inv.status === "Pending",
 		);
 		if (match) return match;
 

@@ -19,9 +19,7 @@ export const authStatus: ElnoraCommand<Input> = {
 			queryParams: { page: 1, pageSize: 1 },
 		});
 		const projectCount =
-			(result as { totalCount?: number }).totalCount ??
-			(result as { items?: unknown[] }).items?.length ??
-			0;
+			(result as { totalCount?: number }).totalCount ?? (result as { items?: unknown[] }).items?.length ?? 0;
 		return { profile: ctx.profileName, authenticated: true, projectCount };
 	},
 

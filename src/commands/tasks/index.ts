@@ -8,23 +8,7 @@ import { tasksSend } from "./send.js";
 import { tasksUpdate } from "./update.js";
 
 export function registerTaskCommands(): ElnoraCommand[] {
-	return [
-		tasksList,
-		tasksGet,
-		tasksCreate,
-		tasksSend,
-		tasksMessages,
-		tasksUpdate,
-		tasksArchive,
-	];
+	return [tasksList, tasksGet, tasksCreate, tasksSend, tasksMessages, tasksUpdate, tasksArchive];
 }
 
-export {
-	tasksArchive,
-	tasksCreate,
-	tasksGet,
-	tasksList,
-	tasksMessages,
-	tasksSend,
-	tasksUpdate,
-};
+export { tasksArchive, tasksCreate, tasksGet, tasksList, tasksMessages, tasksSend, tasksUpdate };

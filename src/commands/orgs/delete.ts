@@ -21,9 +21,7 @@ export const orgsDelete: ElnoraCommand<Input, Output> = {
 
 	async execute(input, ctx) {
 		if (!input.yes) {
-			const confirmed = await confirmDestructive(
-				`Are you sure you want to delete organization ${input.orgId}? [y/N] `,
-			);
+			const confirmed = await confirmDestructive(`Are you sure you want to delete organization ${input.orgId}? [y/N] `);
 			if (!confirmed) {
 				return { deleted: false, orgId: input.orgId };
 			}

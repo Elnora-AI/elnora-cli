@@ -1,12 +1,12 @@
 import { describe, expect, test, vi } from "vitest";
-import type { CommandContext } from "../../../src/core/command.js";
-import { ValidationError } from "../../../src/lib/errors.js";
-import { foldersList } from "../../../src/commands/folders/list.js";
 import { foldersCreate } from "../../../src/commands/folders/create.js";
-import { foldersRename } from "../../../src/commands/folders/rename.js";
-import { foldersMove } from "../../../src/commands/folders/move.js";
 import { foldersDelete } from "../../../src/commands/folders/delete.js";
 import { registerFolderCommands } from "../../../src/commands/folders/index.js";
+import { foldersList } from "../../../src/commands/folders/list.js";
+import { foldersMove } from "../../../src/commands/folders/move.js";
+import { foldersRename } from "../../../src/commands/folders/rename.js";
+import type { CommandContext } from "../../../src/core/command.js";
+import { ValidationError } from "../../../src/lib/errors.js";
 
 const PROJECT_ID = "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d";
 const FOLDER_ID = "d5c4b3a2-f6e5-4b7a-9d8c-1f0e2a3b4c5d";
@@ -82,10 +82,7 @@ describe("folders.create", () => {
 
 	test("calls POST /projects/{id}/folders", async () => {
 		const ctx = mockContext({ postResult: { id: FOLDER_ID, name: "New" } });
-		const result = await foldersCreate.execute(
-			{ projectId: PROJECT_ID, name: "New" },
-			ctx,
-		);
+		const result = await foldersCreate.execute({ projectId: PROJECT_ID, name: "New" }, ctx);
 		expect(ctx.client.post).toHaveBeenCalledWith(
 			"project_folders",
 			{ name: "New" },
@@ -96,10 +93,7 @@ describe("folders.create", () => {
 
 	test("includes parentId when provided", async () => {
 		const ctx = mockContext({ postResult: { id: FOLDER_ID } });
-		await foldersCreate.execute(
-			{ projectId: PROJECT_ID, name: "Sub", parentId: PARENT_ID },
-			ctx,
-		);
+		await foldersCreate.execute({ projectId: PROJECT_ID, name: "Sub", parentId: PARENT_ID }, ctx);
 		expect(ctx.client.post).toHaveBeenCalledWith(
 			"project_folders",
 			{ name: "Sub", parentId: PARENT_ID },
@@ -124,15 +118,8 @@ describe("folders.rename", () => {
 
 	test("calls PUT /folders/{id}", async () => {
 		const ctx = mockContext({ putResult: { id: FOLDER_ID, name: "Renamed" } });
-		const result = await foldersRename.execute(
-			{ folderId: FOLDER_ID, name: "Renamed" },
-			ctx,
-		);
-		expect(ctx.client.put).toHaveBeenCalledWith(
-			"folder",
-			{ name: "Renamed" },
-			{ pathParams: { id: FOLDER_ID } },
-		);
+		const result = await foldersRename.execute({ folderId: FOLDER_ID, name: "Renamed" }, ctx);
+		expect(ctx.client.put).toHaveBeenCalledWith("folder", { name: "Renamed" }, { pathParams: { id: FOLDER_ID } });
 		expect(result).toEqual({ id: FOLDER_ID, name: "Renamed" });
 	});
 });
@@ -150,11 +137,7 @@ describe("folders.move", () => {
 	test("sends null parentId when 'root' is provided", async () => {
 		const ctx = mockContext({ putResult: { id: FOLDER_ID } });
 		await foldersMove.execute({ folderId: FOLDER_ID, parentId: "root" }, ctx);
-		expect(ctx.client.put).toHaveBeenCalledWith(
-			"folder_move",
-			{ parentId: null },
-			{ pathParams: { id: FOLDER_ID } },
-		);
+		expect(ctx.client.put).toHaveBeenCalledWith("folder_move", { parentId: null }, { pathParams: { id: FOLDER_ID } });
 	});
 
 	test("sends UUID parentId when valid UUID is provided", async () => {
@@ -169,9 +152,9 @@ describe("folders.move", () => {
 
 	test("throws ValidationError for invalid parent value", async () => {
 		const ctx = mockContext();
-		await expect(
-			foldersMove.execute({ folderId: FOLDER_ID, parentId: "invalid-string" }, ctx),
-		).rejects.toThrow(ValidationError);
+		await expect(foldersMove.execute({ folderId: FOLDER_ID, parentId: "invalid-string" }, ctx)).rejects.toThrow(
+			ValidationError,
+		);
 	});
 });
 
@@ -199,9 +182,7 @@ describe("folders.delete", () => {
 	});
 
 	test("formatOutput compact returns folderId", () => {
-		expect(foldersDelete.formatOutput({ deleted: true, folderId: FOLDER_ID }, "compact")).toBe(
-			FOLDER_ID,
-		);
+		expect(foldersDelete.formatOutput({ deleted: true, folderId: FOLDER_ID }, "compact")).toBe(FOLDER_ID);
 	});
 });
 

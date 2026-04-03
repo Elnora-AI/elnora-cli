@@ -1,17 +1,17 @@
 import { describe, expect, test, vi } from "vitest";
-import type { CommandContext } from "../../../src/core/command.js";
-import { ValidationError } from "../../../src/lib/errors.js";
 import { projectsAddMember } from "../../../src/commands/projects/add-member.js";
 import { projectsArchive } from "../../../src/commands/projects/archive.js";
 import { projectsCreate } from "../../../src/commands/projects/create.js";
 import { projectsGet } from "../../../src/commands/projects/get.js";
+import { registerProjectCommands } from "../../../src/commands/projects/index.js";
 import { projectsLeave } from "../../../src/commands/projects/leave.js";
 import { projectsList } from "../../../src/commands/projects/list.js";
 import { projectsMembers } from "../../../src/commands/projects/members.js";
 import { projectsRemoveMember } from "../../../src/commands/projects/remove-member.js";
 import { projectsUpdate } from "../../../src/commands/projects/update.js";
 import { projectsUpdateRole } from "../../../src/commands/projects/update-role.js";
-import { registerProjectCommands } from "../../../src/commands/projects/index.js";
+import type { CommandContext } from "../../../src/core/command.js";
+import { ValidationError } from "../../../src/lib/errors.js";
 
 const PROJECT_ID = "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d";
 const USER_ID = "d5c4b3a2-f6e5-4b7a-9d8c-1f0e2a3b4c5d";
@@ -116,9 +116,11 @@ describe("projects.create", () => {
 	test("requires name, optional description and icon", () => {
 		expect(() => projectsCreate.inputSchema.parse({})).toThrow();
 		expect(projectsCreate.inputSchema.parse({ name: "My Project" })).toEqual({ name: "My Project" });
-		expect(
-			projectsCreate.inputSchema.parse({ name: "P", description: "Desc", icon: "flask" }),
-		).toEqual({ name: "P", description: "Desc", icon: "flask" });
+		expect(projectsCreate.inputSchema.parse({ name: "P", description: "Desc", icon: "flask" })).toEqual({
+			name: "P",
+			description: "Desc",
+			icon: "flask",
+		});
 	});
 
 	test("calls POST /projects", async () => {
@@ -141,31 +143,19 @@ describe("projects.update", () => {
 
 	test("throws ValidationError when no fields provided", async () => {
 		const ctx = mockContext();
-		await expect(
-			projectsUpdate.execute({ projectId: PROJECT_ID }, ctx),
-		).rejects.toThrow(ValidationError);
+		await expect(projectsUpdate.execute({ projectId: PROJECT_ID }, ctx)).rejects.toThrow(ValidationError);
 	});
 
 	test("calls PATCH /projects/{id} with fields", async () => {
 		const ctx = mockContext({ patchResult: { id: PROJECT_ID, name: "Updated" } });
-		const result = await projectsUpdate.execute(
-			{ projectId: PROJECT_ID, name: "Updated" },
-			ctx,
-		);
-		expect(ctx.client.patch).toHaveBeenCalledWith(
-			"project",
-			{ name: "Updated" },
-			{ pathParams: { id: PROJECT_ID } },
-		);
+		const result = await projectsUpdate.execute({ projectId: PROJECT_ID, name: "Updated" }, ctx);
+		expect(ctx.client.patch).toHaveBeenCalledWith("project", { name: "Updated" }, { pathParams: { id: PROJECT_ID } });
 		expect(result).toEqual({ id: PROJECT_ID, name: "Updated" });
 	});
 
 	test("accepts description-only update", async () => {
 		const ctx = mockContext({ patchResult: {} });
-		await projectsUpdate.execute(
-			{ projectId: PROJECT_ID, description: "New desc" },
-			ctx,
-		);
+		await projectsUpdate.execute({ projectId: PROJECT_ID, description: "New desc" }, ctx);
 		expect(ctx.client.patch).toHaveBeenCalledWith(
 			"project",
 			{ description: "New desc" },
@@ -247,10 +237,7 @@ describe("projects.addMember", () => {
 
 	test("calls POST /projects/{id}/members", async () => {
 		const ctx = mockContext({ postResult: { userId: USER_ID, role: "Member" } });
-		const result = await projectsAddMember.execute(
-			{ projectId: PROJECT_ID, userId: USER_ID, role: "Member" },
-			ctx,
-		);
+		const result = await projectsAddMember.execute({ projectId: PROJECT_ID, userId: USER_ID, role: "Member" }, ctx);
 		expect(ctx.client.post).toHaveBeenCalledWith(
 			"project_members",
 			{ userId: USER_ID, role: "Member" },
@@ -276,10 +263,7 @@ describe("projects.updateRole", () => {
 
 	test("calls PUT /projects/{id}/members/{uid}/role", async () => {
 		const ctx = mockContext({ putResult: { role: "Admin" } });
-		const result = await projectsUpdateRole.execute(
-			{ projectId: PROJECT_ID, userId: USER_ID, role: "Admin" },
-			ctx,
-		);
+		const result = await projectsUpdateRole.execute({ projectId: PROJECT_ID, userId: USER_ID, role: "Admin" }, ctx);
 		expect(ctx.client.put).toHaveBeenCalledWith(
 			"project_member_role",
 			{ role: "Admin" },
@@ -305,10 +289,7 @@ describe("projects.removeMember", () => {
 
 	test("calls DELETE /projects/{id}/members/{uid} and returns removed result", async () => {
 		const ctx = mockContext();
-		const result = await projectsRemoveMember.execute(
-			{ projectId: PROJECT_ID, userId: USER_ID },
-			ctx,
-		);
+		const result = await projectsRemoveMember.execute({ projectId: PROJECT_ID, userId: USER_ID }, ctx);
 		expect(ctx.client.del).toHaveBeenCalledWith("project_member", {
 			pathParams: { id: PROJECT_ID, uid: USER_ID },
 		});

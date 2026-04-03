@@ -11,6 +11,8 @@ import { registerAccountCommands } from "./commands/account/index.js";
 import { registerApiKeyCommands } from "./commands/api-keys/index.js";
 import { registerAuditCommands } from "./commands/audit/index.js";
 import { registerAuthCommands } from "./commands/auth/index.js";
+import { addCompletionCommand } from "./commands/completion.js";
+import { addDoctorCommand } from "./commands/doctor.js";
 import { registerFeedbackCommands } from "./commands/feedback/index.js";
 import { registerFileCommands } from "./commands/files/index.js";
 import { registerFlagCommands } from "./commands/flags/index.js";
@@ -18,12 +20,15 @@ import { registerFolderCommands } from "./commands/folders/index.js";
 import { healthCheck } from "./commands/health.js";
 import { registerLibraryCommands } from "./commands/library/index.js";
 import { addMcpCommands } from "./commands/mcp/serve.js";
+import { addOpenCommand } from "./commands/open.js";
 import { registerOrgCommands } from "./commands/orgs/index.js";
 import { registerProjectCommands } from "./commands/projects/index.js";
 import { registerSearchCommands } from "./commands/search/index.js";
 import { registerTaskCommands } from "./commands/tasks/index.js";
+import { addWhoamiCommand } from "./commands/whoami.js";
 import { CommandRegistry } from "./core/registry.js";
 import { formatErrorPayload, getExitCode } from "./lib/errors.js";
+import { registerUpdateCheck } from "./lib/update-check.js";
 
 // ---------------------------------------------------------------------------
 // Crash handler — structured JSON to stderr, never raw stack traces
@@ -43,12 +48,11 @@ process.on("unhandledRejection", (reason) => {
 });
 
 // ---------------------------------------------------------------------------
-// Command registry — all commands
+// Command registry — all ElnoraCommand instances
 // ---------------------------------------------------------------------------
 
 const registry = new CommandRegistry();
 
-// Register all commands — each register function returns an array
 const commandGroups = [
 	[healthCheck],
 	registerAuthCommands(),
@@ -73,12 +77,19 @@ for (const commands of commandGroups) {
 }
 
 // ---------------------------------------------------------------------------
-// Build and run
+// Build program and add standalone commands
 // ---------------------------------------------------------------------------
 
 const program = buildProgram(registry);
 
-// MCP server command — not an ElnoraCommand, wired separately
+// Standalone commands (not ElnoraCommand — wired directly to Commander)
 addMcpCommands(program, registry);
+addDoctorCommand(program);
+addWhoamiCommand(program);
+addOpenCommand(program);
+addCompletionCommand(program);
+
+// Background update check (non-blocking, 24h cache)
+registerUpdateCheck();
 
 program.parseAsync(process.argv);

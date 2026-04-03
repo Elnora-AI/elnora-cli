@@ -47,7 +47,7 @@ async function pollForResponse(
 			const assistantMsg = items.find((m: unknown) => {
 				const msg = m as Record<string, unknown>;
 				return (
-					msg.role === "Assistant" &&
+					(msg.role === "assistant" || msg.role === "Assistant") &&
 					((msg.sequence as number) ?? (msg.sequenceNumber as number) ?? 0) > userMessageSequence
 				);
 			});

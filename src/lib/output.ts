@@ -61,13 +61,13 @@ function toCsv(rows: Record<string, unknown>[]): string {
 			}
 		}
 	}
-	const escape = (v: unknown): string => {
+	const csvEscape = (v: unknown): string => {
 		const s = String(v ?? "");
 		return s.includes(",") || s.includes('"') || s.includes("\n") ? `"${s.replace(/"/g, '""')}"` : s;
 	};
 	const lines = [keys.join(",")];
 	for (const row of rows) {
-		lines.push(keys.map((k) => escape(row[k])).join(","));
+		lines.push(keys.map((k) => csvEscape(row[k])).join(","));
 	}
 	return lines.join("\n");
 }

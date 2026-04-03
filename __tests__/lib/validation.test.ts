@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
-import { validateGuid, validatePage, validatePageSize, validatePathSegment } from "../../src/lib/validation.js";
 import { ValidationError } from "../../src/lib/errors.js";
+import { validateGuid, validatePage, validatePageSize, validatePathSegment } from "../../src/lib/validation.js";
 
 describe("validateGuid", () => {
 	test("accepts valid UUID", () => {

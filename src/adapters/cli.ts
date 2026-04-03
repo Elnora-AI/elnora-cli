@@ -14,7 +14,7 @@
 
 import { Command } from "commander";
 import type { ZodType } from "zod";
-import type { ElnoraCommand, CommandContext } from "../core/command.js";
+import type { CommandContext } from "../core/command.js";
 import type { CommandRegistry } from "../core/registry.js";
 import { ElnoraApiClient } from "../lib/client.js";
 import { formatErrorPayload, getExitCode } from "../lib/errors.js";
@@ -53,7 +53,7 @@ function unwrapZodDef(schema: ZodType): {
 	// Description is on the top-level schema in Zod v4
 	const description: string = s.description ?? "";
 	let required = !s.isOptional?.();
-	let defaultValue: unknown = undefined;
+	let defaultValue: unknown;
 	let isBoolean = false;
 	let isNumber = false;
 	let choices: string[] | undefined;

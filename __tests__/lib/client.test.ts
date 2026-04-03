@@ -47,9 +47,7 @@ describe("Upload URL validation — validateUploadUrl", () => {
 	});
 
 	test("accepts Azure Blob presigned URL", () => {
-		expect(() =>
-			validateUploadUrl("https://account.blob.core.windows.net/container/key"),
-		).not.toThrow();
+		expect(() => validateUploadUrl("https://account.blob.core.windows.net/container/key")).not.toThrow();
 	});
 
 	test("blocks non-HTTPS upload URL", () => {
@@ -66,8 +64,6 @@ describe("Upload URL validation — validateUploadUrl", () => {
 
 	test("allows userinfo in query string (not path)", () => {
 		// @ in query string should be fine — only path/authority matters
-		expect(() =>
-			validateUploadUrl("https://bucket.s3.amazonaws.com/key?email=user@example.com"),
-		).not.toThrow();
+		expect(() => validateUploadUrl("https://bucket.s3.amazonaws.com/key?email=user@example.com")).not.toThrow();
 	});
 });

@@ -1,8 +1,8 @@
 import { describe, expect, test } from "vitest";
 import { z } from "zod";
 import { commandToMcpTool, registryToMcpTools } from "../../src/adapters/mcp.js";
-import { CommandRegistry } from "../../src/core/registry.js";
 import type { ElnoraCommand } from "../../src/core/command.js";
+import { CommandRegistry } from "../../src/core/registry.js";
 
 const testCommand: ElnoraCommand = {
 	name: "projects.create",

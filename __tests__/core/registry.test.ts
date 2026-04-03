@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { z } from "zod";
-import { CommandRegistry } from "../../src/core/registry.js";
 import type { ElnoraCommand } from "../../src/core/command.js";
+import { CommandRegistry } from "../../src/core/registry.js";
 
 function makeCommand(name: string, group: string): ElnoraCommand {
 	return {
@@ -14,7 +14,7 @@ function makeCommand(name: string, group: string): ElnoraCommand {
 		async execute() {
 			return {};
 		},
-		formatOutput(output, format) {
+		formatOutput(output, _format) {
 			return JSON.stringify(output);
 		},
 	};

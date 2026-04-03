@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { formatOutput, filterFields } from "../../src/lib/output.js";
+import { filterFields, formatOutput } from "../../src/lib/output.js";
 
 describe("filterFields", () => {
 	test("filters object to selected fields", () => {
@@ -72,7 +72,10 @@ describe("formatOutput", () => {
 	});
 
 	test("applies field filtering", () => {
-		const result = formatOutput({ id: "1", name: "Test", secret: "hidden" }, { format: "json", fields: ["id", "name"] });
+		const result = formatOutput(
+			{ id: "1", name: "Test", secret: "hidden" },
+			{ format: "json", fields: ["id", "name"] },
+		);
 		const parsed = JSON.parse(result);
 		expect(parsed.id).toBe("1");
 		expect(parsed.name).toBe("Test");

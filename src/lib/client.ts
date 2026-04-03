@@ -11,15 +11,15 @@
  * - Zero external HTTP dependencies (uses native fetch)
  */
 
-import { BASE_URL, DEFAULT_HEADERS, ENDPOINTS, VERSION, buildUrl } from "./config.js";
+import { BASE_URL, buildUrl, DEFAULT_HEADERS, ENDPOINTS, VERSION } from "./config.js";
 import {
 	AuthError,
 	ElnoraError,
 	NotFoundError,
 	RateLimitError,
 	ServerError,
-	ValidationError,
 	scrub,
+	ValidationError,
 } from "./errors.js";
 import { resolveApiKey } from "./profiles.js";
 
@@ -214,9 +214,7 @@ export class ElnoraApiClient {
 				if (response.status === 429) {
 					if (attempt < MAX_RETRIES) {
 						const retryAfter = response.headers.get("retry-after");
-						const delay = retryAfter
-							? Number.parseInt(retryAfter, 10) * 1000
-							: RETRY_DELAYS_MS[attempt];
+						const delay = retryAfter ? Number.parseInt(retryAfter, 10) * 1000 : RETRY_DELAYS_MS[attempt];
 						await new Promise((r) => setTimeout(r, delay));
 						continue;
 					}
@@ -262,11 +260,7 @@ export class ElnoraApiClient {
 		return this.request<T>(endpoint, { method: "POST", body, ...opts });
 	}
 
-	async put<T = unknown>(
-		endpoint: string,
-		body?: unknown,
-		opts?: { pathParams?: Record<string, string> },
-	): Promise<T> {
+	async put<T = unknown>(endpoint: string, body?: unknown, opts?: { pathParams?: Record<string, string> }): Promise<T> {
 		return this.request<T>(endpoint, { method: "PUT", body, ...opts });
 	}
 

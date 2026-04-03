@@ -67,10 +67,10 @@ describe("zodToCommanderOptions", () => {
 		const arg = options.find((o) => o.isArgument);
 		const flag = options.find((o) => !o.isArgument);
 		expect(arg).toBeDefined();
-		expect(arg!.flags).toBe("<project-id>");
-		expect(arg!.isArgument).toBe(true);
+		expect(arg?.flags).toBe("<project-id>");
+		expect(arg?.isArgument).toBe(true);
 		expect(flag).toBeDefined();
-		expect(flag!.flags).toBe("--name [value]");
+		expect(flag?.flags).toBe("--name [value]");
 	});
 
 	test("handles empty schema", () => {

@@ -4,8 +4,8 @@
  * Port of: elnora-cli/src/elnora/lib/validation.py (89 lines)
  */
 
-import { ValidationError } from "./errors.js";
 import { MAX_PAGE_SIZE } from "./config.js";
+import { ValidationError } from "./errors.js";
 
 const GUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 

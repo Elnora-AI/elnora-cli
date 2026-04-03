@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { BASE_URL, ENDPOINTS, MAX_PAGE_SIZE, DEFAULT_PAGE_SIZE, buildUrl } from "../../src/lib/config.js";
+import { BASE_URL, buildUrl, DEFAULT_PAGE_SIZE, ENDPOINTS, MAX_PAGE_SIZE } from "../../src/lib/config.js";
 
 describe("config constants", () => {
 	test("BASE_URL is platform.elnora.ai", () => {

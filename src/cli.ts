@@ -6,9 +6,9 @@
  * Port of: elnora-cli/src/elnora/cli.py (125 lines)
  */
 
-import { ElnoraError, formatErrorPayload, getExitCode, scrub } from "./lib/errors.js";
-import { CommandRegistry } from "./core/registry.js";
 import { buildProgram } from "./adapters/cli.js";
+import { CommandRegistry } from "./core/registry.js";
+import { formatErrorPayload, getExitCode } from "./lib/errors.js";
 
 // ---------------------------------------------------------------------------
 // Crash handler — structured JSON to stderr, never raw stack traces
@@ -35,6 +35,7 @@ const registry = new CommandRegistry();
 
 // Register commands — Phase 2 will add all 94 commands here
 import { healthCheck } from "./commands/health.js";
+
 registry.register(healthCheck);
 
 // ---------------------------------------------------------------------------

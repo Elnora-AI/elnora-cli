@@ -1,10 +1,8 @@
 import { describe, expect, test } from "vitest";
-import { commandToMcpTool } from "../../src/adapters/mcp.js";
-import { zodToCommanderOptions } from "../../src/adapters/cli.js";
+import { buildProgram, zodToCommanderOptions } from "../../src/adapters/cli.js";
+import { commandToMcpTool, registryToMcpTools } from "../../src/adapters/mcp.js";
 import { healthCheck } from "../../src/commands/health.js";
 import { CommandRegistry } from "../../src/core/registry.js";
-import { buildProgram } from "../../src/adapters/cli.js";
-import { registryToMcpTools } from "../../src/adapters/mcp.js";
 
 describe("Full pipeline integration — health.check", () => {
 	test("MCP adapter produces valid tool definition", () => {
@@ -26,9 +24,9 @@ describe("Full pipeline integration — health.check", () => {
 		const program = buildProgram(registry);
 		const healthCmd = program.commands.find((c) => c.name() === "health");
 		expect(healthCmd).toBeDefined();
-		const checkCmd = healthCmd!.commands.find((c) => c.name() === "check");
+		const checkCmd = healthCmd?.commands.find((c) => c.name() === "check");
 		expect(checkCmd).toBeDefined();
-		expect(checkCmd!.description()).toBe("Check Elnora API health status");
+		expect(checkCmd?.description()).toBe("Check Elnora API health status");
 	});
 
 	test("Registry + MCP tools generates correct tool list", () => {

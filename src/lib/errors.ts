@@ -90,8 +90,7 @@ export const EXIT_CODES = new Map<new (...args: never[]) => ElnoraError, number>
 // Credential scrubbing
 // ---------------------------------------------------------------------------
 
-const SCRUB_KEY_VALUE_RE =
-	/"?(?:ELNORA_API_KEY|ELNORA_MCP_API_KEY|api_key|x-api-key)"?\s*[=:]\s*"?([^\s"']+)"?/gi;
+const SCRUB_KEY_VALUE_RE = /"?(?:ELNORA_API_KEY|ELNORA_MCP_API_KEY|api_key|x-api-key)"?\s*[=:]\s*"?([^\s"']+)"?/gi;
 const SCRUB_LONG_TOKEN_RE = /elnora_live_[a-zA-Z0-9_-]{8,}|[a-zA-Z0-9_-]{40,}/g;
 
 export function scrub(text: string): string {

@@ -1,11 +1,6 @@
-import { describe, expect, test, afterEach } from "vitest";
-import {
-	parseProfilesToml,
-	serializeProfiles,
-	validateProfileName,
-	resolveApiKey,
-} from "../../src/lib/profiles.js";
+import { afterEach, describe, expect, test } from "vitest";
 import { ValidationError } from "../../src/lib/errors.js";
+import { parseProfilesToml, resolveApiKey, serializeProfiles, validateProfileName } from "../../src/lib/profiles.js";
 
 describe("validateProfileName", () => {
 	test("accepts valid names", () => {

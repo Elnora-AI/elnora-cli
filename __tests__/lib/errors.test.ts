@@ -1,16 +1,16 @@
 import { describe, expect, test } from "vitest";
 import {
-	ElnoraError,
 	AuthError,
+	ElnoraError,
+	EXIT_CODES,
+	formatErrorPayload,
+	getExitCode,
 	NotFoundError,
 	RateLimitError,
-	ValidationError,
 	ServerError,
 	scrub,
 	scrubData,
-	EXIT_CODES,
-	getExitCode,
-	formatErrorPayload,
+	ValidationError,
 } from "../../src/lib/errors.js";
 
 describe("Error hierarchy", () => {

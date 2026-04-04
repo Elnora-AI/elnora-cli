@@ -1,6 +1,6 @@
 {
   "name": "@elnora-ai/cli",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Elnora AI Platform CLI",
   "type": "module",
   "bin": {

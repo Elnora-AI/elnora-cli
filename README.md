@@ -5,6 +5,24 @@ Command-line interface for the [Elnora AI Platform](https://platform.elnora.ai).
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 [![npm](https://img.shields.io/npm/v/@elnora-ai/cli)](https://www.npmjs.com/package/@elnora-ai/cli)
 
+[Elnora](https://elnora.ai) is an AI agent for biotech and pharma teams that generates, optimizes, and troubleshoots preclinical lab protocols. She learns from both successful and failed experiments, building knowledge that compounds with every project.
+
+The CLI gives you full access to the platform from your terminal — collaborate with the agent, manage protocols and files, and integrate Elnora into your automation pipelines.
+
+## What You Can Do
+
+- **Generate and optimize protocols** — from iPSC differentiation to assay development, with citations from 36M+ PubMed articles and preprint servers
+- **Access 2,100+ scientific tools** — protein structure prediction (AlphaFold3), molecular cloning design, glycan analysis, drug-target databases (ChEMBL, UniProt, Open Targets), and more
+- **Stream agent responses in real-time** — pipe structured output directly into your scripts and workflows
+- **Manage projects and files with version control** — track protocol iterations, fork and promote versions, search across your entire knowledge base
+- **Run as an MCP server** — plug Elnora into Claude Code, Cursor, or any MCP-compatible AI tool as a first-class integration
+
+## Requirements
+
+- macOS, Linux, or Windows
+- Node.js 20+ (npm install only — not required for curl/Homebrew)
+- An Elnora API key — [get one here](https://platform.elnora.ai)
+
 ## Install
 
 ```bash

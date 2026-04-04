@@ -215,9 +215,7 @@ export class ElnoraApiClient {
 				if (response.status === 429) {
 					if (attempt < MAX_RETRIES) {
 						const retryAfter = response.headers.get("retry-after");
-						const baseDelay = retryAfter
-							? Number.parseInt(retryAfter, 10) * 1000
-							: RETRY_DELAYS_MS[attempt];
+						const baseDelay = retryAfter ? Number.parseInt(retryAfter, 10) * 1000 : RETRY_DELAYS_MS[attempt];
 						const jitter = baseDelay * JITTER_FACTOR * (2 * Math.random() - 1); // ±25%
 						await new Promise((r) => setTimeout(r, baseDelay + jitter));
 						continue;

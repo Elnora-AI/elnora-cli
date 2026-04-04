@@ -12,65 +12,53 @@ description: >
 
 # Elnora Agent Capabilities
 
-The Elnora Agent is a sandboxed Python environment with ~78 core tools + 2,100 ToolUniverse scientific tools. You interact via `tasks send` — don't reference internal tool names, just describe what you need in plain language.
+The Elnora Agent is a sandboxed Python environment with ~78 core tools + 2,100 ToolUniverse scientific tools. Interact via `tasks create` and `tasks send` — describe what you need in plain language.
+
+## Quick Start
 
 ```bash
-CLI="uv run --project ${CLAUDE_PLUGIN_ROOT} elnora"
+CLI="elnora"
 
-# Create a task
+# Create a task and wait for the response
 $CLI --compact tasks create --project <PROJECT_ID> --title "My task" --message "Your request"
 
-# Continue conversation
-$CLI --compact tasks send <TASK_ID> --message "Follow-up request"
+# Send follow-up and wait for response
+$CLI --compact tasks send <TASK_ID> --message "Follow-up request" --wait
 
-# Read response
-$CLI --compact tasks messages <TASK_ID> --limit 5
+# Or stream the response in real-time
+$CLI --compact tasks send <TASK_ID> --message "Follow-up request" --stream
 ```
 
-## What the agent can do
+## What the Agent Can Do
 
 | Capability | Examples |
 |------------|----------|
 | **Web search** (34 tools) | Real-time search, neural/semantic search, deep research, URL extraction, site crawling. Providers: Tavily, Exa, Valyu, Perplexity |
 | **Academic databases** (12 tools) | PubMed, ArXiv, Semantic Scholar, bioRxiv, Europe PMC, OpenAlex, UniProt, ClinicalTrials.gov, ChEMBL, Wolfram Alpha |
 | **2,100+ scientific tools** (ToolUniverse) | Protein structure (AlphaFold, PDB), genomics (Ensembl, ClinVar), chemistry (PubChem, DrugBank), pathways (KEGG, Reactome), drug safety (OpenFDA), and 21 more categories |
-| **35 domain skills** | Literature review, experimental design, drug discovery workflow, protein engineering, single-cell RNA QC, statistical analysis, scientific writing, and more |
+| **35 domain skills** | Literature review, experimental design, drug discovery workflow, protein engineering, single-cell RNA QC, statistical analysis, scientific writing |
 | **File operations** (11 tools) | Create/read/search files, full-text grep, upload attachments, link files to tasks |
 | **Memory** (9 tools) | Remember facts across tasks, share findings between agents, recall prior context |
 | **Code execution** | Persistent Python REPL with pandas, numpy, biopython. Variables survive across executions. 30s timeout, 1MB output max |
 
-## Good prompts
+## Example Prompts
 
 ```bash
 # Web research
-$CLI --compact tasks create --project "$PROJECT" --title "Web research" \
-  --message "Search for recent CRISPR delivery methods and summarize the top findings"
+$CLI --compact tasks send "$TASK" --message "Search for recent CRISPR delivery methods and summarize" --wait
 
 # Literature review
-$CLI --compact tasks send "$TASK" \
-  --message "Search PubMed for BRCA1 DNA repair papers from 2024, find the most cited ones"
+$CLI --compact tasks send "$TASK" --message "Search PubMed for BRCA1 DNA repair papers from 2024" --wait
 
 # Drug target research
-$CLI --compact tasks send "$TASK" \
-  --message "Search for compounds targeting EGFR, cross-reference with active clinical trials"
+$CLI --compact tasks send "$TASK" --message "Search for compounds targeting EGFR, cross-reference with active clinical trials" --wait
 
 # Scientific computation
-$CLI --compact tasks send "$TASK" \
-  --message "Use ToolUniverse to run AlphaFold on this sequence: MVLSPADKTNVKAAWGKVGA"
+$CLI --compact tasks send "$TASK" --message "Use ToolUniverse to run AlphaFold on this sequence: MVLSPADKTNVKAAWGKVGA" --stream
 
 # Memory
-$CLI --compact tasks send "$TASK" \
-  --message "Remember that our lab uses Q5 polymerase for all high-fidelity PCR at 62C"
-
-# File search
-$CLI --compact tasks send "$TASK" \
-  --message "Search all project files for mentions of 'annealing temperature' and summarize"
+$CLI --compact tasks send "$TASK" --message "Remember that our lab uses Q5 polymerase for all high-fidelity PCR at 62C" --wait
 
 # Reference existing files
-$CLI --compact tasks send "$TASK" \
-  --message "Read the attached template and generate a new version" --file-refs "<FILE_ID>"
+$CLI --compact tasks send "$TASK" --message "Read the attached template and generate a new version" --file-refs "<FILE_ID>" --wait
 ```
-
-## Full tool reference
-
-Detailed tool-by-tool documentation is in the vault at `04-engineering/elnora-agent-*-tools.md`.

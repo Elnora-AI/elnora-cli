@@ -8,12 +8,12 @@ description: >
 
 # Elnora Folders
 
-Manage the folder tree within Elnora projects. Folders organize files into a hierarchy.
+Manage the folder tree within Elnora projects.
 
 ## Invocation
 
-```
-CLI="uv run --project ${CLAUDE_PLUGIN_ROOT} elnora"
+```bash
+CLI="elnora"
 ```
 
 ## Commands
@@ -21,23 +21,23 @@ CLI="uv run --project ${CLAUDE_PLUGIN_ROOT} elnora"
 ### List Folders
 
 ```bash
-$CLI --compact folders list --project <PROJECT_ID>
+$CLI --compact folders list <PROJECT_ID>
 ```
 
-`--project` is required. Returns the folder tree for the project.
+`<PROJECT_ID>` is positional (`projectId`). Returns the folder tree for the project.
 
 ### Create Folder
 
 ```bash
-$CLI --compact folders create --project <PROJECT_ID> --name "Experiments"
-$CLI --compact folders create --project <PROJECT_ID> --name "Sub Folder" --parent <PARENT_FOLDER_ID>
+$CLI --compact folders create <PROJECT_ID> --name "Experiments"
+$CLI --compact folders create <PROJECT_ID> --name "Sub Folder" --parent-id <PARENT_FOLDER_ID>
 ```
 
-| Flag | Required | Notes |
-|------|----------|-------|
-| `--project` | Yes | Project UUID |
+| Flag/Arg | Required | Notes |
+|----------|----------|-------|
+| `<PROJECT_ID>` | Yes | Positional — project UUID |
 | `--name` | Yes | Folder name |
-| `--parent` | No | Parent folder UUID for nesting |
+| `--parent-id` | No | Parent folder UUID for nesting (optional, so it's a flag) |
 
 ### Rename Folder
 
@@ -45,16 +45,14 @@ $CLI --compact folders create --project <PROJECT_ID> --name "Sub Folder" --paren
 $CLI --compact folders rename <FOLDER_ID> --name "New Name"
 ```
 
-`--name` is required.
-
 ### Move Folder
 
 ```bash
-$CLI --compact folders move <FOLDER_ID> --parent <NEW_PARENT_ID>
-$CLI --compact folders move <FOLDER_ID> --parent root
+$CLI --compact folders move <FOLDER_ID> <NEW_PARENT_ID>
+$CLI --compact folders move <FOLDER_ID> root
 ```
 
-`--parent` is required. Use `root` to move to the project root level.
+Both `<FOLDER_ID>` and `<NEW_PARENT_ID>` are positional (`folderId` and `parentId`). Use `root` to move to the project root level.
 
 ### Delete Folder
 
@@ -63,27 +61,22 @@ $CLI --compact folders delete <FOLDER_ID>
 # -> {"deleted":true,"folderId":"<UUID>"}
 ```
 
-Destructive -- confirm with user before running.
+Destructive — confirm with user before running.
 
 ## Agent Recipes
 
-**Set up a folder structure for a new project:**
+**Set up folder structure for a new project:**
 
 ```bash
 PROJECT="<PROJECT_ID>"
-
-# Create top-level folders
-$CLI --compact folders create --project "$PROJECT" --name "Protocols"
-$CLI --compact folders create --project "$PROJECT" --name "Data"
-$CLI --compact folders create --project "$PROJECT" --name "Reports"
+$CLI --compact folders create "$PROJECT" --name "Protocols"
+$CLI --compact folders create "$PROJECT" --name "Data"
+$CLI --compact folders create "$PROJECT" --name "Reports"
 ```
 
 **Move a file into a folder:**
 
 ```bash
-# List folders to get the target ID
-$CLI --compact folders list --project <PROJECT_ID>
-
-# Update the file's folder
+$CLI --compact folders list <PROJECT_ID>
 $CLI --compact files update <FILE_ID> --folder <FOLDER_ID>
 ```

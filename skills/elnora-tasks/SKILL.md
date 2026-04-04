@@ -9,27 +9,28 @@ description: >
 
 # Elnora Tasks
 
-Tasks are conversations with the Elnora AI Platform. Send messages to generate protocols, iterate on outputs, and reference uploaded files.
+Tasks are conversations with the Elnora AI Agent. Send messages to generate protocols, iterate on outputs, and reference uploaded files.
 
-## CRITICAL: Async Response Pattern (CLI and MCP)
+## Response Retrieval
 
-The Elnora backend uses fire-and-forget architecture. When you send a message (via CLI `tasks send`, MCP `elnora_send_message`, `elnora_generate_protocol`, or `elnora_create_task` with initial_message), **the AI response is NOT returned in the response**. You only get back the user message echo.
+The Elnora backend processes agent responses asynchronously. When you send a message, the POST returns immediately with the user message echo — the AI response arrives separately.
 
-**You MUST poll for the AI response:**
+The CLI provides three modes for retrieving agent responses:
 
-1. After sending, wait **5 seconds**
-2. Call `tasks messages <TASK_ID>` (CLI) or `elnora_get_task_messages` (MCP)
-3. Check if the **last message** has `role: "assistant"`
-4. If still `role: "user"` → wait **10 seconds**, poll again
-5. When `role: "assistant"` and `metadata.status: "completed"` → response is ready
-6. **Timeout after 5 minutes** (platform processing limit is 300s)
+| Mode | Flag | Behavior | Timeout |
+|------|------|----------|---------|
+| Fire-and-forget | _(default)_ | Returns immediately, no response | — |
+| Polling | `--wait` | Auto-polls every 2s until assistant message appears | 120s |
+| Streaming | `--stream` | Real-time SSE token-by-token output | 300s |
 
-This applies to ALL response retrieval — there is no streaming or push channel for CLI/MCP clients. Known issue: ELN-495, ELN-496.
+**MCP mode** (`elnora_tasks_send`): Always collects the full response automatically via streaming, with polling as fallback. The caller receives `{ sent, taskId, response }` with the complete assistant content.
+
+**Recommended:** Use `--wait` for simple interactions, `--stream` for long responses where you want real-time output.
 
 ## Invocation
 
-```
-CLI="uv run --project ${CLAUDE_PLUGIN_ROOT} elnora"
+```bash
+CLI="elnora"
 ```
 
 ## Commands
@@ -37,17 +38,14 @@ CLI="uv run --project ${CLAUDE_PLUGIN_ROOT} elnora"
 ### List Tasks
 
 ```bash
-# All tasks
 $CLI --compact tasks list
-
-# Tasks in a specific project
 $CLI --compact tasks list --project <PROJECT_ID>
-
-# Paginate
 $CLI --compact tasks list --project <PROJECT_ID> --page 2 --page-size 50
 ```
 
-Response — each task has `id`, `title`, `status`, `messageCount`:
+Pagination: `--page` (default 1), `--page-size` (default 25, max 100).
+
+Response:
 
 ```json
 {"items":[{"id":"<UUID>","projectId":"<UUID>","title":"...","status":"active","messageCount":4,"lastMessageAt":"...","createdAt":"..."}],"page":1,"totalCount":N,"hasNextPage":false}
@@ -59,7 +57,7 @@ Response — each task has `id`, `title`, `status`, `messageCount`:
 $CLI --compact tasks get <TASK_ID>
 ```
 
-Returns full task detail including `messages` array and `fileReferences`. Use this instead of separate `messages` call when the full context is needed in one shot.
+Returns full task detail. Use this to inspect a task before interacting.
 
 ### Create Task
 
@@ -73,13 +71,19 @@ $CLI --compact tasks create --project <PROJECT_ID> --title "PCR protocol for BRC
 | `--title` | No | Task title (auto-generated if omitted) |
 | `--message` | No | Initial message to start the conversation |
 
-Returns the created task with its `id`. Use this ID for subsequent `send` and `messages` calls.
+Returns the created task with its `id`. If `--message` is provided, the agent will process it asynchronously — use `tasks send --wait` or `tasks messages` to retrieve the response.
 
 ### Send Message
 
 ```bash
-# Simple message
+# Fire-and-forget (returns immediately)
 $CLI --compact tasks send <TASK_ID> --message "Use Taq polymerase and set annealing to 58C"
+
+# Wait for agent response (polls until complete, 120s timeout)
+$CLI --compact tasks send <TASK_ID> --message "Use Taq polymerase" --wait
+
+# Stream response in real-time via SSE
+$CLI --compact tasks send <TASK_ID> --message "Use Taq polymerase" --stream
 
 # Reference uploaded files
 $CLI --compact tasks send <TASK_ID> --message "Optimize based on this template" --file-refs "<FILE_ID_1>,<FILE_ID_2>"
@@ -89,10 +93,12 @@ $CLI --compact tasks send <TASK_ID> --message "Optimize based on this template" 
 |------|----------|-------|
 | `--message` | Yes | Message content |
 | `--file-refs` | No | Comma-separated file UUIDs to attach as context |
+| `--wait` | No | Poll for agent response (120s timeout) |
+| `--stream` | No | Stream agent response in real-time via SSE |
 
-Returns the created message object.
+**Streaming details:** Status events (thinking, tool use) go to stderr, content tokens go to stdout. This makes streaming pipeable: `elnora tasks send ... --stream > response.txt`.
 
-**Async processing:** After `send`, the Elnora agent processes your message asynchronously. The response is NOT immediate — you must poll `messages` to check for the assistant reply. See [Waiting for Responses](#waiting-for-responses) below.
+SSE event types: `think`, `tool_start`, `tool_end`, `progress`, `token`, `completed`, `error`, `timeout`.
 
 ### Get Messages
 
@@ -105,87 +111,67 @@ $CLI --compact tasks messages <TASK_ID> --cursor <CURSOR>
 Response — messages ordered by `sequence`, with `role` (user/assistant):
 
 ```json
-{"items":[{"id":"<UUID>","role":"user","content":"...","sequence":1,"createdAt":"...","attachments":[]},{"id":"<UUID>","role":"assistant","content":"...","metadata":"{\"status\":\"completed\"}","sequence":2,"createdAt":"...","attachments":[]}],"nextCursor":null,"hasMore":false}
+{"items":[{"id":"<UUID>","role":"user","content":"...","sequence":1,"createdAt":"..."},{"id":"<UUID>","role":"assistant","content":"...","metadata":"{\"status\":\"completed\"}","sequence":2,"createdAt":"..."}],"nextCursor":null,"hasMore":false}
 ```
 
-Cursor-based pagination: if `hasMore` is true, pass `nextCursor` as `--cursor`.
+Cursor-based pagination: if `hasMore` is true, pass `nextCursor` as `--cursor`. Default limit is 50 (max 100).
 
 ### Update Task
 
 ```bash
 $CLI --compact tasks update <TASK_ID> --title "Updated title"
 $CLI --compact tasks update <TASK_ID> --status completed
-$CLI --compact tasks update <TASK_ID> --title "New name" --status completed
 ```
 
-Must provide at least one of `--title` or `--status`. Exits 1 with suggestion if neither is given.
+Must provide at least one of `--title` or `--status`.
 
 ### Archive Task
 
 ```bash
 $CLI --compact tasks archive <TASK_ID>
-# → {"archived":true,"taskId":"<UUID>"}
+# -> {"archived":true,"taskId":"<UUID>"}
 ```
 
-Destructive operation — confirm with user before running.
+Destructive — confirm with user before running.
 
-## Waiting for Responses
+## MCP Tool Names
 
-After `tasks send` or `tasks create --message`, the Elnora agent processes asynchronously. There is no streaming via the CLI — you must poll.
+All commands are auto-registered as MCP tools with the `elnora_` prefix:
 
-**How to poll:**
+| CLI command | MCP tool name |
+|-------------|---------------|
+| `tasks list` | `elnora_tasks_list` |
+| `tasks get` | `elnora_tasks_get` |
+| `tasks create` | `elnora_tasks_create` |
+| `tasks send` | `elnora_tasks_send` |
+| `tasks messages` | `elnora_tasks_messages` |
+| `tasks update` | `elnora_tasks_update` |
+| `tasks archive` | `elnora_tasks_archive` |
 
-```bash
-# Poll until the last message is from the assistant with status "completed"
-LAST=$($CLI --compact tasks messages <TASK_ID> | jq '.items[-1]')
-echo "$LAST" | jq '{role: .role, status: (.metadata | fromjson? // {} | .status)}'
-# → {"role":"assistant","status":"completed"}  ← ready
-# → {"role":"user","status":null}              ← still processing, wait and retry
-```
-
-**Status values** in assistant message `metadata`:
-
-| `metadata.status` | Meaning |
-|-------------------|---------|
-| `"completed"` | Agent finished successfully — read `.content` for the response |
-| `"error"` | Agent encountered an error — `.metadata` may contain `error_type` |
-
-**Polling strategy:**
-1. Wait **5 seconds** after sending, then poll `tasks messages`
-2. Check if the last message has `role: "assistant"`
-3. If not, wait **10 seconds** and poll again (responses can take seconds to several minutes for complex multi-tool protocols)
-4. **Timeout after 5 minutes** — the platform's own processing timeout is 300 seconds
-
-**No intermediate statuses** — messages jump directly to `completed` or `error` once the agent finishes. If the last message is still `role: "user"`, the agent hasn't responded yet.
+MCP tools accept the same parameters as CLI flags (camelCase). `elnora_tasks_send` always waits for the full agent response.
 
 ## Agent Recipes
 
-**Full protocol generation flow with polling:**
+**Full protocol generation with --wait:**
 
 ```bash
-# 1. Find or create project
 PROJECT=$($CLI --compact --fields "id" projects list | jq -r '.items[0].id')
-
-# 2. Create task with initial prompt
 TASK=$($CLI --compact tasks create --project "$PROJECT" --title "PCR BRCA1" --message "Generate PCR protocol for BRCA1 exon 11" | jq -r '.id')
-
-# 3. Poll for assistant response
-sleep 5
-while true; do
-  LAST_ROLE=$($CLI --compact tasks messages "$TASK" | jq -r '.items[-1].role')
-  [ "$LAST_ROLE" = "assistant" ] && break
-  sleep 10
-done
-
-# 4. Read the completed response
-$CLI --compact tasks messages "$TASK" | jq '.items[-1].content'
-
-# 5. Iterate
-$CLI --compact tasks send "$TASK" --message "Add gel electrophoresis verification step"
+$CLI --compact tasks send "$TASK" --message "Add gel electrophoresis step" --wait
 ```
 
-**Check latest assistant response only:**
+**Read latest assistant response:**
 
 ```bash
-$CLI --compact tasks messages <TASK_ID> | jq '.items[-1] | {role, content, status: (.metadata | fromjson? // {} | .status)}'
+$CLI --compact tasks messages <TASK_ID> | jq '.items[-1] | select(.role == "assistant") | .content'
+```
+
+**Manual polling (custom timeout/retry):**
+
+```bash
+# Poll until the last message is from the assistant
+LAST=$($CLI --compact tasks messages <TASK_ID> | jq '.items[-1]')
+echo "$LAST" | jq '{role: .role, status: (.metadata | fromjson? // {} | .status)}'
+# -> {"role":"assistant","status":"completed"}  <- ready
+# -> {"role":"user","status":null}              <- still processing
 ```

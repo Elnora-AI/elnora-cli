@@ -153,7 +153,10 @@ export function formatErrorPayload(err: Error): Record<string, string | string[]
 		if (err.suggestion) {
 			// Multi-step suggestions render as an array so each step is readable in JSON
 			if (err.suggestion.includes("\n")) {
-				payload.steps = err.suggestion.split("\n").map((s) => s.trim()).filter(Boolean);
+				payload.steps = err.suggestion
+					.split("\n")
+					.map((s) => s.trim())
+					.filter(Boolean);
 			} else {
 				payload.suggestion = err.suggestion;
 			}
@@ -167,9 +170,10 @@ export function formatErrorPayload(err: Error): Record<string, string | string[]
 			// Dynamic HTTP status codes: 4xx = not retryable, 5xx = retryable
 			const status = Number.parseInt(err.code.slice(5), 10);
 			payload.retryable = status >= 500;
-			payload.action = status >= 500
-				? "Server error. Retry after a short delay."
-				: `Client error (HTTP ${status}). Check request parameters.`;
+			payload.action =
+				status >= 500
+					? "Server error. Retry after a short delay."
+					: `Client error (HTTP ${status}). Check request parameters.`;
 		}
 	} else if (err.constructor.name === "ZodError") {
 		payload.code = "VALIDATION_ERROR";
@@ -191,7 +195,10 @@ export function formatErrorForHuman(err: Error): string {
 	lines.push(`Error: ${message}`);
 
 	if (err instanceof ElnoraError && err.suggestion) {
-		const steps = err.suggestion.split("\n").map((s) => s.trim()).filter(Boolean);
+		const steps = err.suggestion
+			.split("\n")
+			.map((s) => s.trim())
+			.filter(Boolean);
 		if (steps.length === 1) {
 			lines.push("", `  ${steps[0]}`);
 		} else {

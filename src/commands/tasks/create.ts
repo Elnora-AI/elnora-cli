@@ -106,11 +106,7 @@ export const tasksCreate: ElnoraCommand<Input> = {
 
 		const lines = [`✓ Task created: ${data.id}`];
 		if (!data.streamed) {
-			lines.push(
-				"",
-				"Send a message:",
-				`  elnora tasks send ${data.id} --message "Your message" --stream`,
-			);
+			lines.push("", "Send a message:", `  elnora tasks send ${data.id} --message "Your message" --stream`);
 		}
 		return lines.join("\n");
 	},

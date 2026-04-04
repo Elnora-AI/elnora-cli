@@ -88,15 +88,11 @@ export const authLogin: ElnoraCommand<Input> = {
 			if (err instanceof ElnoraError && err.code === "TIMEOUT") {
 				throw new ElnoraError("Connection to platform.elnora.ai timed out.", {
 					code: "TIMEOUT",
-					suggestion:
-						"1. Check your internet connection.\n" +
-						"2. Try again: elnora auth login --api-key YOUR_KEY",
+					suggestion: "1. Check your internet connection.\n" + "2. Try again: elnora auth login --api-key YOUR_KEY",
 				});
 			}
 			if (err instanceof ServerError) {
-				throw new ServerError(
-					"Elnora servers are temporarily unavailable. Try again in a few minutes.",
-				);
+				throw new ServerError("Elnora servers are temporarily unavailable. Try again in a few minutes.");
 			}
 			throw err;
 		}
@@ -110,13 +106,10 @@ export const authLogin: ElnoraCommand<Input> = {
 			const fix = isWindows
 				? "Check that you have write access to %USERPROFILE%\\.elnora\\"
 				: "Fix: mkdir -p ~/.elnora && chmod 700 ~/.elnora";
-			throw new ElnoraError(
-				"Could not save API key to config file. Check file permissions.",
-				{
-					code: "CONFIG_WRITE_ERROR",
-					suggestion: `${fix} — then retry: elnora auth login --api-key YOUR_KEY`,
-				},
-			);
+			throw new ElnoraError("Could not save API key to config file. Check file permissions.", {
+				code: "CONFIG_WRITE_ERROR",
+				suggestion: `${fix} — then retry: elnora auth login --api-key YOUR_KEY`,
+			});
 		}
 
 		const hasProjects = (projectsResult?.totalCount ?? projectsResult?.items?.length ?? 0) > 0;
@@ -153,9 +146,7 @@ export const authLogin: ElnoraCommand<Input> = {
 		const data = output as LoginResult;
 		if (format === "compact") return data.profile ?? JSON.stringify(output);
 
-		const lines = [
-			`✓ Authenticated! API key saved to profile "${data.profile}".`,
-		];
+		const lines = [`✓ Authenticated! API key saved to profile "${data.profile}".`];
 
 		if (data.projectCreated) {
 			lines.push(`✓ Created project "${data.project.name}".`);
@@ -163,11 +154,7 @@ export const authLogin: ElnoraCommand<Input> = {
 
 		// If project auto-create failed (empty id), guide user to create manually
 		if (!data.project.id) {
-			lines.push(
-				"",
-				"Create a project to get started:",
-				'  elnora projects create --name "My First Project"',
-			);
+			lines.push("", "Create a project to get started:", '  elnora projects create --name "My First Project"');
 		} else {
 			lines.push(
 				"",

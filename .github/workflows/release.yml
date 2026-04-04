@@ -19,7 +19,7 @@ jobs:
           - os: ubuntu-latest
             target: linux-arm64
             binary: elnora-linux-arm64
-          - os: macos-13
+          - os: macos-latest
             target: macos-x64
             binary: elnora-macos-x64
           - os: macos-latest

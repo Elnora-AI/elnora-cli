@@ -149,11 +149,11 @@ export const authLogin: ElnoraCommand<Input> = {
 		const lines = [`✓ Authenticated! API key saved to profile "${data.profile}".`];
 
 		if (data.projectCreated) {
-			lines.push(`✓ Created project "${data.project.name}".`);
+			lines.push(`✓ Created project "${data.project?.name}".`);
 		}
 
 		// If project auto-create failed (empty id), guide user to create manually
-		if (!data.project.id) {
+		if (!data.project?.id) {
 			lines.push("", "Create a project to get started:", '  elnora projects create --name "My First Project"');
 		} else {
 			lines.push(

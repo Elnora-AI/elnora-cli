@@ -103,9 +103,16 @@ describe("auth.login", () => {
 		expect(authLogin.formatOutput({ profile: "work", verified: true }, "compact")).toBe("work");
 	});
 
-	test("formatOutput json returns pretty JSON", () => {
-		const output = { profile: "default", verified: true };
-		expect(authLogin.formatOutput(output, "json")).toBe(JSON.stringify(output, null, 2));
+	test("formatOutput json returns human-friendly output", () => {
+		const output = {
+			profile: "default",
+			verified: true,
+			project: { id: "proj-123", name: "My Project" },
+			projectCreated: false,
+		};
+		const result = authLogin.formatOutput(output, "json");
+		expect(result).toContain('✓ Authenticated! API key saved to profile "default".');
+		expect(result).toContain("elnora tasks create --project proj-123");
 	});
 });
 

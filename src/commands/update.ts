@@ -1,6 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { chmodSync, createWriteStream, mkdirSync, readFileSync, renameSync, unlinkSync } from "node:fs";
+import { chmodSync, copyFileSync, createWriteStream, mkdirSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Readable } from "node:stream";
@@ -9,6 +9,7 @@ import type { Command } from "commander";
 import pc from "picocolors";
 import { VERSION } from "../lib/config.js";
 import { isColorEnabled } from "../lib/tty.js";
+import { isNewerVersion } from "../lib/update-check.js";
 
 const NPM_REGISTRY_URL = "https://registry.npmjs.org/@elnora-ai/cli/latest";
 const GITHUB_REPO = "Elnora-AI/elnora-cli";
@@ -77,7 +78,7 @@ export function addUpdateCommand(program: Command): void {
 				process.exit(1);
 			}
 
-			if (latest === VERSION) {
+			if (latest === VERSION || !isNewerVersion(latest, VERSION)) {
 				const msg = color
 					? `${pc.green("✓")} Already on the latest version (v${VERSION})`
 					: `✓ Already on the latest version (v${VERSION})`;
@@ -139,16 +140,17 @@ export function addUpdateCommand(program: Command): void {
 					const binaryPath = join(extractDir, target);
 					const installDir = join(process.env.USERPROFILE ?? process.env.HOME ?? "", ".elnora", "bin");
 					mkdirSync(installDir, { recursive: true });
-					renameSync(binaryPath, join(installDir, "elnora.exe"));
+					const dest = join(installDir, "elnora.exe");
+					copyFileSync(binaryPath, dest);
 				} else {
 					// Unix: extract tar.gz
 					execFileSync("tar", ["-xzf", archivePath, "-C", tmp]);
-					const binaryName = target; // e.g. elnora-macos-arm64
-					const extractedBinary = join(tmp, binaryName);
+					const extractedBinary = join(tmp, target);
 					const installDir = process.env.ELNORA_INSTALL_DIR ?? join(process.env.HOME ?? "", ".local", "bin");
 					mkdirSync(installDir, { recursive: true });
-					renameSync(extractedBinary, join(installDir, "elnora"));
-					chmodSync(join(installDir, "elnora"), 0o755);
+					const dest = join(installDir, "elnora");
+					copyFileSync(extractedBinary, dest);
+					chmodSync(dest, 0o755);
 				}
 
 				const doneMsg = color ? `${pc.green("✓")} Updated to v${latest}` : `✓ Updated to v${latest}`;
@@ -158,16 +160,8 @@ export function addUpdateCommand(program: Command): void {
 				console.error(hint);
 				process.exit(1);
 			} finally {
-				// Cleanup temp dir
 				try {
-					const files = [archivePath];
-					for (const f of files) {
-						try {
-							unlinkSync(f);
-						} catch {
-							/* ignore */
-						}
-					}
+					rmSync(tmp, { recursive: true, force: true });
 				} catch {
 					/* ignore */
 				}

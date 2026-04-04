@@ -15,7 +15,7 @@ import { isColorEnabled } from "./tty.js";
 /**
  * Compare two semver strings. Returns true if a > b.
  */
-function isNewerVersion(a: string, b: string): boolean {
+export function isNewerVersion(a: string, b: string): boolean {
 	const parse = (v: string) => v.replace(/^v/, "").split(".").map(Number);
 	const pa = parse(a);
 	const pb = parse(b);

@@ -5,6 +5,13 @@ All notable changes to the Elnora CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.8.0](https://github.com/Elnora-AI/elnora-cli/compare/elnora-v0.7.3...elnora-v0.8.0) (2026-04-04)
+
+
+### Features
+
+* rewrite Elnora CLI from Python to TypeScript ([#41](https://github.com/Elnora-AI/elnora-cli/issues/41)) ([84f9233](https://github.com/Elnora-AI/elnora-cli/commit/84f9233396f6f4aea27580f6867e64afbf23b8d6))
+
 ## [0.7.3](https://github.com/Elnora-AI/elnora-cli/compare/elnora-v0.7.2...elnora-v0.7.3) (2026-03-16)
 
 

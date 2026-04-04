@@ -151,17 +151,22 @@ Write-Host ""
 Write-Host "Get your API key from: https://platform.elnora.ai > Settings > API Keys"
 Write-Host ""
 
-$ApiKey = Read-Host "Paste your API key"
+if ([Environment]::UserInteractive) {
+    $ApiKey = Read-Host "Paste your API key"
 
-if ($ApiKey) {
-    Write-Host ""
-    & "$InstallDir\elnora.exe" auth login --api-key $ApiKey
-    if ($LASTEXITCODE -ne 0) {
+    if ($ApiKey) {
         Write-Host ""
-        Write-Host "Login failed. You can try again anytime with:"
+        & "$InstallDir\elnora.exe" auth login --api-key $ApiKey
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host ""
+            Write-Host "Login failed. You can try again anytime with:"
+            Write-Host "  elnora auth login --api-key <paste-your-key-here>"
+        }
+    } else {
+        Write-Host "Skipped. You can log in later with:"
         Write-Host "  elnora auth login --api-key <paste-your-key-here>"
     }
 } else {
-    Write-Host "Skipped. You can log in later with:"
+    Write-Host "To get started:"
     Write-Host "  elnora auth login --api-key <paste-your-key-here>"
 }

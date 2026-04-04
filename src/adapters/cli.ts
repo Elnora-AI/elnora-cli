@@ -248,7 +248,7 @@ export function buildProgram(registry: CommandRegistry): Command {
 
 					// Output: use command's formatOutput for human-friendly TTY display,
 					// fall back to generic JSON for piped/scripted/--json usage
-					const explicitJson = parentOpts.json || parentOpts.output !== "json";
+					const explicitJson = parentOpts.json || parentOpts.output === "json";
 					const isTty = process.stdout.isTTY;
 					let formatted: string;
 					if (!explicitJson && isTty && cmd.formatOutput) {

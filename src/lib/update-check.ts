@@ -12,6 +12,22 @@ import pc from "picocolors";
 import { VERSION } from "./config.js";
 import { isColorEnabled } from "./tty.js";
 
+/**
+ * Compare two semver strings. Returns true if a > b.
+ */
+function isNewerVersion(a: string, b: string): boolean {
+	const parse = (v: string) => v.replace(/^v/, "").split(".").map(Number);
+	const pa = parse(a);
+	const pb = parse(b);
+	for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+		const sa = pa[i] ?? 0;
+		const sb = pb[i] ?? 0;
+		if (sa > sb) return true;
+		if (sa < sb) return false;
+	}
+	return false;
+}
+
 const NPM_REGISTRY_URL = "https://registry.npmjs.org/@elnora-ai/cli/latest";
 const CACHE_DIR = join(homedir(), ".elnora");
 const CACHE_FILE = join(CACHE_DIR, ".update-check");
@@ -74,8 +90,7 @@ export function registerUpdateCheck(): void {
 		if (elapsed < CHECK_INTERVAL_MS) {
 			// Cache is fresh — show notice if update available
 			if (cached.latest && cached.latest !== VERSION && cached.latest !== "unknown") {
-				// Compare versions simply — assumes semver
-				if (cached.latest > VERSION) {
+				if (isNewerVersion(cached.latest, VERSION)) {
 					showUpdateNotice(cached.latest);
 				}
 			}
@@ -96,7 +111,7 @@ export function registerUpdateCheck(): void {
 
 			writeCache({ checkedAt: new Date().toISOString(), latest });
 
-			if (latest !== VERSION && latest !== "unknown" && latest > VERSION) {
+			if (latest !== VERSION && latest !== "unknown" && isNewerVersion(latest, VERSION)) {
 				showUpdateNotice(latest);
 			}
 		} catch {

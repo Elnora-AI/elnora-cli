@@ -29,7 +29,7 @@ export const projectsCreate: ElnoraCommand<Input> = {
 			`✓ Project "${data.name}" created.`,
 			"",
 			"Next step — start a conversation:",
-			`  elnora tasks create --project ${data.id} --message "Hello Elnora"`,
+			`  elnora tasks create --project ${data.id} --message "Hello Elnora" --stream`,
 		];
 		return lines.join("\n");
 	},

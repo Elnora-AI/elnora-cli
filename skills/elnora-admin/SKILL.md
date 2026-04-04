@@ -5,7 +5,8 @@ description: >
   "revoke API key", "check health", "submit feedback", "view audit log",
   "shell completions", "account details", "accept terms", "validate token", "elnora setup",
   "api key policy", "delete account", "list users", "feature flags", "legal documents",
-  "set feature flag", "manage legal docs", "list profiles", "show profiles",
+  "set feature flag", "manage legal docs", "list profiles", "show profiles", "whoami",
+  "run diagnostics", "open platform",
   or any task involving Elnora Platform authentication, administration, or diagnostics.
 ---
 
@@ -15,8 +16,8 @@ Authentication, API key management, account settings, health checks, audit logs,
 
 ## Invocation
 
-```
-CLI="uv run --project ${CLAUDE_PLUGIN_ROOT} elnora"
+```bash
+CLI="elnora"
 ```
 
 ## Authentication
@@ -24,47 +25,38 @@ CLI="uv run --project ${CLAUDE_PLUGIN_ROOT} elnora"
 ### Login
 
 ```bash
-$CLI auth login
 $CLI --compact auth login --api-key <KEY>
+$CLI --compact auth login --api-key <KEY> --profile university
 ```
 
-Interactive login prompts for the API key and saves to `~/.elnora/profiles.toml`. The `--api-key` flag is insecure (visible in process listings) -- prefer interactive prompt or env var.
+`--api-key` is required — there is no interactive prompt. Keys must start with `elnora_live_` and be 20+ characters. Saves to `~/.elnora/profiles.toml`.
 
-Keys must start with `elnora_live_` and be 20+ characters.
-
-Response: `{"authenticated":true,"profile":"<name>","configPath":"/Users/<you>/.elnora/profiles.toml","totalProjects":N}`
+Response: `{"profile":"default","verified":true,"configPath":"/Users/<you>/.elnora/profiles.toml"}`
 
 ### Check Auth Status
 
 ```bash
 $CLI --compact auth status
-# -> {"authenticated":true,"profile":"default","totalProjects":N}
+# -> {"profile":"default","authenticated":true,"projectCount":N}
 ```
-
-Quick way to verify the CLI is properly configured.
 
 ### Logout
 
 ```bash
 $CLI --compact auth logout
-# -> {"loggedOut":true,"profile":"default","message":"Profile 'default' removed."}
-
 $CLI --compact auth logout --all
-# -> {"loggedOut":true,"removed":"/Users/<you>/.elnora/profiles.toml","message":"All profiles removed."}
 ```
 
-Removes saved credentials from disk. Without `--all`, removes the current profile only. With `--all`, deletes the entire `profiles.toml` file.
-
-If the profile doesn't exist, exits 0 with `"message":"Profile '<name>' not found."`.
+Without `--all`, removes the current profile. With `--all`, removes all saved profiles from `profiles.toml`.
 
 ### List Profiles
 
 ```bash
 $CLI --compact auth profiles
-# -> {"profiles":[{"name":"default","apiKey":"elnora_live_...abcd"},{"name":"university","apiKey":"elnora_live_...wxyz"}]}
+# -> {"profiles":[{"name":"default","apiKey":"elnora_live_...abcd"}]}
 ```
 
-Shows all configured profiles with masked API keys. Useful for verifying multi-org setup.
+Shows all configured profiles with masked API keys.
 
 ### Validate Token
 
@@ -73,7 +65,16 @@ $CLI --compact auth validate
 $CLI --compact auth validate --token <TOKEN>
 ```
 
-Validates the current API key (or a specific token). Useful for debugging auth issues.
+Validates the current API key (or a specific token).
+
+### Who Am I
+
+```bash
+$CLI whoami
+$CLI --json whoami
+```
+
+Shows current profile, masked API key, and organization name.
 
 ## API Key Management
 
@@ -83,11 +84,6 @@ Validates the current API key (or a specific token). Useful for debugging auth i
 $CLI --compact api-keys create --name "CI Pipeline"
 $CLI --compact api-keys create --name "Agent Key" --scopes "read,write"
 ```
-
-| Flag | Required | Notes |
-|------|----------|-------|
-| `--name` | Yes | Key name for identification |
-| `--scopes` | No | Comma-separated scope list |
 
 **IMPORTANT:** The key value is only shown once in the response. Store it securely.
 
@@ -104,7 +100,7 @@ $CLI --compact api-keys revoke <KEY_ID>
 # -> {"revoked":true,"keyId":"..."}
 ```
 
-Destructive -- confirm with user first.
+Destructive — confirm with user first.
 
 ### Get API Key Policy
 
@@ -113,14 +109,11 @@ $CLI --compact api-keys get-policy
 # -> {"policy":"all_members"}
 ```
 
-Shows whether all org members or only admins can create API keys.
-
 ### Set API Key Policy
 
 ```bash
 $CLI --compact api-keys set-policy --policy admins_only
 $CLI --compact api-keys set-policy --policy all_members
-# -> {"updated":true,"policy":"admins_only"}
 ```
 
 Org admin/owner only. Values: `all_members` or `admins_only`.
@@ -133,7 +126,7 @@ Org admin/owner only. Values: `all_members` or `admins_only`.
 $CLI --compact account get <USER_ID>
 ```
 
-Returns account details. **`<USER_ID>` is an integer (e.g. `42`), NOT a UUID.** Get user IDs from `account users`.
+`<USER_ID>` is positional. Get user IDs from `account users`.
 
 ### Update Account
 
@@ -141,7 +134,7 @@ Returns account details. **`<USER_ID>` is an integer (e.g. `42`), NOT a UUID.** 
 $CLI --compact account update <USER_ID> --first-name Jane --last-name Doe
 ```
 
-**`<USER_ID>` is an integer, not a UUID.** Must provide at least one of `--first-name` or `--last-name`.
+Must provide at least one of `--first-name` or `--last-name`.
 
 ### List Agreements
 
@@ -149,25 +142,22 @@ $CLI --compact account update <USER_ID> --first-name Jane --last-name Doe
 $CLI --compact account agreements
 ```
 
-Lists all terms/agreement documents.
-
 ### Accept Terms
 
 ```bash
-$CLI --compact account accept-terms --document-version-id <VERSION_ID>
+$CLI --compact account accept-terms <DOCUMENT_VERSION_ID>
 ```
 
-`--document-version-id` is required (integer).
+`<DOCUMENT_VERSION_ID>` is positional.
 
 ### Delete Account
 
 ```bash
 $CLI --compact account delete
 $CLI --compact account delete --yes
-# -> {"deleted":true,"account":"current user"}
 ```
 
-**DANGEROUS: Permanently deletes the user's account and all associated data. Irreversible.**
+**DANGEROUS: Permanently deletes the user's account. Irreversible.**
 Requires typing "DELETE" to confirm. Use `--yes` to skip (non-interactive/CI only).
 
 ### List Users (SystemAdmin)
@@ -178,7 +168,7 @@ $CLI --compact account users --state Active
 $CLI --compact account users --state Deleted --ref-code ABC123
 ```
 
-SystemAdmin only. Optional filters: `--state` (Active, Pending, Deleted), `--ref-code`.
+Optional filters: `--state` (Active, Pending, Deleted), `--ref-code`.
 
 ### Add Legal Document Version (SystemAdmin)
 
@@ -189,8 +179,8 @@ $CLI --compact account add-legal-doc --document-type TermsOfService --version "2
 | Flag | Required | Notes |
 |------|----------|-------|
 | `--document-type` | Yes | e.g. TermsOfService, PrivacyPolicy |
-| `--version` | Yes | Version string (e.g. "1.0") |
-| `--content` | Yes | Document content (text/markdown) |
+| `--version` | Yes | Version string |
+| `--content` | Yes | Document content |
 | `--effective-date` | No | ISO 8601 date |
 
 ### Update Legal Document Version (SystemAdmin)
@@ -200,18 +190,15 @@ $CLI --compact account update-legal-doc <VERSION_ID> --content "Updated terms...
 $CLI --compact account update-legal-doc <VERSION_ID> --effective-date 2026-05-01
 ```
 
-Must provide at least one of `--content` or `--effective-date`.
+`<VERSION_ID>` is positional. Must provide at least one of `--content` or `--effective-date`.
 
 ### Delete Legal Document Version (SystemAdmin)
 
 ```bash
-$CLI --compact account delete-legal-doc <VERSION_ID>
 $CLI --compact account delete-legal-doc <VERSION_ID> --yes
-# -> {"deleted":true,"documentVersionId":N}
 ```
 
-**DANGEROUS: Permanently deletes the legal document version. Irreversible.**
-Requires typing "DELETE" to confirm. Use `--yes` to skip.
+`<VERSION_ID>` is positional. Requires confirmation unless `--yes`.
 
 ## Feature Flags (SystemAdmin)
 
@@ -221,32 +208,55 @@ Requires typing "DELETE" to confirm. Use `--yes` to skip.
 $CLI --compact flags list
 ```
 
-Returns all global feature flags with key, name, description, and value.
-
 ### Get Feature Flag
 
 ```bash
-$CLI --compact flags get <KEY>
-# -> {"key":"enable-new-editor","value":true}
+$CLI --compact flags get --key enable-new-editor
 ```
+
+`--key` is a required flag (not positional).
 
 ### Set Feature Flag
 
 ```bash
-$CLI --compact flags set enable-new-editor true
-$CLI --compact flags set enable-new-editor false --yes
-# -> {"updated":true,"key":"enable-new-editor","value":true}
+$CLI --compact flags set --key enable-new-editor --value true --yes
 ```
 
-**WARNING: Affects ALL users on the platform.** Without `--yes`, blocks on an interactive yes/no prompt. Always use `--yes` in agent context.
+| Flag | Required | Notes |
+|------|----------|-------|
+| `--key` | Yes | Flag key name |
+| `--value` | Yes | `true` or `false` |
+| `--yes` | No | Skip confirmation prompt |
 
-## Health Check
+**WARNING: Affects ALL users on the platform.** Always use `--yes` in agent context.
+
+## Health & Diagnostics
+
+### Health Check
 
 ```bash
 $CLI health
 ```
 
-No auth required. Checks if the Elnora platform is reachable. Returns `{"status":"ok","httpStatus":200}` on success. Exits 6 if unhealthy or unreachable.
+No auth required. Returns `{"status":"ok","timestamp":"..."}` on success. Exits 1 if unreachable (network error).
+
+### Doctor
+
+```bash
+$CLI doctor
+```
+
+Runs diagnostic checks: API reachability, authentication, version currency, config permissions, AI server reachability.
+
+### Open Platform
+
+```bash
+elnora open              # Opens platform (default)
+elnora open docs         # Opens documentation
+elnora open keys         # Opens API keys page
+elnora open billing      # Opens billing page
+elnora open github       # Opens GitHub repo
+```
 
 ## Audit Log
 
@@ -256,7 +266,7 @@ $CLI --compact audit list --org <ORG_ID> --action "project.created" --user-id <U
 $CLI --compact audit list --org <ORG_ID> --page 2 --page-size 50
 ```
 
-`--org` is required. Optional filters: `--action`, `--user-id`.
+`--org` is a required flag. Optional filters: `--action`, `--user-id`.
 
 ## Feedback
 
@@ -264,7 +274,7 @@ $CLI --compact audit list --org <ORG_ID> --page 2 --page-size 50
 $CLI --compact feedback submit --title "Feature request" --description "Add batch export"
 ```
 
-Both `--title` and `--description` are required. Creates a Linear issue for the Elnora team.
+Both `--title` and `--description` are required.
 
 ## Shell Completions
 
@@ -272,14 +282,11 @@ Both `--title` and `--description` are required. Creates a Linear issue for the 
 elnora completion bash >> ~/.bashrc
 elnora completion zsh >> ~/.zshrc
 elnora completion fish > ~/.config/fish/completions/elnora.fish
-elnora completion powershell >> $PROFILE
 ```
-
-Generates shell-specific completion scripts. Run once during setup.
 
 ## Agent Recipes
 
-**Verify setup is working:**
+**Verify setup:**
 
 ```bash
 $CLI health && $CLI --compact auth status
@@ -288,18 +295,7 @@ $CLI health && $CLI --compact auth status
 **Rotate an API key:**
 
 ```bash
-# 1. Create new key
 $CLI --compact api-keys create --name "Replacement Key"
-# 2. Update .env with the new key
-# 3. Verify
-$CLI --compact auth status
-# 4. Revoke old key
+# Update .env with the new key, then:
 $CLI --compact api-keys revoke <OLD_KEY_ID>
-```
-
-**Check audit trail for an org:**
-
-```bash
-ORG=$($CLI --compact orgs list | jq -r '.items[0].id')
-$CLI --compact audit list --org "$ORG" --page-size 50
 ```

@@ -13,8 +13,8 @@ Manage projects on the Elnora AI Platform. Projects are containers for tasks, fi
 
 ## Invocation
 
-```
-CLI="uv run --project ${CLAUDE_PLUGIN_ROOT} elnora"
+```bash
+CLI="elnora"
 ```
 
 ## Commands
@@ -27,13 +27,11 @@ $CLI --compact projects list --page 2 --page-size 50
 $CLI --compact --fields "id,name" projects list
 ```
 
-Response shape:
+Response:
 
 ```json
-{"items":[{"id":"<UUID>","name":"...","description":"...","icon":"...","isDefault":false,"isArchived":false,"memberCount":1,"myRole":"owner","createdAt":"...","updatedAt":"..."}],"page":1,"pageSize":25,"totalCount":N,"totalPages":N,"hasNextPage":false}
+{"items":[{"id":"<UUID>","name":"...","description":"...","isDefault":false,"isArchived":false,"memberCount":1,"myRole":"owner","createdAt":"..."}],"page":1,"totalCount":N,"hasNextPage":false}
 ```
-
-Key fields: `id` (needed for all other commands), `name`, `memberCount`, `myRole`.
 
 ### Get Project
 
@@ -41,13 +39,7 @@ Key fields: `id` (needed for all other commands), `name`, `memberCount`, `myRole
 $CLI --compact projects get <PROJECT_ID>
 ```
 
-Returns project detail with `members` array:
-
-```json
-{"members":[{"id":"<UUID>","userId":N,"email":"...","displayName":"...","role":"owner","createdAt":"..."}],"id":"<UUID>","name":"...","description":"...","icon":"...","memberCount":1,"myRole":"owner"}
-```
-
-Use this to check membership and roles before performing operations.
+Returns project detail with `members` array.
 
 ### Create Project
 
@@ -61,17 +53,14 @@ $CLI --compact projects create --name "Protocol Lab" --description "PCR protocol
 | `--description` | No | Project description |
 | `--icon` | No | Project icon |
 
-Returns the created project object with its new `id`.
-
 ### Update Project
 
 ```bash
 $CLI --compact projects update <PROJECT_ID> --name "New Name"
 $CLI --compact projects update <PROJECT_ID> --description "Updated description"
-$CLI --compact projects update <PROJECT_ID> --name "New" --description "Desc" --icon "new-icon"
 ```
 
-Must provide at least one of `--name`, `--description`, or `--icon`. Exits 1 with suggestion if none given.
+Must provide at least one of `--name`, `--description`, or `--icon`.
 
 ### Archive Project
 
@@ -80,7 +69,7 @@ $CLI --compact projects archive <PROJECT_ID>
 # -> {"archived":true,"projectId":"<UUID>"}
 ```
 
-Destructive operation — confirm with user before running.
+Destructive — confirm with user before running.
 
 ### List Members
 
@@ -88,35 +77,30 @@ Destructive operation — confirm with user before running.
 $CLI --compact projects members <PROJECT_ID>
 ```
 
-Returns the list of members and their roles for a project.
-
 ### Add Member
 
 ```bash
-$CLI --compact projects add-member <PROJECT_ID> --user-id <USER_UUID> --role Member
+$CLI --compact projects add-member <PROJECT_ID> <USER_ID> --role Member
 ```
 
-| Flag | Required | Notes |
-|------|----------|-------|
-| `--user-id` | Yes | User UUID to add |
-| `--role` | No | Role to assign (default: "Member") |
+Both `<PROJECT_ID>` and `<USER_ID>` are positional (`projectId` and `userId`). `--role` defaults to "Member".
 
 ### Update Member Role
 
 ```bash
-$CLI --compact projects update-role <PROJECT_ID> <USER_UUID> --role Admin
+$CLI --compact projects update-role <PROJECT_ID> <USER_ID> --role Admin
 ```
 
-`--role` is required.
+Both positional. `--role` is required.
 
 ### Remove Member
 
 ```bash
-$CLI --compact projects remove-member <PROJECT_ID> <USER_UUID>
-# -> {"removed":true,"projectId":"<UUID>","userId":"<UUID>"}
+$CLI --compact projects remove-member <PROJECT_ID> <USER_ID>
+# -> {"removed":true}
 ```
 
-Destructive — confirm with user before running.
+Both positional. Destructive — confirm with user before running.
 
 ### Leave Project
 
@@ -128,25 +112,15 @@ Removes the current user from the project.
 
 ## Agent Recipes
 
-**Get the default project ID quickly:**
+**Get the default project ID:**
 
 ```bash
 $CLI --compact --fields "id,name" projects list --page-size 5
 ```
 
-**Check if a project exists by name before creating:**
-
-```bash
-$CLI --compact --fields "id,name" projects list
-# scan results — if not found, create it
-```
-
 **Full project setup with members:**
 
 ```bash
-# 1. Create project
 PROJECT=$($CLI --compact projects create --name "New Lab" | jq -r '.id')
-
-# 2. Add a team member
-$CLI --compact projects add-member "$PROJECT" --user-id <USER_UUID> --role Member
+$CLI --compact projects add-member "$PROJECT" <USER_ID> --role Member
 ```

@@ -1,7 +1,7 @@
 ---
 name: elnora-platform
 description: >
-  This skill should be used when the user asks about "Elnora platform", "elnora CLI",
+  Use when the user asks about "Elnora platform", "elnora CLI",
   "platform API", "elnora projects", "elnora tasks", "elnora files", "protocol generation",
   "platform search", "elnora orgs", "elnora folders", "elnora admin", "API keys",
   "elnora health", "elnora auth", or any task involving the Elnora AI Platform.
@@ -14,8 +14,8 @@ Route Elnora Platform queries to the correct sub-skill. Load only what is needed
 
 ## Invocation
 
-```
-CLI="uv run --project ${CLAUDE_PLUGIN_ROOT} elnora"
+```bash
+CLI="elnora"
 ```
 
 Global flags go BEFORE the subcommand:
@@ -29,18 +29,19 @@ $CLI projects list --compact            # WRONG -- fails
 
 | Flag | Effect |
 |------|--------|
-| `--compact` | Minified JSON -- always use for agent workflows |
+| `--compact` | Minified JSON — always use for agent workflows |
 | `--output <json\|csv>` | Output format (default: json) |
 | `--fields "id,name"` | Return only these fields |
-| `--profile <name>` | Named profile to use (default: `default`). Set with `auth login --profile` |
+| `--profile <name>` | Named profile (default: `default`). Set with `auth login --api-key <KEY> --profile <name>` |
+| `--json` | Force JSON output |
 
 ## Auth
 
-Requires `ELNORA_API_KEY` in `.env` (prefix: `elnora_live_`). Also accepts `ELNORA_MCP_API_KEY`.
+Requires `ELNORA_API_KEY` environment variable (prefix: `elnora_live_`), `ELNORA_MCP_API_KEY`, or a saved profile in `~/.elnora/profiles.toml`.
 
 ```bash
 $CLI --compact auth status
-# -> {"authenticated":true,"totalProjects":N}
+# -> {"profile":"default","authenticated":true,"projectCount":N}
 ```
 
 Get keys: platform.elnora.ai > Settings > API Keys
@@ -59,11 +60,23 @@ Get keys: platform.elnora.ai > Settings > API Keys
 | Feature flags (SystemAdmin) | `elnora-admin` | feature flag, flags, set flag, list flags |
 | What can the Elnora Agent do? (tools, search, memory) | `elnora-agent` | agent capabilities, agent tools, what can agent do |
 
+## Positional Argument Convention
+
+Required string fields ending in `Id` (e.g. `taskId`, `projectId`, `fileId`) become positional arguments. Everything else becomes a flag.
+
+```bash
+elnora tasks get <task-id>              # taskId -> positional
+elnora tasks list --project <UUID>      # project -> flag (doesn't end in "Id")
+elnora files fork <file-id> --target-project <UUID>  # fileId -> positional, targetProject -> flag
+```
+
+**Rule:** positional if and only if the field is: required + not boolean + no enum choices + key ends in "Id".
+
 ## ID Format
 
 All IDs are UUIDs: `bfdc6fbd-40ed-4042-9ea7-c79a5ec90085`. Invalid format exits 1 with a suggestion showing the correct list command.
 
-Exception: `account get` and `account update` use **integer** user IDs (e.g. `42`), not UUIDs.
+Exception: `account get` and `account update` use `userId` which accepts any string (typically an integer like `42`).
 
 ## Pagination
 
@@ -87,12 +100,12 @@ Errors -> stderr, exit code > 0:
 
 | Code | Exit | Action |
 |------|------|--------|
-| `AUTH_FAILED` | 3 | Check ELNORA_API_KEY in .env |
+| `AUTH_FAILED` | 3 | Check ELNORA_API_KEY env var or profile |
 | `NOT_FOUND` | 4 | Verify the UUID |
 | `VALIDATION_ERROR` | 2 | Check parameters |
 | `RATE_LIMITED` | 5 | Wait and retry (see Rate Limits below) |
 | `SERVER_ERROR` | 6 | Retry later |
-| `INTERNAL_ERROR` | 1 | Unexpected — report bug |
+| `ELNORA_ERROR` | 1 | Unexpected — report bug |
 
 ## Rate Limits
 
@@ -124,11 +137,10 @@ HTTP 429 on limit. Check the `Retry-After` header for seconds to wait.
 Projects contain tasks and files. Typical flow:
 
 1. `projects list` -> get project ID
-2. `tasks list --project <ID>` -> get task ID
-3. `tasks messages <ID>` -> read conversation
-4. `tasks send <ID> --message "..."` -> continue conversation
-5. `files list --project <ID>` -> browse generated outputs
-6. `files content <FILE_ID>` -> read a protocol file
+2. `tasks create --project <ID> --message "..."` -> create task with initial prompt
+3. `tasks send <TASK_ID> --message "..." --wait` -> send message and wait for response
+4. `files list --project <ID>` -> browse generated outputs
+5. `files content <FILE_ID>` -> read a protocol file
 
 ## All Command Groups
 
@@ -138,14 +150,18 @@ elnora api-keys     Manage API keys and creation policy
 elnora audit        View audit logs
 elnora auth         Manage authentication
 elnora completion   Generate shell completion script
+elnora doctor       Run diagnostics (API, auth, version, config checks)
 elnora feedback     Submit feedback
 elnora files        Manage project files (incl. batch upload)
 elnora flags        Manage global feature flags (SystemAdmin)
 elnora folders      Manage project folders
 elnora health       Check platform reachability
 elnora library      Manage organization library
+elnora mcp          Run as MCP server (--http or --stdio)
+elnora open         Open platform pages in browser
 elnora orgs         Manage organizations (incl. set-default, delete, list-all)
 elnora projects     Manage projects
 elnora search       Search tasks, files, and file content
 elnora tasks        Manage tasks
+elnora whoami       Show current profile and org
 ```

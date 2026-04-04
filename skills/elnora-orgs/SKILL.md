@@ -14,8 +14,8 @@ Manage organizations, members, billing, invitations, and the shared organization
 
 ## Invocation
 
-```
-CLI="uv run --project ${CLAUDE_PLUGIN_ROOT} elnora"
+```bash
+CLI="elnora"
 ```
 
 ## Organization Commands
@@ -26,15 +26,11 @@ CLI="uv run --project ${CLAUDE_PLUGIN_ROOT} elnora"
 $CLI --compact orgs list
 ```
 
-Lists all organizations the current user belongs to.
-
 ### Get Organization
 
 ```bash
 $CLI --compact orgs get <ORG_ID>
 ```
-
-Returns organization details by ID.
 
 ### Create Organization
 
@@ -42,11 +38,6 @@ Returns organization details by ID.
 $CLI --compact orgs create --name "Elnora Bio Lab"
 $CLI --compact orgs create --name "Elnora Bio Lab" --description "Main research org"
 ```
-
-| Flag | Required | Notes |
-|------|----------|-------|
-| `--name` | Yes | Organization name |
-| `--description` | No | Organization description |
 
 ### Update Organization
 
@@ -69,16 +60,16 @@ $CLI --compact orgs members <ORG_ID>
 $CLI --compact orgs update-role <ORG_ID> <MEMBERSHIP_ID> --role Admin
 ```
 
-`--role` is required. Uses the membership ID (not user ID).
+Both positional. `--role` is required. Uses the **membership ID** (not user ID) — get it from `orgs members`.
 
 ### Remove Member
 
 ```bash
 $CLI --compact orgs remove-member <ORG_ID> <MEMBERSHIP_ID>
-# -> {"deleted":true,"membershipId":"...","orgId":"..."}
+# -> {"removed":true}
 ```
 
-Destructive -- confirm with user first.
+Both positional. Destructive — confirm with user first.
 
 ### Get Billing
 
@@ -86,33 +77,28 @@ Destructive -- confirm with user first.
 $CLI --compact orgs billing <ORG_ID>
 ```
 
-Returns billing information for the organization.
-
-### List All Org Files (Admin Compliance View)
+### List Org Files (Admin Compliance View)
 
 ```bash
-$CLI --compact orgs files --org <ORG_ID>
-$CLI --compact orgs files --org <ORG_ID> --page 2 --page-size 50
+$CLI --compact orgs files <ORG_ID>
+$CLI --compact orgs files <ORG_ID> --page 2 --page-size 50
 ```
 
-`--org` is required. Lists all files across all projects in the organization. Useful for admin compliance and auditing.
+`<ORG_ID>` is positional (`orgId`). Lists all files across all projects in the organization.
 
 ### Set Default Organization
 
 ```bash
 $CLI --compact orgs set-default <ORG_ID>
-# -> {"updated":true,"defaultOrgId":"<UUID>"}
 ```
-
-Sets the specified organization as your default. Used when no `--profile` is specified.
 
 ### Set Stripe Customer ID (SystemAdmin)
 
 ```bash
-$CLI --compact orgs set-stripe <ORG_ID> --customer-id cus_xxx
+$CLI --compact orgs set-stripe <ORG_ID> <CUSTOMER_ID>
 ```
 
-SystemAdmin only. Sets the Stripe billing customer ID for an organization.
+Both positional. Example: `elnora --compact orgs set-stripe <ORG_ID> cus_xxx`
 
 ### List All Organizations (SystemAdmin)
 
@@ -120,9 +106,7 @@ SystemAdmin only. Sets the Stripe billing customer ID for an organization.
 $CLI --compact orgs list-all
 ```
 
-SystemAdmin only. Lists ALL organizations on the platform (not just the user's).
-
-### Delete Organization (SystemAdmin)
+### Delete Organization
 
 ```bash
 $CLI --compact orgs delete <ORG_ID>
@@ -130,8 +114,7 @@ $CLI --compact orgs delete <ORG_ID> --yes
 # -> {"deleted":true,"orgId":"<UUID>"}
 ```
 
-**DANGEROUS: Permanently deletes the organization and ALL its data. Irreversible.**
-Requires typing the organization name to confirm. Use `--yes` to skip (non-interactive/CI only).
+**DANGEROUS.** Requires y/N confirmation. Use `--yes` to skip (non-interactive/CI only).
 
 ## Invitation Commands
 
@@ -141,11 +124,6 @@ Requires typing the organization name to confirm. Use `--yes` to skip (non-inter
 $CLI --compact orgs invite <ORG_ID> --email user@example.com
 $CLI --compact orgs invite <ORG_ID> --email user@example.com --role Admin
 ```
-
-| Flag | Required | Notes |
-|------|----------|-------|
-| `--email` | Yes | Email to invite |
-| `--role` | No | Role for invitee (default: "Member") |
 
 ### List Pending Invitations
 
@@ -157,24 +135,26 @@ $CLI --compact orgs invitations <ORG_ID>
 
 ```bash
 $CLI --compact orgs cancel-invite <ORG_ID> <INVITATION_ID>
-# -> {"deleted":true,"invitationId":"...","orgId":"..."}
+# -> {"cancelled":true,"invitationId":"..."}
 ```
+
+Both positional.
 
 ### Get Invitation Info (by token)
 
 ```bash
-$CLI --compact orgs invitation-info <TOKEN>
+$CLI --compact orgs invitation-info --token <TOKEN>
 ```
 
-Returns details about an invitation using its token string.
+`--token` is a flag (not positional — `token` doesn't end in "Id").
 
 ### Accept Invitation
 
 ```bash
-$CLI --compact orgs accept-invite <TOKEN>
+$CLI --compact orgs accept-invite --token <TOKEN>
 ```
 
-Accepts an invitation using its token.
+`--token` is a flag.
 
 ## Organization Library Commands
 
@@ -187,7 +167,7 @@ $CLI --compact library files --org <ORG_ID>
 $CLI --compact library files --org <ORG_ID> --page 2 --page-size 50
 ```
 
-`--org` is required.
+`--org` is a flag (`org` doesn't end in "Id").
 
 ### List Library Folders
 
@@ -208,6 +188,8 @@ $CLI --compact library create-folder --org <ORG_ID> --name "Sub Folder" --parent
 $CLI --compact library rename-folder --org <ORG_ID> <FOLDER_ID> --name "New Name"
 ```
 
+`<FOLDER_ID>` is positional (`folderId`). `--org` and `--name` are flags.
+
 ### Delete Library Folder
 
 ```bash
@@ -215,7 +197,7 @@ $CLI --compact library delete-folder --org <ORG_ID> <FOLDER_ID>
 # -> {"deleted":true,"folderId":"..."}
 ```
 
-Destructive -- confirm with user first.
+Destructive — confirm with user first.
 
 ## Agent Recipes
 
@@ -226,7 +208,7 @@ ORG=$($CLI --compact orgs list | jq -r 'if type == "array" then .[0].id else .it
 $CLI --compact orgs billing "$ORG"
 ```
 
-**Invite a new team member:**
+**Invite a team member:**
 
 ```bash
 $CLI --compact orgs invite <ORG_ID> --email new.researcher@lab.com --role Member
@@ -235,7 +217,6 @@ $CLI --compact orgs invite <ORG_ID> --email new.researcher@lab.com --role Member
 **Browse shared library:**
 
 ```bash
-# List folders, then list files
 $CLI --compact library folders --org <ORG_ID>
 $CLI --compact library files --org <ORG_ID>
 ```

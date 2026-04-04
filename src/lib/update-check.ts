@@ -55,8 +55,8 @@ function writeCache(entry: CacheEntry): void {
 function showUpdateNotice(latest: string): void {
 	const color = isColorEnabled();
 	const msg = color
-		? `\n${pc.yellow(`Update available: v${VERSION} → v${latest}`)}\nRun: curl -fsSL https://cli.elnora.ai/install.sh | bash\n`
-		: `\nUpdate available: v${VERSION} → v${latest}\nRun: curl -fsSL https://cli.elnora.ai/install.sh | bash\n`;
+		? `\n${pc.yellow(`Update available: v${VERSION} → v${latest}`)}\nRun: elnora update\n`
+		: `\nUpdate available: v${VERSION} → v${latest}\nRun: elnora update\n`;
 	process.stderr.write(msg);
 }
 

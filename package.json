@@ -9,6 +9,7 @@
   "main": "dist/cli.js",
   "files": [
     "dist/",
+    "scripts/postinstall.mjs",
     "README.md",
     "LICENSE"
   ],
@@ -19,6 +20,7 @@
     "access": "public"
   },
   "scripts": {
+    "postinstall": "node scripts/postinstall.mjs",
     "build": "esbuild src/cli.ts --bundle --format=esm --platform=node --target=node20 --outfile=dist/cli.js --packages=external",
     "build:binary": "node scripts/build.mjs --pkg",
     "dev": "tsx src/cli.ts",

@@ -59,7 +59,7 @@ async function pollForResponse(
 
 	throw new ElnoraError("Timed out waiting for agent response (120s)", {
 		code: "RESPONSE_TIMEOUT",
-		suggestion: "The agent may still be processing. Check with: elnora tasks messages <task-id>",
+		suggestion: `The agent may still be processing. Check with: elnora tasks messages ${taskId}`,
 	});
 }
 

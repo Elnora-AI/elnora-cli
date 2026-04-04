@@ -1,14 +1,56 @@
 import { z } from "zod";
 import type { ElnoraCommand } from "../../core/command.js";
 import type { OutputFormat } from "../../lib/output.js";
+import { resolveApiKey } from "../../lib/profiles.js";
+import { collectStreamResponse, streamTask } from "../../lib/stream.js";
+import { StreamRenderer } from "../../lib/stream-renderer.js";
 
 const inputSchema = z.object({
 	project: z.string().uuid().describe("Project ID"),
 	title: z.string().optional().describe("Task title"),
 	message: z.string().optional().describe("Initial message"),
+	wait: z.boolean().default(false).describe("Wait for agent response (polling)"),
+	stream: z.boolean().default(false).describe("Stream agent response in real-time (SSE)"),
 });
 
 type Input = z.infer<typeof inputSchema>;
+
+/**
+ * Poll GET /tasks/{id}/messages until an assistant message appears.
+ */
+async function pollForResponse(
+	client: {
+		get: (
+			endpoint: string,
+			opts?: { pathParams?: Record<string, string>; queryParams?: Record<string, string | number> },
+		) => Promise<unknown>;
+	},
+	taskId: string,
+	timeoutMs = 120_000,
+): Promise<unknown> {
+	const deadline = Date.now() + timeoutMs;
+	while (Date.now() < deadline) {
+		const messages = await client.get("task_messages", {
+			pathParams: { id: taskId },
+			queryParams: { limit: 10 },
+		});
+
+		const items = Array.isArray(messages)
+			? messages
+			: (((messages as Record<string, unknown>)?.items as unknown[]) ?? []);
+		if (Array.isArray(items)) {
+			const assistantMsg = items.find((m: unknown) => {
+				const msg = m as Record<string, unknown>;
+				return msg.role === "assistant" || msg.role === "Assistant";
+			});
+			if (assistantMsg) return assistantMsg;
+		}
+
+		await new Promise((r) => setTimeout(r, 2000));
+	}
+
+	throw new Error(`Timed out waiting for agent response (120s). Check with: elnora tasks messages ${taskId}`);
+}
 
 export const tasksCreate: ElnoraCommand<Input> = {
 	name: "tasks.create",
@@ -18,15 +60,58 @@ export const tasksCreate: ElnoraCommand<Input> = {
 	outputSchema: z.any(),
 
 	async execute(input, ctx) {
-		return ctx.client.post("tasks", {
+		const result = (await ctx.client.post("tasks", {
 			projectId: input.project,
 			title: input.title,
 			initialMessage: input.message,
-		});
+		})) as { id: string; [key: string]: unknown };
+
+		const taskId = result.id;
+
+		// No initial message or no response mode requested — return task JSON
+		if (!input.message || (!input.stream && !input.wait)) {
+			return result;
+		}
+
+		// MCP mode: always collect full response via streaming
+		if (ctx.mode === "mcp") {
+			try {
+				const apiKey = resolveApiKey(ctx.profileName);
+				const content = await collectStreamResponse(taskId, apiKey);
+				return { ...result, response: content };
+			} catch {
+				return pollForResponse(ctx.client, taskId);
+			}
+		}
+
+		// CLI mode: --stream (SSE)
+		if (input.stream) {
+			const apiKey = resolveApiKey(ctx.profileName);
+			const renderer = new StreamRenderer();
+			for await (const event of streamTask(taskId, apiKey)) {
+				renderer.renderEvent(event);
+			}
+			renderer.stopSpinner();
+			return { ...result, streamed: true };
+		}
+
+		// CLI mode: --wait (polling)
+		return pollForResponse(ctx.client, taskId);
 	},
 
 	formatOutput(output: unknown, format: OutputFormat): string {
-		if (format === "compact") return (output as { id?: string }).id ?? JSON.stringify(output);
-		return JSON.stringify(output, null, 2);
+		const data = output as { id?: string; streamed?: boolean };
+		if (format === "compact") return data.id ?? JSON.stringify(output);
+		if (data.streamed) return ""; // stream already rendered to stdout
+
+		const lines = [`✓ Task created: ${data.id}`];
+		if (!data.streamed) {
+			lines.push(
+				"",
+				"Send a message:",
+				`  elnora tasks send ${data.id} --message "Your message" --stream`,
+			);
+		}
+		return lines.join("\n");
 	},
 };

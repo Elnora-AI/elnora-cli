@@ -154,14 +154,20 @@ export function getApiKey(profileName = "default"): string {
 		const available = Object.keys(profiles);
 		const suggestion =
 			available.length > 0
-				? `Available profiles: ${available.join(", ")}`
-				: "Run 'elnora auth login' to set up a profile.";
-		throw new AuthError(`Profile '${profileName}' not found.`, { suggestion });
+				? `Available profiles: ${available.join(", ")}.\nRun: elnora auth login --profile <name>`
+				: "1. Get your API key from: https://platform.elnora.ai > Settings > API Keys\n" +
+					"2. Run: elnora auth login --api-key elnora_live_YOUR_KEY";
+		throw new AuthError(
+			available.length > 0
+				? `Profile '${profileName}' not found.`
+				: "Not authenticated. Run 'elnora auth login' first.",
+			{ suggestion },
+		);
 	}
 	const key = profiles[profileName].api_key ?? "";
 	if (!key) {
 		throw new AuthError(`Profile '${profileName}' has no API key.`, {
-			suggestion: `Run: elnora auth login --profile ${profileName}`,
+			suggestion: `Run: elnora auth login --api-key elnora_live_YOUR_KEY --profile ${profileName}`,
 		});
 	}
 	return key;

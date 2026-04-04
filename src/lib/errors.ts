@@ -131,13 +131,78 @@ export function getExitCode(err: Error): number {
 	return 1;
 }
 
-export function formatErrorPayload(err: Error): Record<string, string> {
-	const payload: Record<string, string> = { error: scrub(err.message) };
+/** Map error codes to machine-readable retry hints for agents/MCP consumers. */
+const RETRY_HINTS: Record<string, { retryable: boolean; action: string }> = {
+	AUTH_FAILED: { retryable: false, action: "Check API key and re-authenticate." },
+	VALIDATION_ERROR: { retryable: false, action: "Fix the input parameters and retry." },
+	NOT_FOUND: { retryable: false, action: "Verify the resource ID exists." },
+	RATE_LIMITED: { retryable: true, action: "Wait and retry after a delay." },
+	SERVER_ERROR: { retryable: true, action: "Retry after a short delay." },
+	TIMEOUT: { retryable: true, action: "Retry the request." },
+	NETWORK_ERROR: { retryable: true, action: "Check connectivity and retry." },
+	CONFIG_WRITE_ERROR: { retryable: false, action: "Check file system permissions." },
+	RESPONSE_TIMEOUT: { retryable: true, action: "Agent may still be processing. Poll task messages to check." },
+	SSRF_BLOCKED: { retryable: false, action: "Request blocked for security. Use HTTPS URLs on allowed hosts only." },
+	UNEXPECTED_REDIRECT: { retryable: false, action: "API returned an unexpected redirect. Report this issue." },
+};
+
+export function formatErrorPayload(err: Error): Record<string, string | string[] | boolean> {
+	const payload: Record<string, string | string[] | boolean> = { error: scrub(err.message) };
 	if (err instanceof ElnoraError) {
 		payload.code = err.code;
-		if (err.suggestion) payload.suggestion = err.suggestion;
+		if (err.suggestion) {
+			// Multi-step suggestions render as an array so each step is readable in JSON
+			if (err.suggestion.includes("\n")) {
+				payload.steps = err.suggestion.split("\n").map((s) => s.trim()).filter(Boolean);
+			} else {
+				payload.suggestion = err.suggestion;
+			}
+		}
+		// Machine-readable hints for agents and MCP consumers
+		const hint = RETRY_HINTS[err.code];
+		if (hint) {
+			payload.retryable = hint.retryable;
+			payload.action = hint.action;
+		} else if (err.code.startsWith("HTTP_")) {
+			// Dynamic HTTP status codes: 4xx = not retryable, 5xx = retryable
+			const status = Number.parseInt(err.code.slice(5), 10);
+			payload.retryable = status >= 500;
+			payload.action = status >= 500
+				? "Server error. Retry after a short delay."
+				: `Client error (HTTP ${status}). Check request parameters.`;
+		}
+	} else if (err.constructor.name === "ZodError") {
+		payload.code = "VALIDATION_ERROR";
+		payload.retryable = false;
+		payload.action = "Invalid input. Check required parameters and their types.";
 	} else {
 		payload.code = err.constructor.name;
 	}
 	return payload;
+}
+
+/**
+ * Human-friendly error output for TTY terminals.
+ * Renders the same data as formatErrorPayload but as readable text, not JSON.
+ */
+export function formatErrorForHuman(err: Error): string {
+	const lines: string[] = [];
+	const message = scrub(err instanceof Error ? err.message : String(err));
+	lines.push(`Error: ${message}`);
+
+	if (err instanceof ElnoraError && err.suggestion) {
+		const steps = err.suggestion.split("\n").map((s) => s.trim()).filter(Boolean);
+		if (steps.length === 1) {
+			lines.push("", `  ${steps[0]}`);
+		} else {
+			lines.push("", "Next steps:");
+			for (const step of steps) {
+				lines.push(`  ${step}`);
+			}
+		}
+	} else if (err.constructor.name === "ZodError") {
+		lines.push("", "  Check the required parameters and try again.");
+	}
+
+	return lines.join("\n");
 }

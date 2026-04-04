@@ -22,7 +22,15 @@ export const projectsCreate: ElnoraCommand<Input> = {
 	},
 
 	formatOutput(output: unknown, format: OutputFormat): string {
-		if (format === "compact") return (output as { id?: string }).id ?? JSON.stringify(output);
-		return JSON.stringify(output, null, 2);
+		const data = output as { id?: string; name?: string };
+		if (format === "compact") return data.id ?? JSON.stringify(output);
+
+		const lines = [
+			`✓ Project "${data.name}" created.`,
+			"",
+			"Next step — start a conversation:",
+			`  elnora tasks create --project ${data.id} --message "Hello Elnora"`,
+		];
+		return lines.join("\n");
 	},
 };

@@ -21,13 +21,14 @@ import { healthCheck } from "./commands/health.js";
 import { registerLibraryCommands } from "./commands/library/index.js";
 import { addMcpCommands } from "./commands/mcp/serve.js";
 import { addOpenCommand } from "./commands/open.js";
+import { addUpdateCommand } from "./commands/update.js";
 import { registerOrgCommands } from "./commands/orgs/index.js";
 import { registerProjectCommands } from "./commands/projects/index.js";
 import { registerSearchCommands } from "./commands/search/index.js";
 import { registerTaskCommands } from "./commands/tasks/index.js";
 import { addWhoamiCommand } from "./commands/whoami.js";
 import { CommandRegistry } from "./core/registry.js";
-import { formatErrorPayload, getExitCode } from "./lib/errors.js";
+import { formatErrorForHuman, formatErrorPayload, getExitCode } from "./lib/errors.js";
 import { registerUpdateCheck } from "./lib/update-check.js";
 
 // ---------------------------------------------------------------------------
@@ -35,15 +36,21 @@ import { registerUpdateCheck } from "./lib/update-check.js";
 // ---------------------------------------------------------------------------
 
 process.on("uncaughtException", (err) => {
-	const payload = formatErrorPayload(err);
-	process.stderr.write(`${JSON.stringify(payload, null, 2)}\n`);
+	if (process.stderr.isTTY) {
+		process.stderr.write(`${formatErrorForHuman(err)}\n`);
+	} else {
+		process.stderr.write(`${JSON.stringify(formatErrorPayload(err), null, 2)}\n`);
+	}
 	process.exit(getExitCode(err));
 });
 
 process.on("unhandledRejection", (reason) => {
 	const err = reason instanceof Error ? reason : new Error(String(reason));
-	const payload = formatErrorPayload(err);
-	process.stderr.write(`${JSON.stringify(payload, null, 2)}\n`);
+	if (process.stderr.isTTY) {
+		process.stderr.write(`${formatErrorForHuman(err)}\n`);
+	} else {
+		process.stderr.write(`${JSON.stringify(formatErrorPayload(err), null, 2)}\n`);
+	}
 	process.exit(1);
 });
 
@@ -87,6 +94,7 @@ addMcpCommands(program, registry);
 addDoctorCommand(program);
 addWhoamiCommand(program);
 addOpenCommand(program);
+addUpdateCommand(program);
 addCompletionCommand(program);
 
 // Background update check (non-blocking, 24h cache)

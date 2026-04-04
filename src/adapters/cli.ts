@@ -17,7 +17,7 @@ import type { ZodType } from "zod";
 import type { CommandContext } from "../core/command.js";
 import type { CommandRegistry } from "../core/registry.js";
 import { ElnoraApiClient } from "../lib/client.js";
-import { formatErrorPayload, getExitCode } from "../lib/errors.js";
+import { formatErrorForHuman, formatErrorPayload, getExitCode } from "../lib/errors.js";
 import { formatOutput, type OutputFormat } from "../lib/output.js";
 
 // ---------------------------------------------------------------------------
@@ -246,17 +246,29 @@ export function buildProgram(registry: CommandRegistry): Command {
 					const parsed = cmd.inputSchema.parse(input);
 					const result = await cmd.execute(parsed, ctx);
 
-					// Output
-					const formatted = formatOutput(result, {
-						format: ctx.output.format,
-						compact: ctx.output.compact,
-						fields: ctx.output.fields,
-					});
+					// Output: use command's formatOutput for human-friendly TTY display,
+					// fall back to generic JSON for piped/scripted/--json usage
+					const explicitJson = parentOpts.json || parentOpts.output !== "json";
+					const isTty = process.stdout.isTTY;
+					let formatted: string;
+					if (!explicitJson && isTty && cmd.formatOutput) {
+						formatted = cmd.formatOutput(result, ctx.output.format);
+					} else {
+						formatted = formatOutput(result, {
+							format: ctx.output.format,
+							compact: ctx.output.compact,
+							fields: ctx.output.fields,
+						});
+					}
 					process.stdout.write(`${formatted}\n`);
 				} catch (err) {
 					const error = err instanceof Error ? err : new Error(String(err));
-					const payload = formatErrorPayload(error);
-					process.stderr.write(`${JSON.stringify(payload, null, 2)}\n`);
+					if (process.stderr.isTTY) {
+						process.stderr.write(`${formatErrorForHuman(error)}\n`);
+					} else {
+						const payload = formatErrorPayload(error);
+						process.stderr.write(`${JSON.stringify(payload, null, 2)}\n`);
+					}
 					process.exit(getExitCode(error));
 				}
 			});

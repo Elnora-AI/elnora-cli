@@ -8,7 +8,12 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
+// In standalone binaries, esbuild replaces this with the literal version string at build time.
+// In dev / npm installs, it reads the real env var set by npm/pnpm, or falls back to package.json.
+const BUILD_VERSION: string | undefined = process.env.npm_package_version;
+
 function getVersion(): string {
+	if (BUILD_VERSION && BUILD_VERSION !== "undefined") return BUILD_VERSION;
 	try {
 		const dir = dirname(fileURLToPath(import.meta.url));
 		const pkg = JSON.parse(readFileSync(join(dir, "../../package.json"), "utf-8"));

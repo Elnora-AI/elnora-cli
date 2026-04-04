@@ -1,19 +1,13 @@
-import { describe, expect, test, vi } from "vitest";
+import { afterEach, describe, expect, test, vi } from "vitest";
 import { healthCheck } from "../../src/commands/health.js";
-import type { CommandContext } from "../../src/core/command.js";
-
-function mockContext(overrides?: { getResult?: unknown }): CommandContext {
-	return {
-		client: {
-			get: vi.fn().mockResolvedValue(overrides?.getResult ?? { status: "ok" }),
-		} as unknown as CommandContext["client"],
-		profileName: "default",
-		mode: "cli",
-		output: { format: "json", compact: false },
-	};
-}
 
 describe("health.check command", () => {
+	const originalFetch = globalThis.fetch;
+
+	afterEach(() => {
+		globalThis.fetch = originalFetch;
+	});
+
 	test("has correct name and group", () => {
 		expect(healthCheck.name).toBe("health.check");
 		expect(healthCheck.group).toBe("health");
@@ -28,16 +22,29 @@ describe("health.check command", () => {
 		expect(healthCheck.annotations?.readOnlyHint).toBe(true);
 	});
 
-	test("calls GET /health and returns status", async () => {
-		const ctx = mockContext({ getResult: { status: "healthy" } });
+	test("calls /health and returns status from JSON", async () => {
+		globalThis.fetch = vi.fn().mockResolvedValue({
+			ok: true,
+			status: 200,
+			text: () => Promise.resolve('{"status":"healthy"}'),
+		});
+		const ctx = {} as Parameters<typeof healthCheck.execute>[1];
 		const result = await healthCheck.execute({}, ctx);
 		expect(result.status).toBe("healthy");
 		expect(result.timestamp).toBeDefined();
-		expect(ctx.client.get).toHaveBeenCalledWith("/health");
+		expect(globalThis.fetch).toHaveBeenCalledWith(
+			"https://platform.elnora.ai/health",
+			expect.objectContaining({ signal: expect.any(AbortSignal) }),
+		);
 	});
 
-	test("defaults status to 'ok' if not in response", async () => {
-		const ctx = mockContext({ getResult: {} });
+	test("handles plain text response", async () => {
+		globalThis.fetch = vi.fn().mockResolvedValue({
+			ok: true,
+			status: 200,
+			text: () => Promise.resolve("ok"),
+		});
+		const ctx = {} as Parameters<typeof healthCheck.execute>[1];
 		const result = await healthCheck.execute({}, ctx);
 		expect(result.status).toBe("ok");
 	});

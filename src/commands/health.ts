@@ -16,12 +16,22 @@ export const healthCheck: ElnoraCommand<z.infer<typeof healthInput>, z.infer<typ
 	outputSchema: healthOutput,
 	annotations: { readOnlyHint: true },
 
-	async execute(_input, ctx) {
-		const result = await ctx.client.get<{ status?: string }>("/health");
-		return {
-			status: result?.status ?? "ok",
-			timestamp: new Date().toISOString(),
-		};
+	async execute(_input, _ctx) {
+		// Health endpoint lives at /health, outside the /api/v1 prefix.
+		// Use direct fetch instead of the API client.
+		const response = await fetch("https://platform.elnora.ai/health", {
+			signal: AbortSignal.timeout(5000),
+		});
+		const text = await response.text();
+		let status: string;
+		try {
+			const data = JSON.parse(text) as { status?: string };
+			status = data?.status ?? "ok";
+		} catch {
+			// Health endpoint may return plain text (e.g., "ok")
+			status = response.ok ? text.trim() || "ok" : `error (HTTP ${response.status})`;
+		}
+		return { status, timestamp: new Date().toISOString() };
 	},
 
 	formatOutput(output, format) {

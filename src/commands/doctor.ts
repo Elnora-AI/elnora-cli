@@ -24,7 +24,7 @@ export function addDoctorCommand(program: Command): void {
 			total++;
 			try {
 				const start = Date.now();
-				const res = await fetch("https://platform.elnora.ai/api/v1/health", { signal: AbortSignal.timeout(5000) });
+				const res = await fetch("https://platform.elnora.ai/health", { signal: AbortSignal.timeout(5000) });
 				const ms = Date.now() - start;
 				if (res.ok) {
 					console.error(ok(`API reachable         platform.elnora.ai (${res.status} OK, ${ms}ms)`));

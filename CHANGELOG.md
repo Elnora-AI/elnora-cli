@@ -5,6 +5,37 @@ All notable changes to the Elnora CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.1.0](https://github.com/Elnora-AI/elnora-cli/compare/cli-v1.0.0...cli-v1.1.0) (2026-04-04)
+
+
+### Features
+
+* add 55 new CLI commands covering all v1 API endpoints ([#8](https://github.com/Elnora-AI/elnora-cli/issues/8)) ([26db63a](https://github.com/Elnora-AI/elnora-cli/commit/26db63ac6fabfcfa293d36dc7eaf747346f3c9bf))
+* add automatic update check on CLI startup ([#23](https://github.com/Elnora-AI/elnora-cli/issues/23)) ([6754d92](https://github.com/Elnora-AI/elnora-cli/commit/6754d92f8f6147b2c1db24df6270b3f54dccff43))
+* add Claude Code plugin config and skills ([95b6e93](https://github.com/Elnora-AI/elnora-cli/commit/95b6e93952c5c080957aa234585fc1fa0618cc61))
+* add CLI source code, README, and project config ([a87303d](https://github.com/Elnora-AI/elnora-cli/commit/a87303d5e7c3c99b24f1eafdcbd574b46d4aabe7))
+* add global --org flag for multi-org support ([#25](https://github.com/Elnora-AI/elnora-cli/issues/25)) ([b5cc651](https://github.com/Elnora-AI/elnora-cli/commit/b5cc651330d093a5db0a013952917fc593ce3e08))
+* add health command and fix file upload ([#17](https://github.com/Elnora-AI/elnora-cli/issues/17)) ([da029d6](https://github.com/Elnora-AI/elnora-cli/commit/da029d616528b976a45d6124da8c9d07c310473b))
+* add profile support for multi-org API key management ([#29](https://github.com/Elnora-AI/elnora-cli/issues/29)) ([e82059c](https://github.com/Elnora-AI/elnora-cli/commit/e82059c0cf185082a13b4e2a7355db66b69f5acb))
+* add repo scaffolding — README, CI, issue templates, security policy ([bf6152e](https://github.com/Elnora-AI/elnora-cli/commit/bf6152e32f691f0673352c71d0cf5a1c850d1cfe))
+* automatic update check on CLI startup ([#21](https://github.com/Elnora-AI/elnora-cli/issues/21)) ([342e302](https://github.com/Elnora-AI/elnora-cli/commit/342e3027c8433ca3c1ae3f07024ff0a397992727))
+* complete CLI skills coverage and add permission defaults ([#18](https://github.com/Elnora-AI/elnora-cli/issues/18)) ([3eda49a](https://github.com/Elnora-AI/elnora-cli/commit/3eda49acc9d60793cccca12eb636d91c67490eec))
+* rewrite Elnora CLI from Python to TypeScript ([#41](https://github.com/Elnora-AI/elnora-cli/issues/41)) ([84f9233](https://github.com/Elnora-AI/elnora-cli/commit/84f9233396f6f4aea27580f6867e64afbf23b8d6))
+
+
+### Bug Fixes
+
+* **ci:** close/reopen release PR to trigger CI checks ([#12](https://github.com/Elnora-AI/elnora-cli/issues/12)) ([7037b4c](https://github.com/Elnora-AI/elnora-cli/commit/7037b4ca33e7f0a8af52215df53f4d1cb57b9a5a))
+* **ci:** switch to release-please, remove broken semantic-release ([#10](https://github.com/Elnora-AI/elnora-cli/issues/10)) ([28386cb](https://github.com/Elnora-AI/elnora-cli/commit/28386cb567760c2c9f4c253419be118685fec921))
+* **ci:** use PAT for release-please to trigger CI on release PRs ([#15](https://github.com/Elnora-AI/elnora-cli/issues/15)) ([256bd56](https://github.com/Elnora-AI/elnora-cli/commit/256bd56d03890861c0617e84a54e49869849f339))
+* **cli:** harden security, add rate-limit retry, and update docs ([#33](https://github.com/Elnora-AI/elnora-cli/issues/33)) ([c201367](https://github.com/Elnora-AI/elnora-cli/commit/c2013677ebc7267f098d3f815392c4b0d70bd9e3))
+* **cli:** use correct endpoint key for org delete ([#35](https://github.com/Elnora-AI/elnora-cli/issues/35)) ([be041cb](https://github.com/Elnora-AI/elnora-cli/commit/be041cbd2858ffc17959c718d3c1ea89751e6b79))
+* **docs:** clean up README — remove API key format, fix plugin section ([#5](https://github.com/Elnora-AI/elnora-cli/issues/5)) ([561ad61](https://github.com/Elnora-AI/elnora-cli/commit/561ad6130787fe1c9533a7bef54e7a280a85acec))
+* remove flags command (feature flags are SystemAdmin-only) ([#27](https://github.com/Elnora-AI/elnora-cli/issues/27)) ([394e747](https://github.com/Elnora-AI/elnora-cli/commit/394e7470a826e7658a0ceeb5c581ca560cf713b6))
+* **skills:** correct inaccuracies and add missing commands ([#31](https://github.com/Elnora-AI/elnora-cli/issues/31)) ([a01a4af](https://github.com/Elnora-AI/elnora-cli/commit/a01a4afbdac5e09fd30d4c448923899252c8465b))
+* update docs for client-readiness fixes ([06305ba](https://github.com/Elnora-AI/elnora-cli/commit/06305ba2431c37d8e401f02c8ab3f535fec1e92d))
+* use macos-latest for Intel Mac builds (macos-13 deprecated) ([#46](https://github.com/Elnora-AI/elnora-cli/issues/46)) ([ce79285](https://github.com/Elnora-AI/elnora-cli/commit/ce79285e624cf9e869df1206a685cf935ef9f8b4))
+
 ## [0.7.3](https://github.com/Elnora-AI/elnora-cli/compare/elnora-v0.7.2...elnora-v0.7.3) (2026-03-16)
 
 

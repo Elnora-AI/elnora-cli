@@ -33,7 +33,7 @@ if [ -z "$VERSION" ]; then
     | grep '"tag_name"' | sed -E 's/.*"([^"]+)".*/\1/') || true
   if [ -z "$VERSION" ]; then
     err "Could not fetch the latest version. Check your internet connection." \
-        "Retry, or pin a version: curl -fsSL https://cli.elnora.ai/install.sh | bash -s v1.1.2"
+        "Retry, or pin a version: curl -fsSL https://cli.elnora.ai/install.sh | bash -s -- v<VERSION>"
   fi
 fi
 
@@ -137,7 +137,7 @@ echo "Get your API key from: https://platform.elnora.ai > Settings > API Keys"
 echo ""
 
 # Prompt for API key — read from /dev/tty since stdin is piped from curl
-if [ -t 0 ] || [ -e /dev/tty ]; then
+if [ -t 1 ]; then
   printf "Paste your API key: " >/dev/tty
   read -r API_KEY </dev/tty 2>/dev/null || API_KEY=""
 

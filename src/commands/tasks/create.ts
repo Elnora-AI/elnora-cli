@@ -31,6 +31,10 @@ export const tasksCreate: ElnoraCommand<Input> = {
 		})) as { id: string; [key: string]: unknown };
 
 		const taskId = result.id;
+		const sequence =
+			((result as Record<string, unknown>)?.sequence as number) ??
+			((result as Record<string, unknown>)?.sequenceNumber as number) ??
+			0;
 
 		// No initial message or no response mode requested — return task JSON
 		if (!input.message || (!input.stream && !input.wait)) {
@@ -44,7 +48,7 @@ export const tasksCreate: ElnoraCommand<Input> = {
 				const content = await collectStreamResponse(taskId, apiKey);
 				return { ...result, response: content };
 			} catch {
-				return pollForResponse(ctx.client, taskId);
+				return pollForResponse(ctx.client, taskId, sequence);
 			}
 		}
 
@@ -60,7 +64,7 @@ export const tasksCreate: ElnoraCommand<Input> = {
 		}
 
 		// CLI mode: --wait (polling)
-		return pollForResponse(ctx.client, taskId);
+		return pollForResponse(ctx.client, taskId, sequence);
 	},
 
 	formatOutput(output: unknown, format: OutputFormat): string {

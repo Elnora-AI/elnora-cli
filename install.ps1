@@ -24,7 +24,7 @@ if (-not $Version) {
     } catch {
         Write-Host ""
         Write-Host "Error: Could not fetch the latest version. Check your internet connection." -ForegroundColor Red
-        Write-Host "  Retry, or pin a version: irm https://cli.elnora.ai/install.ps1 | iex -Version v1.1.2"
+        Write-Host "  Retry, or pin a version: irm https://cli.elnora.ai/install.ps1 | iex -Version v<VERSION>"
         exit 1
     }
     if (-not $Version) {

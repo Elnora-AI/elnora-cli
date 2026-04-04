@@ -5,6 +5,13 @@ All notable changes to the Elnora CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.1.2](https://github.com/Elnora-AI/elnora-cli/compare/cli-v1.1.1...cli-v1.1.2) (2026-04-04)
+
+
+### Bug Fixes
+
+* **skills:** rewrite all skills to match TypeScript CLI architecture ([#50](https://github.com/Elnora-AI/elnora-cli/issues/50)) ([e1843ff](https://github.com/Elnora-AI/elnora-cli/commit/e1843ffe3083dcc42c4d3c8428692eee52d1ceb3))
+
 ## [1.1.1](https://github.com/Elnora-AI/elnora-cli/compare/cli-v1.1.0...cli-v1.1.1) (2026-04-04)
 
 

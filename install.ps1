@@ -33,14 +33,16 @@ $TmpDir = New-TemporaryFile | ForEach-Object { Remove-Item $_; New-Item -ItemTyp
 Invoke-WebRequest -Uri $DownloadUrl -OutFile "$TmpDir\$Target.zip"
 Invoke-WebRequest -Uri $ChecksumUrl -OutFile "$TmpDir\$Target.sha256"
 
-# Verify checksum
+# Verify checksum (against the .zip archive, before extraction)
 $expected = (Get-Content "$TmpDir\$Target.sha256").Split(" ")[0]
-Expand-Archive -Path "$TmpDir\$Target.zip" -DestinationPath $TmpDir -Force
-$actual = (Get-FileHash "$TmpDir\$Target" -Algorithm SHA256).Hash.ToLower()
+$actual = (Get-FileHash "$TmpDir\$Target.zip" -Algorithm SHA256).Hash.ToLower()
 if ($actual -ne $expected) {
     Write-Error "Checksum verification failed. Expected: $expected, Got: $actual"
     exit 1
 }
+
+# Extract
+Expand-Archive -Path "$TmpDir\$Target.zip" -DestinationPath $TmpDir -Force
 
 # Install
 Copy-Item "$TmpDir\$Target" "$InstallDir\elnora.exe" -Force

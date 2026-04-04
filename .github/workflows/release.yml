@@ -43,16 +43,6 @@ jobs:
       - name: Build binary
         run: npx pkg dist/cli.cjs --target node20-${{ matrix.target }} --output dist/${{ matrix.binary }}
 
-      - name: Generate SHA256
-        shell: bash
-        run: |
-          cd dist
-          if command -v sha256sum &>/dev/null; then
-            sha256sum ${{ matrix.binary }} > ${{ matrix.binary }}.sha256
-          else
-            shasum -a 256 ${{ matrix.binary }} > ${{ matrix.binary }}.sha256
-          fi
-
       - name: Archive
         shell: bash
         run: |
@@ -61,6 +51,21 @@ jobs:
             7z a ${{ matrix.binary }}.zip ${{ matrix.binary }}
           else
             tar -czf ${{ matrix.binary }}.tar.gz ${{ matrix.binary }}
+          fi
+
+      - name: Generate SHA256
+        shell: bash
+        run: |
+          cd dist
+          if [[ "${{ matrix.target }}" == "win-x64" ]]; then
+            ARCHIVE="${{ matrix.binary }}.zip"
+          else
+            ARCHIVE="${{ matrix.binary }}.tar.gz"
+          fi
+          if command -v sha256sum &>/dev/null; then
+            sha256sum "$ARCHIVE" > ${{ matrix.binary }}.sha256
+          else
+            shasum -a 256 "$ARCHIVE" > ${{ matrix.binary }}.sha256
           fi
 
       - name: Upload to release

@@ -5,6 +5,13 @@ All notable changes to the Elnora CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.1.1](https://github.com/Elnora-AI/elnora-cli/compare/cli-v1.1.0...cli-v1.1.1) (2026-04-04)
+
+
+### Bug Fixes
+
+* add npm provenance for 2FA-free publishing ([#47](https://github.com/Elnora-AI/elnora-cli/issues/47)) ([fe7e3fa](https://github.com/Elnora-AI/elnora-cli/commit/fe7e3fa4ddd72b66598c25a0636315562c992cc7))
+
 ## [1.1.0](https://github.com/Elnora-AI/elnora-cli/compare/cli-v1.0.0...cli-v1.1.0) (2026-04-04)
 
 

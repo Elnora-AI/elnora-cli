@@ -1,0 +1,89 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  build-binaries:
+    name: Build ${{ matrix.binary }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: linux-x64
+            binary: elnora-linux-x64
+          - os: ubuntu-latest
+            target: linux-arm64
+            binary: elnora-linux-arm64
+          - os: macos-13
+            target: macos-x64
+            binary: elnora-macos-x64
+          - os: macos-latest
+            target: macos-arm64
+            binary: elnora-macos-arm64
+          - os: windows-latest
+            target: win-x64
+            binary: elnora-win-x64.exe
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+      - run: pnpm install --frozen-lockfile
+      - run: node scripts/build.mjs
+
+      - name: Build binary
+        run: npx pkg dist/cli.cjs --target node20-${{ matrix.target }} --output dist/${{ matrix.binary }}
+
+      - name: Generate SHA256
+        shell: bash
+        run: |
+          cd dist
+          if command -v sha256sum &>/dev/null; then
+            sha256sum ${{ matrix.binary }} > ${{ matrix.binary }}.sha256
+          else
+            shasum -a 256 ${{ matrix.binary }} > ${{ matrix.binary }}.sha256
+          fi
+
+      - name: Archive
+        shell: bash
+        run: |
+          cd dist
+          if [[ "${{ matrix.target }}" == "win-x64" ]]; then
+            7z a ${{ matrix.binary }}.zip ${{ matrix.binary }}
+          else
+            tar -czf ${{ matrix.binary }}.tar.gz ${{ matrix.binary }}
+          fi
+
+      - name: Upload to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/${{ matrix.binary }}.tar.gz
+            dist/${{ matrix.binary }}.zip
+            dist/${{ matrix.binary }}.sha256
+
+  publish-npm:
+    name: Publish to npm
+    needs: build-binaries
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          registry-url: "https://registry.npmjs.org"
+          cache: "pnpm"
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: pnpm publish --access public --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

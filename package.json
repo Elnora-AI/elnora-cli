@@ -1,0 +1,67 @@
+{
+  "name": "@elnora-ai/cli",
+  "version": "0.0.1",
+  "description": "Elnora AI Platform CLI",
+  "type": "module",
+  "bin": {
+    "elnora": "dist/cli.js"
+  },
+  "main": "dist/cli.js",
+  "files": [
+    "dist/",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "esbuild src/cli.ts --bundle --format=esm --platform=node --target=node20 --outfile=dist/cli.js --packages=external",
+    "build:binary": "node scripts/build.mjs --pkg",
+    "dev": "tsx src/cli.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "biome check src/ __tests__/",
+    "lint:fix": "biome check --write src/ __tests__/",
+    "format": "biome format --write src/ __tests__/",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "elnora",
+    "cli",
+    "bioprotocol",
+    "mcp",
+    "life-sciences",
+    "agent"
+  ],
+  "author": "Elnora AI <support@elnora.ai>",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Elnora-AI/elnora-cli"
+  },
+  "homepage": "https://platform.elnora.ai",
+  "packageManager": "pnpm@10.33.0",
+  "dependencies": {
+    "@commander-js/extra-typings": "^14.0.0",
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "commander": "^14.0.3",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.3.2",
+    "picocolors": "^1.1.1",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.4.10",
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.5.0",
+    "@yao-pkg/pkg": "^6.14.2",
+    "esbuild": "^0.28.0",
+    "tsx": "^4.21.0",
+    "typescript": "^6.0.2",
+    "vitest": "^4.1.2"
+  }
+}

@@ -31,16 +31,15 @@ The CLI provides three modes for retrieving agent responses:
 
 The Elnora backend uses fire-and-forget architecture. When you send a message (via CLI `tasks send`, MCP `elnora_send_message`, `elnora_generate_protocol`, or `elnora_create_task` with initial_message), **the AI response is NOT returned in the response**. You only get back the user message echo.
 
-**You MUST poll for the AI response:**
+**Preferred: Use `--wait` or `--stream` flags** which handle response retrieval automatically (see table above).
 
-1. After sending, wait **5 seconds**
-2. Call `tasks messages <TASK_ID>` (CLI) or `elnora_get_task_messages` (MCP)
-3. Check if the **last message** has `role: "assistant"`
-4. If still `role: "user"` → wait **10 seconds**, poll again
-5. When `role: "assistant"` and `metadata.status: "completed"` → response is ready
-6. **Timeout after 5 minutes** (platform processing limit is 300s)
+**Manual polling (if not using --wait/--stream):**
 
-This applies to ALL response retrieval — there is no streaming or push channel for CLI/MCP clients. Known issue: ELN-495, ELN-496.
+1. Call `tasks messages <TASK_ID>` (CLI) or `elnora_get_task_messages` (MCP)
+2. Check if the **last message** has `role: "assistant"`
+3. If still `role: "user"` → wait **2 seconds**, poll again
+4. When `role: "assistant"` and `metadata.status: "completed"` → response is ready
+5. **Timeout after 2 minutes** (120s polling timeout)
 
 ## Invocation
 

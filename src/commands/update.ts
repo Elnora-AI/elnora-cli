@@ -112,20 +112,27 @@ export function addUpdateCommand(program: Command): void {
 				await downloadToFile(binaryUrl, archivePath);
 
 				// Download and verify checksum
+				let checksumVerified = false;
 				try {
 					const checksumRes = await fetch(checksumUrl, { signal: AbortSignal.timeout(15_000) });
 					if (checksumRes.ok) {
 						const checksumText = await checksumRes.text();
 						const expected = checksumText.split(/\s/)[0].trim();
-						if (expected.length === 64 && !verifyChecksum(archivePath, expected)) {
-							console.error("\nChecksum verification failed. The download may be corrupted.");
-							console.error("Try again, or install manually:");
-							console.error(hint);
-							process.exit(1);
+						if (expected.length === 64) {
+							if (!verifyChecksum(archivePath, expected)) {
+								console.error("\nChecksum verification failed. The download may be corrupted.");
+								console.error("Try again, or install manually:");
+								console.error(hint);
+								process.exit(1);
+							}
+							checksumVerified = true;
 						}
 					}
 				} catch {
-					// Non-fatal: proceed without checksum if fetch fails
+					// Continue with warning below
+				}
+				if (!checksumVerified) {
+					console.error("Warning: Could not verify download checksum. Proceeding anyway.");
 				}
 
 				// Extract and install

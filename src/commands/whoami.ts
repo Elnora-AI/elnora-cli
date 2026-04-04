@@ -19,8 +19,8 @@ export function addWhoamiCommand(program: Command): void {
 				try {
 					const client = new ElnoraApiClient(key);
 					const orgs = await client.get<unknown[]>("organizations");
-					const orgList = Array.isArray(orgs) ? orgs : ((orgs as any)?.items ?? []);
-					if (orgList.length > 0) orgName = (orgList[0] as any)?.name ?? "unknown";
+					const orgList = Array.isArray(orgs) ? orgs : (((orgs as Record<string, unknown>)?.items as unknown[]) ?? []);
+					if (orgList.length > 0) orgName = (orgList[0] as Record<string, string>)?.name ?? "unknown";
 				} catch {
 					/* org fetch is best-effort */
 				}

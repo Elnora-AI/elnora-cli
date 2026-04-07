@@ -141,3 +141,30 @@ export function formatErrorPayload(err: Error): Record<string, string> {
 	}
 	return payload;
 }
+
+/**
+ * Human-friendly error output for TTY terminals.
+ * Renders the same data as formatErrorPayload but as readable text, not JSON.
+ */
+export function formatErrorForHuman(err: Error): string {
+	const lines: string[] = [];
+	const message = scrub(err.message);
+	lines.push(`Error: ${message}`);
+
+	if (err instanceof ElnoraError && err.suggestion) {
+		const steps = err.suggestion
+			.split("\n")
+			.map((s) => s.trim())
+			.filter(Boolean);
+		if (steps.length === 1) {
+			lines.push("", `  ${steps[0]}`);
+		} else {
+			lines.push("", "Next steps:");
+			for (const step of steps) {
+				lines.push(`  ${step}`);
+			}
+		}
+	}
+
+	return lines.join("\n");
+}

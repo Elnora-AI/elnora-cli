@@ -17,7 +17,7 @@ import type { ZodType } from "zod";
 import type { CommandContext } from "../core/command.js";
 import type { CommandRegistry } from "../core/registry.js";
 import { ElnoraApiClient } from "../lib/client.js";
-import { AuthError, formatErrorPayload, getExitCode } from "../lib/errors.js";
+import { AuthError, formatErrorForHuman, formatErrorPayload, getExitCode } from "../lib/errors.js";
 import { formatOutput, type OutputFormat } from "../lib/output.js";
 
 // ---------------------------------------------------------------------------
@@ -257,6 +257,8 @@ export function buildProgram(registry: CommandRegistry): Command {
 					const error = err instanceof Error ? err : new Error(String(err));
 					if (error instanceof AuthError && process.stderr.isTTY) {
 						process.stderr.write(`\n  Not authenticated. Run: elnora auth login\n\n`);
+					} else if (process.stderr.isTTY) {
+						process.stderr.write(`${formatErrorForHuman(error)}\n`);
 					} else {
 						const payload = formatErrorPayload(error);
 						process.stderr.write(`${JSON.stringify(payload, null, 2)}\n`);

@@ -70,7 +70,17 @@ export const authLogin: ElnoraCommand<Input> = {
 	},
 
 	formatOutput(output: unknown, format: OutputFormat): string {
-		if (format === "compact") return (output as { profile?: string }).profile ?? JSON.stringify(output);
-		return JSON.stringify(output, null, 2);
+		const data = output as { profile?: string };
+		if (format === "compact") return data.profile ?? JSON.stringify(output);
+
+		const lines = [
+			`✓ Authenticated! API key saved to profile "${data.profile}".`,
+			"",
+			"Next steps:",
+			"  elnora projects list                         See your projects",
+			"  elnora tasks create --project <ID> --stream  Start a conversation",
+			"  elnora doctor                                Verify your setup",
+		];
+		return lines.join("\n");
 	},
 };

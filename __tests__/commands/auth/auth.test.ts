@@ -103,9 +103,12 @@ describe("auth.login", () => {
 		expect(authLogin.formatOutput({ profile: "work", verified: true }, "compact")).toBe("work");
 	});
 
-	test("formatOutput json returns pretty JSON", () => {
+	test("formatOutput json returns human-friendly next steps", () => {
 		const output = { profile: "default", verified: true };
-		expect(authLogin.formatOutput(output, "json")).toBe(JSON.stringify(output, null, 2));
+		const result = authLogin.formatOutput(output, "json");
+		expect(result).toContain('✓ Authenticated! API key saved to profile "default".');
+		expect(result).toContain("elnora projects list");
+		expect(result).toContain("elnora doctor");
 	});
 });
 

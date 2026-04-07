@@ -25,6 +25,7 @@ import { registerOrgCommands } from "./commands/orgs/index.js";
 import { registerProjectCommands } from "./commands/projects/index.js";
 import { registerSearchCommands } from "./commands/search/index.js";
 import { registerTaskCommands } from "./commands/tasks/index.js";
+import { addUpdateCommand } from "./commands/update.js";
 import { addWhoamiCommand } from "./commands/whoami.js";
 import { CommandRegistry } from "./core/registry.js";
 import { formatErrorForHuman, formatErrorPayload, getExitCode } from "./lib/errors.js";
@@ -93,6 +94,7 @@ addMcpCommands(program, registry);
 addDoctorCommand(program);
 addWhoamiCommand(program);
 addOpenCommand(program);
+addUpdateCommand(program);
 addCompletionCommand(program);
 
 // Background update check (non-blocking, 24h cache)

@@ -3,7 +3,8 @@
     ".": {
       "release-type": "node",
       "package-name": "@elnora-ai/cli",
-      "changelog-path": "CHANGELOG.md"
+      "changelog-path": "CHANGELOG.md",
+      "include-component-in-tag": false
     }
   }
 }

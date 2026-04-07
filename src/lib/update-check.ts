@@ -60,6 +60,19 @@ function showUpdateNotice(latest: string): void {
 	process.stderr.write(msg);
 }
 
+/** Simple semver comparison — returns true if a is newer than b. */
+export function isNewerVersion(a: string, b: string): boolean {
+	const pa = a.split(".").map(Number);
+	const pb = b.split(".").map(Number);
+	for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+		const na = pa[i] ?? 0;
+		const nb = pb[i] ?? 0;
+		if (na > nb) return true;
+		if (na < nb) return false;
+	}
+	return false;
+}
+
 /**
  * Register update check to run at process exit.
  * Non-blocking — uses a fire-and-forget fetch.
@@ -75,7 +88,7 @@ export function registerUpdateCheck(): void {
 			// Cache is fresh — show notice if update available
 			if (cached.latest && cached.latest !== VERSION && cached.latest !== "unknown") {
 				// Compare versions simply — assumes semver
-				if (cached.latest > VERSION) {
+				if (isNewerVersion(cached.latest, VERSION)) {
 					showUpdateNotice(cached.latest);
 				}
 			}
@@ -96,7 +109,7 @@ export function registerUpdateCheck(): void {
 
 			writeCache({ checkedAt: new Date().toISOString(), latest });
 
-			if (latest !== VERSION && latest !== "unknown" && latest > VERSION) {
+			if (latest !== VERSION && latest !== "unknown" && isNewerVersion(latest, VERSION)) {
 				showUpdateNotice(latest);
 			}
 		} catch {

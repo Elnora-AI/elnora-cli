@@ -21,7 +21,7 @@ concurrency:
 
 jobs:
   analyze:
-    name: Analyze Python
+    name: Analyze TypeScript
     if: ${{ github.repository_visibility == 'public' }}
     runs-on: ubuntu-latest
     permissions:
@@ -30,18 +30,11 @@ jobs:
       security-events: write
     steps:
       - uses: actions/checkout@v6
-      - uses: actions/setup-python@v6
-        with:
-          python-version: '3.13'
       - uses: github/codeql-action/init@v4
         with:
-          languages: python
+          languages: javascript-typescript
           queries: security-extended
-      - name: Install dependencies
-        run: |
-          pip install uv
-          uv pip install --system -e . || true
-        continue-on-error: true
+      - uses: github/codeql-action/autobuild@v4
       - uses: github/codeql-action/analyze@v4
         with:
-          category: "/language:python"
+          category: "/language:javascript-typescript"

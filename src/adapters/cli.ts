@@ -229,6 +229,11 @@ export function buildProgram(registry: CommandRegistry): Command {
 
 					const profileName = (parentOpts.profile as string) ?? "default";
 
+					// Pass the parent --profile value into the input for commands that use it
+					if (parentOpts.profile && !("profile" in input && input.profile !== "default")) {
+						input.profile = parentOpts.profile;
+					}
+
 					// Auth commands that manage profiles don't need an existing API key
 					const skipAuth = cmd.name.startsWith("auth.login") || cmd.name === "auth.logout" || cmd.name === "auth.profiles";
 					const client = skipAuth

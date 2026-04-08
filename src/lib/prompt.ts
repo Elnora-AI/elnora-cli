@@ -40,7 +40,8 @@ export function promptSecret(message: string): Promise<string> {
 					resolve(input.trim());
 					break;
 				}
-				case "\u0003": {
+				case "\u0003": // Ctrl+C
+				case "\u001B": { // Escape
 					stdin.setRawMode(wasRaw);
 					stdin.pause();
 					stdin.removeListener("data", onData);

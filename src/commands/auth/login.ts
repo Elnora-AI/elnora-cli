@@ -3,7 +3,7 @@ import type { ElnoraCommand } from "../../core/command.js";
 import { ElnoraApiClient } from "../../lib/client.js";
 import { AuthError, ValidationError } from "../../lib/errors.js";
 import type { OutputFormat } from "../../lib/output.js";
-import { listProfileNames, saveProfile, validateProfileName } from "../../lib/profiles.js";
+import { getApiKey, listProfileNames, saveProfile, validateProfileName } from "../../lib/profiles.js";
 import { promptSecret } from "../../lib/prompt.js";
 import { isTTY } from "../../lib/tty.js";
 
@@ -23,18 +23,54 @@ export const authLogin: ElnoraCommand<Input> = {
 
 	async execute(input, _ctx) {
 		let apiKey = input.apiKey;
+		const profileName = input.profile;
+		validateProfileName(profileName);
 
-		if (!apiKey && isTTY()) {
-			const profileName = input.profile;
-			const existing = listProfileNames();
-			if (existing.includes(profileName)) {
-				process.stderr.write(`\n  Update API key for profile "${profileName}"\n`);
-			} else {
-				process.stderr.write("\n  Set up Elnora CLI authentication\n");
+		const existing = listProfileNames();
+		const profileExists = existing.includes(profileName);
+
+		// No --api-key flag provided
+		if (!apiKey) {
+			// Profile already exists and has a key — show status, don't prompt
+			if (profileExists) {
+				let savedKey: string | undefined;
+				try {
+					savedKey = getApiKey(profileName);
+				} catch {
+					/* no key */
+				}
+
+				if (savedKey && isTTY()) {
+					// Verify the existing key still works
+					process.stderr.write(`\n  Checking profile "${profileName}"...`);
+					try {
+						const client = new ElnoraApiClient(savedKey);
+						const result = await client.get<{ items?: unknown[]; totalCount?: number }>("projects", {
+							queryParams: { page: 1, pageSize: 1 },
+						});
+						const projectCount = result?.totalCount ?? result?.items?.length ?? 0;
+						process.stderr.write(` authenticated (${projectCount} project${projectCount !== 1 ? "s" : ""}).\n\n`);
+						process.stderr.write("  To update your API key, run:\n");
+						process.stderr.write(`    elnora auth login --api-key <new-key>${profileName !== "default" ? ` --profile ${profileName}` : ""}\n\n`);
+						return { profile: profileName, verified: true, alreadyAuthenticated: true };
+					} catch {
+						// Key is invalid/expired — fall through to prompt for new key
+						process.stderr.write(" key is invalid or expired.\n\n");
+					}
+				}
 			}
-			process.stderr.write("  Get your API key at: https://platform.elnora.ai > Settings > API Keys\n\n");
-			apiKey = await promptSecret("  API key: ");
-			process.stderr.write("\n");
+
+			// Need a key — prompt interactively
+			if (isTTY()) {
+				if (profileExists) {
+					process.stderr.write(`  Enter a new API key for profile "${profileName}"\n`);
+				} else {
+					process.stderr.write("\n  Set up Elnora CLI authentication\n");
+				}
+				process.stderr.write("  Get your API key at: https://platform.elnora.ai > Settings > API Keys\n\n");
+				apiKey = await promptSecret("  API key (Ctrl+C to cancel): ");
+				process.stderr.write("\n");
+			}
 		}
 
 		if (!apiKey) {
@@ -51,9 +87,6 @@ export const authLogin: ElnoraCommand<Input> = {
 		if (key.length < 20) {
 			throw new AuthError("API key looks too short. Check your key and try again.");
 		}
-
-		const profileName = input.profile;
-		validateProfileName(profileName);
 
 		if (isTTY()) {
 			process.stderr.write("  Verifying...");
@@ -76,8 +109,12 @@ export const authLogin: ElnoraCommand<Input> = {
 	},
 
 	formatOutput(output: unknown, format: OutputFormat): string {
-		const data = output as { profile?: string };
+		const data = output as { profile?: string; alreadyAuthenticated?: boolean };
 		if (format === "compact") return data.profile ?? JSON.stringify(output);
+
+		if (data.alreadyAuthenticated) {
+			return `✓ Profile "${data.profile}" is authenticated.`;
+		}
 
 		const lines = [
 			`✓ Authenticated! API key saved to profile "${data.profile}".`,

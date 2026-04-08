@@ -9,6 +9,7 @@
   "main": "dist/cli.js",
   "files": [
     "dist/",
+    "skills/",
     "scripts/postinstall.mjs",
     "README.md",
     "LICENSE"

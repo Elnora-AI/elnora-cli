@@ -142,6 +142,13 @@ if ($userPath -notlike "*$InstallDir*") {
     }
 }
 
+# Extract skills if bundled in the archive
+if (Test-Path "$TmpDir\skills") {
+    $SkillsDir = "$env:USERPROFILE\.elnora\skills"
+    New-Item -ItemType Directory -Force -Path $SkillsDir | Out-Null
+    Copy-Item "$TmpDir\skills\*" $SkillsDir -Recurse -Force -ErrorAction SilentlyContinue
+}
+
 # Cleanup
 Remove-Item -Recurse -Force $TmpDir -ErrorAction SilentlyContinue
 
@@ -152,7 +159,11 @@ Write-Host ""
 # Run interactive login
 if ([Environment]::UserInteractive) {
     & "$InstallDir\elnora.exe" auth login
+    Write-Host ""
+    Write-Host "Using Claude Code or another AI tool? Run:"
+    Write-Host "  elnora setup-claude"
 } else {
     Write-Host "To get started:"
     Write-Host "  elnora auth login"
+    Write-Host "  elnora setup-claude    # If using Claude Code"
 }

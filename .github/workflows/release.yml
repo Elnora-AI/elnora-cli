@@ -46,11 +46,13 @@ jobs:
       - name: Archive
         shell: bash
         run: |
+          # Copy skills into dist/ for bundling
+          cp -r skills dist/skills
           cd dist
           if [[ "${{ matrix.target }}" == "win-x64" ]]; then
-            7z a ${{ matrix.binary }}.zip ${{ matrix.binary }}
+            7z a ${{ matrix.binary }}.zip ${{ matrix.binary }} skills
           else
-            tar -czf ${{ matrix.binary }}.tar.gz ${{ matrix.binary }}
+            tar -czf ${{ matrix.binary }}.tar.gz ${{ matrix.binary }} skills
           fi
 
       - name: Generate SHA256
@@ -155,3 +157,37 @@ jobs:
           git add Formula/elnora.rb
           git commit -m "Update elnora to $VERSION"
           git push
+
+  sync-skills:
+    name: Sync Skills to elnora-plugins
+    needs: build-binaries
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout CLI repo (source of truth for skills)
+        uses: actions/checkout@v6
+
+      - name: Checkout plugins repo
+        uses: actions/checkout@v6
+        with:
+          repository: Elnora-AI/elnora-plugins
+          token: ${{ secrets.RELEASE_TOKEN }}
+          path: elnora-plugins
+
+      - name: Sync skills
+        run: |
+          for skill in elnora-admin elnora-agent elnora-files elnora-folders elnora-orgs elnora-platform elnora-projects elnora-search elnora-tasks; do
+            cp "skills/$skill/SKILL.md" "elnora-plugins/elnora/skills/$skill/SKILL.md"
+          done
+
+      - name: Commit and push
+        run: |
+          cd elnora-plugins
+          git config user.name "elnora-bot"
+          git config user.email "bot@elnora.ai"
+          git add elnora/skills/
+          if git diff --cached --quiet; then
+            echo "No skill changes to sync"
+          else
+            git commit -m "Sync skills from elnora-cli ${{ github.event.release.tag_name }}"
+            git push
+          fi

@@ -97,6 +97,12 @@ if ! mv "${TARGET}" "$INSTALL_DIR/elnora" 2>/dev/null; then
 fi
 chmod +x "$INSTALL_DIR/elnora"
 
+# Extract skills if bundled in the archive
+if [ -d "skills" ]; then
+  mkdir -p "$HOME/.elnora/skills"
+  cp -r skills/* "$HOME/.elnora/skills/" 2>/dev/null || true
+fi
+
 echo ""
 echo "Elnora CLI ${VERSION} installed to $INSTALL_DIR/elnora"
 
@@ -137,7 +143,11 @@ esac
 echo ""
 if [ -t 1 ]; then
   "$INSTALL_DIR/elnora" auth login </dev/tty
+  echo ""
+  echo "Using Claude Code or another AI tool? Run:"
+  echo "  elnora setup-claude"
 else
   echo "To get started:"
   echo "  elnora auth login"
+  echo "  elnora setup-claude    # If using Claude Code"
 fi

@@ -23,10 +23,13 @@ export const orgsInvite: ElnoraCommand<Input> = {
 		const existing = await ctx.client.get("org_invitations", {
 			pathParams: { orgId: input.orgId },
 		});
-		const items = Array.isArray(existing) ? existing : ((existing as any)?.items ?? []);
-		const match = items.find(
-			(inv: any) => inv.email?.toLowerCase() === input.email.toLowerCase() && inv.status === "Pending",
-		);
+		const items = Array.isArray(existing)
+			? existing
+			: (((existing as Record<string, unknown>)?.items as unknown[]) ?? []);
+		const match = items.find((inv: unknown) => {
+			const i = inv as Record<string, string>;
+			return i.email?.toLowerCase() === input.email.toLowerCase() && i.status === "Pending";
+		});
 		if (match) return match;
 
 		// Create new invitation

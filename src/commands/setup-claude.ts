@@ -14,8 +14,13 @@ import pc from "picocolors";
 import { VERSION } from "../lib/config.js";
 import { isColorEnabled } from "../lib/tty.js";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+// Resolve __dirname for both ESM and CJS (pkg binary) contexts
+let __script_dir: string;
+try {
+	__script_dir = dirname(fileURLToPath(import.meta.url));
+} catch {
+	__script_dir = typeof __dirname !== "undefined" ? __dirname : process.cwd();
+}
 
 const ELNORA_DIR = join(homedir(), ".elnora");
 const PLUGIN_DIR = join(ELNORA_DIR, "plugin", "elnora");
@@ -29,10 +34,10 @@ const PLUGIN_ID = `elnora@${MARKETPLACE_NAME}`;
 function findSkillsDir(): string | null {
 	// When installed via npm: skills/ is next to dist/
 	const candidates = [
-		join(__dirname, "../../skills"),
-		join(__dirname, "../skills"),
+		join(__script_dir, "../../skills"),
+		join(__script_dir, "../skills"),
 		// When running from source via tsx
-		join(__dirname, "../../../skills"),
+		join(__script_dir, "../../../skills"),
 		// Standalone binary: skills extracted to ~/.elnora/skills/
 		join(ELNORA_DIR, "skills"),
 	];

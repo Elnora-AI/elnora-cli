@@ -7,11 +7,15 @@
 
 import { cpSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import type { Command } from "commander";
 import pc from "picocolors";
 import { VERSION } from "../lib/config.js";
 import { isColorEnabled } from "../lib/tty.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const ELNORA_DIR = join(homedir(), ".elnora");
 const PLUGIN_DIR = join(ELNORA_DIR, "plugin", "elnora");

@@ -21,7 +21,7 @@
   },
   "scripts": {
     "postinstall": "node scripts/postinstall.mjs",
-    "build": "esbuild src/cli.ts --bundle --format=esm --platform=node --target=node20 --outfile=dist/cli.js --packages=external",
+    "build": "node scripts/build-npm.mjs",
     "build:binary": "node scripts/build.mjs --pkg",
     "dev": "tsx src/cli.ts",
     "test": "vitest run",

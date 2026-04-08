@@ -4,21 +4,15 @@
  * Port of: elnora-cli/src/elnora/lib/config.py (105 lines)
  */
 
-import { readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+/**
+ * Version is injected at build time by esbuild --define.
+ * In dev mode (tsx), __APP_VERSION__ is undefined so we fall back
+ * to the npm_package_version env var set by pnpm/npm.
+ */
+declare const __APP_VERSION__: string;
 
-function getVersion(): string {
-	try {
-		const dir = dirname(fileURLToPath(import.meta.url));
-		const pkg = JSON.parse(readFileSync(join(dir, "../../package.json"), "utf-8"));
-		return (pkg.version as string) ?? "0.0.0-dev";
-	} catch {
-		return "0.0.0-dev";
-	}
-}
-
-export const VERSION = getVersion();
+export const VERSION: string =
+	typeof __APP_VERSION__ !== "undefined" ? __APP_VERSION__ : (process.env.npm_package_version ?? "0.0.0-dev");
 export const BASE_URL = "https://platform.elnora.ai/api/v1";
 export const AI_SERVER_URL = process.env.ELNORA_AI_SERVER_URL ?? "https://platform.elnora.ai/ai-server";
 

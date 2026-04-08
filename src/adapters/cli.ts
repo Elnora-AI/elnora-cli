@@ -17,6 +17,7 @@ import type { ZodType } from "zod";
 import type { CommandContext } from "../core/command.js";
 import type { CommandRegistry } from "../core/registry.js";
 import { ElnoraApiClient } from "../lib/client.js";
+import { VERSION } from "../lib/config.js";
 import { AuthError, formatErrorForHuman, formatErrorPayload, getExitCode } from "../lib/errors.js";
 import { formatOutput, type OutputFormat } from "../lib/output.js";
 
@@ -163,7 +164,7 @@ export function buildProgram(registry: CommandRegistry): Command {
 	const program = new Command()
 		.name("elnora")
 		.description("Elnora AI Platform CLI")
-		.version("0.0.1")
+		.version(VERSION)
 		.option("--compact", "Token-efficient minimal output", false)
 		.option("--output <format>", "Output format (json, csv)", "json")
 		.option("--fields <fields>", "Comma-separated fields to include")

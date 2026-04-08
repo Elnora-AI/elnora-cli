@@ -5,6 +5,7 @@ import { ElnoraApiClient } from "../lib/client.js";
 import { AI_SERVER_URL, VERSION } from "../lib/config.js";
 import { PROFILES_FILE, resolveApiKey } from "../lib/profiles.js";
 import { isColorEnabled } from "../lib/tty.js";
+import { isNewerVersion } from "../lib/update-check.js";
 
 export function addDoctorCommand(program: Command): void {
 	program
@@ -60,7 +61,7 @@ export function addDoctorCommand(program: Command): void {
 				if (res.ok) {
 					const data = (await res.json()) as { version?: string };
 					const latest = data.version ?? "unknown";
-					if (latest === VERSION || latest === "unknown") {
+					if (latest === VERSION || latest === "unknown" || !isNewerVersion(latest, VERSION)) {
 						console.error(ok(`Version current       v${VERSION} (latest: v${latest})`));
 					} else {
 						console.error(warn(`Update available      v${VERSION} → v${latest}`));

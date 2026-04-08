@@ -3,7 +3,7 @@ import type { ElnoraCommand } from "../../core/command.js";
 import type { OutputFormat } from "../../lib/output.js";
 
 const inputSchema = z.object({
-	org: z.string().uuid().describe("Organization ID"),
+	orgId: z.string().uuid().describe("Organization ID"),
 });
 
 type Input = z.infer<typeof inputSchema>;
@@ -18,7 +18,7 @@ export const libraryFolders: ElnoraCommand<Input> = {
 
 	async execute(input, ctx) {
 		return ctx.client.get("library_folders", {
-			pathParams: { orgId: input.org },
+			pathParams: { orgId: input.orgId },
 		});
 	},
 

@@ -4,7 +4,7 @@ import type { OutputFormat } from "../../lib/output.js";
 import { paginationInput } from "../_shared/pagination.js";
 
 const inputSchema = z.object({
-	org: z.string().uuid().describe("Organization ID"),
+	orgId: z.string().uuid().describe("Organization ID"),
 	...paginationInput,
 });
 
@@ -20,7 +20,7 @@ export const libraryFiles: ElnoraCommand<Input> = {
 
 	async execute(input, ctx) {
 		return ctx.client.get("library_files", {
-			pathParams: { orgId: input.org },
+			pathParams: { orgId: input.orgId },
 			queryParams: { page: input.page, pageSize: input.pageSize },
 		});
 	},

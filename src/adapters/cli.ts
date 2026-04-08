@@ -176,7 +176,7 @@ export function buildProgram(registry: CommandRegistry): Command {
 		const commands = registry.byGroup(group);
 
 		for (const cmd of commands) {
-			const subName = cmd.name.split(".").slice(1).join("-");
+			const subName = camelToKebab(cmd.name.split(".").slice(1).join("-"));
 			const sub = new Command(subName).description(cmd.description);
 
 			const opts = zodToCommanderOptions(cmd.inputSchema);

@@ -3,7 +3,7 @@ import type { ElnoraCommand } from "../../core/command.js";
 import type { OutputFormat } from "../../lib/output.js";
 
 const inputSchema = z.object({
-	org: z.string().uuid().describe("Organization ID"),
+	orgId: z.string().uuid().describe("Organization ID"),
 	folderId: z.string().uuid().describe("Folder ID to delete"),
 });
 
@@ -20,7 +20,7 @@ export const libraryDeleteFolder: ElnoraCommand<Input, Output> = {
 
 	async execute(input, ctx) {
 		await ctx.client.del("library_folder", {
-			pathParams: { orgId: input.org, id: input.folderId },
+			pathParams: { orgId: input.orgId, id: input.folderId },
 		});
 		return { deleted: true, folderId: input.folderId };
 	},

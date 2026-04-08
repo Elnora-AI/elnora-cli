@@ -3,7 +3,7 @@ import type { ElnoraCommand } from "../../core/command.js";
 import { ElnoraApiClient } from "../../lib/client.js";
 import { AuthError, ValidationError } from "../../lib/errors.js";
 import type { OutputFormat } from "../../lib/output.js";
-import { saveProfile, validateProfileName } from "../../lib/profiles.js";
+import { listProfileNames, saveProfile, validateProfileName } from "../../lib/profiles.js";
 import { promptSecret } from "../../lib/prompt.js";
 import { isTTY } from "../../lib/tty.js";
 
@@ -25,7 +25,13 @@ export const authLogin: ElnoraCommand<Input> = {
 		let apiKey = input.apiKey;
 
 		if (!apiKey && isTTY()) {
-			process.stderr.write("\n  Set up Elnora CLI authentication\n");
+			const profileName = input.profile;
+			const existing = listProfileNames();
+			if (existing.includes(profileName)) {
+				process.stderr.write(`\n  Update API key for profile "${profileName}"\n`);
+			} else {
+				process.stderr.write("\n  Set up Elnora CLI authentication\n");
+			}
 			process.stderr.write("  Get your API key at: https://platform.elnora.ai > Settings > API Keys\n\n");
 			apiKey = await promptSecret("  API key: ");
 			process.stderr.write("\n");

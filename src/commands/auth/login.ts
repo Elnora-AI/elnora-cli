@@ -116,6 +116,9 @@ export const authLogin: ElnoraCommand<Input> = {
 
 			return { profile: profileName, verified: true, configPath };
 		} catch (err) {
+			if (isTTY()) {
+				process.stderr.write("\n");
+			}
 			if (err instanceof AuthError) {
 				throw new AuthError("API key is invalid or has been revoked. Please check your key and try again.", {
 					suggestion: "Get a new key from: https://platform.elnora.ai > Settings > API Keys",

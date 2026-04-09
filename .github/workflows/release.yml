@@ -46,11 +46,13 @@ jobs:
       - name: Archive
         shell: bash
         run: |
+          # Copy skills into dist/ for bundling
+          cp -r skills dist/skills
           cd dist
           if [[ "${{ matrix.target }}" == "win-x64" ]]; then
-            7z a ${{ matrix.binary }}.zip ${{ matrix.binary }}
+            7z a ${{ matrix.binary }}.zip ${{ matrix.binary }} skills
           else
-            tar -czf ${{ matrix.binary }}.tar.gz ${{ matrix.binary }}
+            tar -czf ${{ matrix.binary }}.tar.gz ${{ matrix.binary }} skills
           fi
 
       - name: Generate SHA256
@@ -84,15 +86,108 @@ jobs:
       contents: read
       id-token: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
-          node-version: "20"
+          node-version: "24"
           registry-url: "https://registry.npmjs.org"
           cache: "pnpm"
+      - name: Sync version from release tag
+        run: |
+          VERSION="${GITHUB_REF_NAME##*-v}"
+          echo "Publishing version: $VERSION"
+          npm version "$VERSION" --no-git-tag-version --allow-same-version
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
+      - run: pnpm test
       - run: pnpm publish --access public --no-git-checks --provenance
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  update-homebrew:
+    name: Update Homebrew Tap
+    needs: build-binaries
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout tap repo
+        uses: actions/checkout@v6
+        with:
+          repository: Elnora-AI/homebrew-cli
+          token: ${{ secrets.RELEASE_TOKEN }}
+
+      - name: Extract version from tag
+        run: |
+          VERSION="${GITHUB_REF_NAME##*-v}"
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "Updating Homebrew formula to $VERSION"
+
+      - name: Download checksums from release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BASE="https://github.com/Elnora-AI/elnora-cli/releases/download/${{ github.event.release.tag_name }}"
+          for asset in elnora-macos-arm64 elnora-macos-x64 elnora-linux-arm64 elnora-linux-x64; do
+            SHA=$(curl -sL "$BASE/$asset.sha256" | awk '{print $1}')
+            VARNAME=$(echo "${asset}" | tr '-' '_')
+            echo "${VARNAME}_sha256=$SHA" >> "$GITHUB_ENV"
+            echo "$asset: $SHA"
+          done
+
+      - name: Update formula
+        run: |
+          FORMULA="Formula/elnora.rb"
+
+          # Update version
+          sed -i "s/version \".*\"/version \"$VERSION\"/" "$FORMULA"
+
+          # Update checksums (match the sha256 line after each url line)
+          sed -i "/elnora-macos-arm64\.tar\.gz/,/sha256/{s/sha256 \".*\"/sha256 \"${elnora_macos_arm64_sha256}\"/}" "$FORMULA"
+          sed -i "/elnora-macos-x64\.tar\.gz/,/sha256/{s/sha256 \".*\"/sha256 \"${elnora_macos_x64_sha256}\"/}" "$FORMULA"
+          sed -i "/elnora-linux-arm64\.tar\.gz/,/sha256/{s/sha256 \".*\"/sha256 \"${elnora_linux_arm64_sha256}\"/}" "$FORMULA"
+          sed -i "/elnora-linux-x64\.tar\.gz/,/sha256/{s/sha256 \".*\"/sha256 \"${elnora_linux_x64_sha256}\"/}" "$FORMULA"
+
+          echo "Updated formula:"
+          cat "$FORMULA"
+
+      - name: Commit and push
+        run: |
+          git config user.name "elnora-bot"
+          git config user.email "bot@elnora.ai"
+          git add Formula/elnora.rb
+          git commit -m "Update elnora to $VERSION"
+          git push
+
+  sync-skills:
+    name: Sync Skills to elnora-plugins
+    needs: build-binaries
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout CLI repo (source of truth for skills)
+        uses: actions/checkout@v6
+
+      - name: Checkout plugins repo
+        uses: actions/checkout@v6
+        with:
+          repository: Elnora-AI/elnora-plugins
+          token: ${{ secrets.RELEASE_TOKEN }}
+          path: elnora-plugins
+
+      - name: Sync skills
+        run: |
+          for skill in elnora-admin elnora-agent elnora-files elnora-folders elnora-orgs elnora-platform elnora-projects elnora-search elnora-tasks; do
+            cp "skills/$skill/SKILL.md" "elnora-plugins/elnora/skills/$skill/SKILL.md"
+          done
+
+      - name: Commit and push
+        run: |
+          cd elnora-plugins
+          git config user.name "elnora-bot"
+          git config user.email "bot@elnora.ai"
+          git add elnora/skills/
+          if git diff --cached --quiet; then
+            echo "No skill changes to sync"
+          else
+            git commit -m "Sync skills from elnora-cli ${{ github.event.release.tag_name }}"
+            git push
+          fi

@@ -138,19 +138,22 @@ describe("tasks.create", () => {
 
 	test("accepts project with optional title and message", () => {
 		const parsed = tasksCreate.inputSchema.parse({ project: PROJECT_ID });
-		expect(parsed).toEqual({ project: PROJECT_ID });
+		expect(parsed).toEqual({ project: PROJECT_ID, stream: false, wait: false });
 
 		const full = tasksCreate.inputSchema.parse({
 			project: PROJECT_ID,
 			title: "My Task",
 			message: "Hello",
 		});
-		expect(full).toEqual({ project: PROJECT_ID, title: "My Task", message: "Hello" });
+		expect(full).toEqual({ project: PROJECT_ID, title: "My Task", message: "Hello", stream: false, wait: false });
 	});
 
 	test("calls POST /tasks with mapped body", async () => {
 		const ctx = mockContext({ postResult: { id: TASK_ID } });
-		const result = await tasksCreate.execute({ project: PROJECT_ID, title: "My Task", message: "Hello" }, ctx);
+		const result = await tasksCreate.execute(
+			{ project: PROJECT_ID, title: "My Task", message: "Hello", stream: false, wait: false },
+			ctx,
+		);
 		expect(ctx.client.post).toHaveBeenCalledWith("tasks", {
 			projectId: PROJECT_ID,
 			title: "My Task",
@@ -161,7 +164,7 @@ describe("tasks.create", () => {
 
 	test("calls POST /tasks without optional fields", async () => {
 		const ctx = mockContext({ postResult: { id: TASK_ID } });
-		await tasksCreate.execute({ project: PROJECT_ID }, ctx);
+		await tasksCreate.execute({ project: PROJECT_ID, stream: false, wait: false }, ctx);
 		expect(ctx.client.post).toHaveBeenCalledWith("tasks", {
 			projectId: PROJECT_ID,
 			title: undefined,

@@ -7,7 +7,36 @@
  * Solves ELN-495 (CLI never receives agent responses).
  */
 
-import { AI_SERVER_URL } from "./config.js";
+import { AI_SERVER_URL, BASE_URL, DEFAULT_HEADERS } from "./config.js";
+
+// ---------------------------------------------------------------------------
+// Stream token exchange — get a short-lived JWT from the backend
+// ---------------------------------------------------------------------------
+
+/**
+ * Exchange an API key for a short-lived JWT accepted by the AI server's
+ * SSE stream endpoint. The backend validates the API key against its
+ * database and returns a 10-minute JWT.
+ */
+async function getStreamToken(taskId: string, apiKey: string): Promise<string> {
+	const url = `${BASE_URL}/auth/stream-token`;
+	const response = await fetch(url, {
+		method: "POST",
+		headers: {
+			...DEFAULT_HEADERS,
+			"X-API-Key": apiKey,
+		},
+		body: JSON.stringify({ taskId }),
+		signal: AbortSignal.timeout(10_000),
+	});
+
+	if (!response.ok) {
+		throw new Error(`Stream token exchange failed: HTTP ${response.status}`);
+	}
+
+	const data = (await response.json()) as { token: string };
+	return data.token;
+}
 
 // ---------------------------------------------------------------------------
 // Event types (matches AI server pipeline.py EventType)
@@ -42,12 +71,21 @@ export async function* streamTask(
 	apiKey: string,
 	options?: StreamOptions,
 ): AsyncGenerator<StreamEvent> {
+	// Exchange the API key for a short-lived JWT accepted by the AI server
+	let streamToken: string;
+	try {
+		streamToken = await getStreamToken(taskId, apiKey);
+	} catch (err) {
+		yield { type: "error", content: `Failed to get stream token: ${err instanceof Error ? err.message : String(err)}` };
+		return;
+	}
+
 	const baseUrl = options?.aiServerBaseUrl ?? AI_SERVER_URL;
 	const url = `${baseUrl}/api/v1/tasks/${taskId}/stream`;
 
 	const response = await fetch(url, {
 		headers: {
-			"X-API-Key": apiKey,
+			Authorization: `Bearer ${streamToken}`,
 			Accept: "text/event-stream",
 		},
 		signal: options?.signal ?? AbortSignal.timeout(STREAM_TIMEOUT_MS),

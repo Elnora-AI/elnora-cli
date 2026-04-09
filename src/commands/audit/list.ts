@@ -4,7 +4,7 @@ import type { OutputFormat } from "../../lib/output.js";
 import { paginationInput } from "../_shared/pagination.js";
 
 const inputSchema = z.object({
-	org: z.string().uuid().describe("Organization ID"),
+	orgId: z.string().uuid().describe("Organization ID"),
 	...paginationInput,
 	action: z.string().optional().describe("Filter by action type"),
 	userId: z.string().optional().describe("Filter by user ID"),
@@ -28,7 +28,7 @@ export const auditList: ElnoraCommand<Input> = {
 		if (input.action) queryParams.action = input.action;
 		if (input.userId) queryParams.userId = input.userId;
 		return ctx.client.get("audit_log", {
-			pathParams: { orgId: input.org },
+			pathParams: { orgId: input.orgId },
 			queryParams,
 		});
 	},

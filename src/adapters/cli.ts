@@ -17,7 +17,8 @@ import type { ZodType } from "zod";
 import type { CommandContext } from "../core/command.js";
 import type { CommandRegistry } from "../core/registry.js";
 import { ElnoraApiClient } from "../lib/client.js";
-import { formatErrorPayload, getExitCode } from "../lib/errors.js";
+import { VERSION } from "../lib/config.js";
+import { formatErrorForHuman, formatErrorPayload, getExitCode } from "../lib/errors.js";
 import { formatOutput, type OutputFormat } from "../lib/output.js";
 
 // ---------------------------------------------------------------------------
@@ -163,7 +164,7 @@ export function buildProgram(registry: CommandRegistry): Command {
 	const program = new Command()
 		.name("elnora")
 		.description("Elnora AI Platform CLI")
-		.version("0.0.1")
+		.version(VERSION)
 		.option("--compact", "Token-efficient minimal output", false)
 		.option("--output <format>", "Output format (json, csv)", "json")
 		.option("--fields <fields>", "Comma-separated fields to include")
@@ -175,7 +176,7 @@ export function buildProgram(registry: CommandRegistry): Command {
 		const commands = registry.byGroup(group);
 
 		for (const cmd of commands) {
-			const subName = cmd.name.split(".").slice(1).join("-");
+			const subName = camelToKebab(cmd.name.split(".").slice(1).join("-"));
 			const sub = new Command(subName).description(cmd.description);
 
 			const opts = zodToCommanderOptions(cmd.inputSchema);
@@ -227,7 +228,18 @@ export function buildProgram(registry: CommandRegistry): Command {
 					}
 
 					const profileName = (parentOpts.profile as string) ?? "default";
-					const client = ElnoraApiClient.fromEnv(profileName);
+
+					// Pass the parent --profile value into the input for commands that use it
+					if (parentOpts.profile && !("profile" in input && input.profile !== "default")) {
+						input.profile = parentOpts.profile;
+					}
+
+					// Auth commands that manage profiles don't need an existing API key
+					const skipAuth =
+						cmd.name.startsWith("auth.login") || cmd.name === "auth.logout" || cmd.name === "auth.profiles";
+					const client = skipAuth
+						? (new ElnoraApiClient("placeholder") as unknown as CommandContext["client"])
+						: ElnoraApiClient.fromEnv(profileName);
 
 					const ctx: CommandContext = {
 						client,
@@ -246,18 +258,36 @@ export function buildProgram(registry: CommandRegistry): Command {
 					const parsed = cmd.inputSchema.parse(input);
 					const result = await cmd.execute(parsed, ctx);
 
-					// Output
-					const formatted = formatOutput(result, {
-						format: ctx.output.format,
-						compact: ctx.output.compact,
-						fields: ctx.output.fields,
-					});
-					process.stdout.write(`${formatted}\n`);
+					// Output (skip if result is null or command already handled output)
+					if (result != null) {
+						// Skip stdout for streamed results (content already rendered via SSE)
+						const isStreamed = typeof result === "object" && (result as Record<string, unknown>).streamed === true;
+						if (!isStreamed) {
+							const hasGlobalFlags = ctx.output.compact || ctx.output.format !== "json" || ctx.output.fields;
+							let formatted: string;
+							if (cmd.formatOutput && !hasGlobalFlags) {
+								formatted = cmd.formatOutput(result, ctx.output.format);
+							} else {
+								formatted = formatOutput(result, {
+									format: ctx.output.format,
+									compact: ctx.output.compact,
+									fields: ctx.output.fields,
+								});
+							}
+							if (formatted) {
+								process.stdout.write(`${formatted}\n`);
+							}
+						}
+					}
 				} catch (err) {
 					const error = err instanceof Error ? err : new Error(String(err));
-					const payload = formatErrorPayload(error);
-					process.stderr.write(`${JSON.stringify(payload, null, 2)}\n`);
-					process.exit(getExitCode(error));
+					if (process.stderr.isTTY) {
+						process.stderr.write(`${formatErrorForHuman(error)}\n`);
+					} else {
+						const payload = formatErrorPayload(error);
+						process.stderr.write(`${JSON.stringify(payload, null, 2)}\n`);
+					}
+					process.exitCode = getExitCode(error);
 				}
 			});
 

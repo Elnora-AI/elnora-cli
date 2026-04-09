@@ -203,14 +203,35 @@ export class ElnoraApiClient {
 					/* ignore */
 				}
 
-				if (response.status === 401 || response.status === 403) {
-					throw new AuthError(bodyText.slice(0, 200) || "Authentication failed");
+				// Extract human-readable message from backend JSON error response
+				// Backend format: {"errorCode":"...","messages":["..."],"correlationId":"..."}
+				let errorMessage = bodyText;
+				try {
+					const parsed = JSON.parse(bodyText) as { messages?: string[]; message?: string };
+					if (parsed.messages?.length) {
+						errorMessage = parsed.messages.join(" ");
+					} else if (parsed.message) {
+						errorMessage = parsed.message;
+					}
+				} catch {
+					// Not JSON — use raw text
+				}
+
+				if (response.status === 401) {
+					throw new AuthError(errorMessage.slice(0, 200) || "Authentication failed");
+				}
+				if (response.status === 403) {
+					throw new ElnoraError(errorMessage.slice(0, 200) || "Access denied", {
+						code: "FORBIDDEN",
+						suggestion:
+							"You don't have permission to access this resource. Check the resource ID or your organization membership.",
+					});
 				}
 				if (response.status === 404) {
-					throw new NotFoundError("resource", bodyText.slice(0, 200) || "not found");
+					throw new NotFoundError("resource", errorMessage.slice(0, 200) || "not found");
 				}
 				if (response.status === 422) {
-					throw new ValidationError(bodyText.slice(0, 500) || "Validation error");
+					throw new ValidationError(errorMessage.slice(0, 500) || "Validation error");
 				}
 				if (response.status === 429) {
 					if (attempt < MAX_RETRIES) {

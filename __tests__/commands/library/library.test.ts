@@ -45,18 +45,18 @@ describe("library.files", () => {
 
 	test("requires valid UUID org", () => {
 		expect(() => libraryFiles.inputSchema.parse({})).toThrow();
-		expect(() => libraryFiles.inputSchema.parse({ org: "not-uuid" })).toThrow();
+		expect(() => libraryFiles.inputSchema.parse({ orgId: "not-uuid" })).toThrow();
 	});
 
 	test("uses default pagination values", () => {
-		const parsed = libraryFiles.inputSchema.parse({ org: ORG_ID });
+		const parsed = libraryFiles.inputSchema.parse({ orgId: ORG_ID });
 		expect(parsed.page).toBe(1);
 		expect(parsed.pageSize).toBe(25);
 	});
 
 	test("calls GET library_files with pagination", async () => {
 		const ctx = mockContext({ getResult: { items: [], total: 0 } });
-		const result = await libraryFiles.execute({ org: ORG_ID, page: 1, pageSize: 25 }, ctx);
+		const result = await libraryFiles.execute({ orgId: ORG_ID, page: 1, pageSize: 25 }, ctx);
 		expect(ctx.client.get).toHaveBeenCalledWith("library_files", {
 			pathParams: { orgId: ORG_ID },
 			queryParams: { page: 1, pageSize: 25 },
@@ -91,7 +91,7 @@ describe("library.folders", () => {
 
 	test("calls GET library_folders", async () => {
 		const ctx = mockContext({ getResult: [] });
-		await libraryFolders.execute({ org: ORG_ID }, ctx);
+		await libraryFolders.execute({ orgId: ORG_ID }, ctx);
 		expect(ctx.client.get).toHaveBeenCalledWith("library_folders", {
 			pathParams: { orgId: ORG_ID },
 		});
@@ -109,12 +109,12 @@ describe("library.createFolder", () => {
 	});
 
 	test("requires name", () => {
-		expect(() => libraryCreateFolder.inputSchema.parse({ org: ORG_ID })).toThrow();
+		expect(() => libraryCreateFolder.inputSchema.parse({ orgId: ORG_ID })).toThrow();
 	});
 
 	test("calls POST library_folders", async () => {
 		const ctx = mockContext({ postResult: { id: FOLDER_ID } });
-		await libraryCreateFolder.execute({ org: ORG_ID, name: "Research" }, ctx);
+		await libraryCreateFolder.execute({ orgId: ORG_ID, name: "Research" }, ctx);
 		expect(ctx.client.post).toHaveBeenCalledWith(
 			"library_folders",
 			{ name: "Research" },
@@ -126,7 +126,7 @@ describe("library.createFolder", () => {
 
 	test("includes parentId when parent is provided", async () => {
 		const ctx = mockContext({ postResult: { id: FOLDER_ID } });
-		await libraryCreateFolder.execute({ org: ORG_ID, name: "Sub", parent: FOLDER_ID }, ctx);
+		await libraryCreateFolder.execute({ orgId: ORG_ID, name: "Sub", parent: FOLDER_ID }, ctx);
 		expect(ctx.client.post).toHaveBeenCalledWith(
 			"library_folders",
 			{ name: "Sub", parentId: FOLDER_ID },
@@ -147,7 +147,7 @@ describe("library.renameFolder", () => {
 
 	test("calls PUT library_folder", async () => {
 		const ctx = mockContext({ putResult: {} });
-		await libraryRenameFolder.execute({ org: ORG_ID, folderId: FOLDER_ID, name: "Renamed" }, ctx);
+		await libraryRenameFolder.execute({ orgId: ORG_ID, folderId: FOLDER_ID, name: "Renamed" }, ctx);
 		expect(ctx.client.put).toHaveBeenCalledWith(
 			"library_folder",
 			{ name: "Renamed" },
@@ -174,7 +174,7 @@ describe("library.deleteFolder", () => {
 
 	test("calls DELETE library_folder", async () => {
 		const ctx = mockContext();
-		const result = await libraryDeleteFolder.execute({ org: ORG_ID, folderId: FOLDER_ID }, ctx);
+		const result = await libraryDeleteFolder.execute({ orgId: ORG_ID, folderId: FOLDER_ID }, ctx);
 		expect(ctx.client.del).toHaveBeenCalledWith("library_folder", {
 			pathParams: { orgId: ORG_ID, id: FOLDER_ID },
 		});

@@ -24,10 +24,12 @@ import { addOpenCommand } from "./commands/open.js";
 import { registerOrgCommands } from "./commands/orgs/index.js";
 import { registerProjectCommands } from "./commands/projects/index.js";
 import { registerSearchCommands } from "./commands/search/index.js";
+import { addSetupClaudeCommand } from "./commands/setup-claude.js";
 import { registerTaskCommands } from "./commands/tasks/index.js";
+import { addUpdateCommand } from "./commands/update.js";
 import { addWhoamiCommand } from "./commands/whoami.js";
 import { CommandRegistry } from "./core/registry.js";
-import { formatErrorPayload, getExitCode } from "./lib/errors.js";
+import { formatErrorForHuman, formatErrorPayload, getExitCode } from "./lib/errors.js";
 import { registerUpdateCheck } from "./lib/update-check.js";
 
 // ---------------------------------------------------------------------------
@@ -35,16 +37,22 @@ import { registerUpdateCheck } from "./lib/update-check.js";
 // ---------------------------------------------------------------------------
 
 process.on("uncaughtException", (err) => {
-	const payload = formatErrorPayload(err);
-	process.stderr.write(`${JSON.stringify(payload, null, 2)}\n`);
-	process.exit(getExitCode(err));
+	if (process.stderr.isTTY) {
+		process.stderr.write(`${formatErrorForHuman(err)}\n`);
+	} else {
+		process.stderr.write(`${JSON.stringify(formatErrorPayload(err), null, 2)}\n`);
+	}
+	process.exitCode = getExitCode(err);
 });
 
 process.on("unhandledRejection", (reason) => {
 	const err = reason instanceof Error ? reason : new Error(String(reason));
-	const payload = formatErrorPayload(err);
-	process.stderr.write(`${JSON.stringify(payload, null, 2)}\n`);
-	process.exit(1);
+	if (process.stderr.isTTY) {
+		process.stderr.write(`${formatErrorForHuman(err)}\n`);
+	} else {
+		process.stderr.write(`${JSON.stringify(formatErrorPayload(err), null, 2)}\n`);
+	}
+	process.exitCode = 1;
 });
 
 // ---------------------------------------------------------------------------
@@ -87,6 +95,8 @@ addMcpCommands(program, registry);
 addDoctorCommand(program);
 addWhoamiCommand(program);
 addOpenCommand(program);
+addSetupClaudeCommand(program);
+addUpdateCommand(program);
 addCompletionCommand(program);
 
 // Background update check (non-blocking, 24h cache)

@@ -28,7 +28,7 @@ await build({
 	minify: true,
 	sourcemap: false,
 	define: {
-		"process.env.npm_package_version": JSON.stringify(pkg.version),
+		__APP_VERSION__: JSON.stringify(pkg.version),
 	},
 	// No shebang banner — pkg adds its own, and CJS with shebang
 	// fails when run via `node dist/cli.cjs` directly

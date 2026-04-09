@@ -3,7 +3,7 @@ import type { ElnoraCommand } from "../../core/command.js";
 import type { OutputFormat } from "../../lib/output.js";
 
 const inputSchema = z.object({
-	org: z.string().uuid().describe("Organization ID"),
+	orgId: z.string().uuid().describe("Organization ID"),
 	folderId: z.string().uuid().describe("Folder ID to rename"),
 	name: z.string().min(1).describe("New folder name"),
 });
@@ -22,7 +22,7 @@ export const libraryRenameFolder: ElnoraCommand<Input> = {
 			"library_folder",
 			{ name: input.name },
 			{
-				pathParams: { orgId: input.org, id: input.folderId },
+				pathParams: { orgId: input.orgId, id: input.folderId },
 			},
 		);
 	},

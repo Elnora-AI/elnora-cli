@@ -46,18 +46,18 @@ describe("audit.list", () => {
 
 	test("requires valid UUID org", () => {
 		expect(() => auditList.inputSchema.parse({})).toThrow();
-		expect(() => auditList.inputSchema.parse({ org: "not-uuid" })).toThrow();
+		expect(() => auditList.inputSchema.parse({ orgId: "not-uuid" })).toThrow();
 	});
 
 	test("uses default pagination", () => {
-		const parsed = auditList.inputSchema.parse({ org: ORG_ID });
+		const parsed = auditList.inputSchema.parse({ orgId: ORG_ID });
 		expect(parsed.page).toBe(1);
 		expect(parsed.pageSize).toBe(25);
 	});
 
 	test("calls GET audit_log with filters", async () => {
 		const ctx = mockContext({ getResult: { items: [] } });
-		await auditList.execute({ org: ORG_ID, page: 1, pageSize: 10, action: "create", userId: "u1" }, ctx);
+		await auditList.execute({ orgId: ORG_ID, page: 1, pageSize: 10, action: "create", userId: "u1" }, ctx);
 		expect(ctx.client.get).toHaveBeenCalledWith("audit_log", {
 			pathParams: { orgId: ORG_ID },
 			queryParams: { page: 1, pageSize: 10, action: "create", userId: "u1" },

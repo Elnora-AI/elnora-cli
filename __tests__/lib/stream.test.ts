@@ -2,7 +2,8 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 import { collectStreamResponse, type StreamEvent, streamTask } from "../../src/lib/stream.js";
 
 /**
- * Create a mock fetch that returns an SSE-formatted ReadableStream.
+ * Create a mock fetch that returns an SSE-formatted ReadableStream for
+ * the AI server stream URL, and a JSON token response for the stream-token URL.
  */
 function mockFetchSSE(events: string[], status = 200) {
 	const chunks = events.map((e) => new TextEncoder().encode(e));
@@ -19,10 +20,21 @@ function mockFetchSSE(events: string[], status = 200) {
 		},
 	});
 
-	return vi.fn().mockResolvedValue({
-		ok: status >= 200 && status < 300,
-		status,
-		body,
+	return vi.fn().mockImplementation((url: string) => {
+		// Token exchange endpoint — return a mock JWT
+		if (typeof url === "string" && url.includes("stream-token")) {
+			return Promise.resolve({
+				ok: true,
+				status: 200,
+				json: () => Promise.resolve({ token: "mock-jwt-token" }),
+			});
+		}
+		// SSE stream endpoint
+		return Promise.resolve({
+			ok: status >= 200 && status < 300,
+			status,
+			body,
+		});
 	});
 }
 
@@ -70,7 +82,6 @@ describe("streamTask", () => {
 	});
 
 	test("handles event split across chunks", async () => {
-		// Split a single event across two chunks
 		const fullEvent = `data: {"type":"token","content":"split"}\n\n`;
 		const chunk1 = fullEvent.slice(0, 20);
 		const chunk2 = fullEvent.slice(20);
@@ -92,7 +103,7 @@ describe("streamTask", () => {
 		globalThis.fetch = mockFetchSSE([
 			sseEvent({ type: "token", content: "before" }),
 			sseEvent({ type: "completed" }),
-			sseEvent({ type: "token", content: "after" }), // should not be yielded
+			sseEvent({ type: "token", content: "after" }),
 		]);
 
 		const events: StreamEvent[] = [];
@@ -160,7 +171,7 @@ describe("streamTask", () => {
 		expect(events[0].type).toBe("token");
 	});
 
-	test("sends correct headers", async () => {
+	test("exchanges API key for JWT before connecting to SSE", async () => {
 		const mockFn = mockFetchSSE([sseEvent({ type: "completed" })]);
 		globalThis.fetch = mockFn;
 
@@ -169,11 +180,18 @@ describe("streamTask", () => {
 			events.push(event);
 		}
 
+		// First call: token exchange
+		expect(mockFn).toHaveBeenCalledWith(
+			expect.stringContaining("stream-token"),
+			expect.objectContaining({ method: "POST" }),
+		);
+
+		// Second call: SSE connection with JWT (not API key)
 		expect(mockFn).toHaveBeenCalledWith(
 			"http://localhost:8000/api/v1/tasks/task-1/stream",
 			expect.objectContaining({
 				headers: {
-					"X-API-Key": "my-api-key",
+					Authorization: "Bearer mock-jwt-token",
 					Accept: "text/event-stream",
 				},
 			}),

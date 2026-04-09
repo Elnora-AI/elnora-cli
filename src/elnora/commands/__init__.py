@@ -1,1 +1,0 @@
-# Elnora CLI commands

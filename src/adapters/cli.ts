@@ -259,12 +259,17 @@ export function buildProgram(registry: CommandRegistry): Command {
 
 					// Output (skip if result is null or command already handled output)
 					if (result != null) {
-						const formatted = formatOutput(result, {
-							format: ctx.output.format,
-							compact: ctx.output.compact,
-							fields: ctx.output.fields,
-						});
-						if (formatted && formatted !== '""') {
+						let formatted: string;
+						if (cmd.formatOutput) {
+							formatted = cmd.formatOutput(result, ctx.output.format);
+						} else {
+							formatted = formatOutput(result, {
+								format: ctx.output.format,
+								compact: ctx.output.compact,
+								fields: ctx.output.fields,
+							});
+						}
+						if (formatted) {
 							process.stdout.write(`${formatted}\n`);
 						}
 					}

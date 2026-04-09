@@ -50,7 +50,9 @@ export const authLogin: ElnoraCommand<Input> = {
 						const projectCount = result?.totalCount ?? result?.items?.length ?? 0;
 						process.stderr.write(` authenticated (${projectCount} project${projectCount !== 1 ? "s" : ""}).\n\n`);
 						process.stderr.write("  To update your API key, run:\n");
-						process.stderr.write(`    elnora auth login --api-key <new-key>${profileName !== "default" ? ` --profile ${profileName}` : ""}\n\n`);
+						process.stderr.write(
+							`    elnora auth login --api-key <new-key>${profileName !== "default" ? ` --profile ${profileName}` : ""}\n\n`,
+						);
 						// Return null to suppress stdout output — all info already on stderr
 						return null;
 					} catch {

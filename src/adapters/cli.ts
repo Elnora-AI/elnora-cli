@@ -235,7 +235,8 @@ export function buildProgram(registry: CommandRegistry): Command {
 					}
 
 					// Auth commands that manage profiles don't need an existing API key
-					const skipAuth = cmd.name.startsWith("auth.login") || cmd.name === "auth.logout" || cmd.name === "auth.profiles";
+					const skipAuth =
+						cmd.name.startsWith("auth.login") || cmd.name === "auth.logout" || cmd.name === "auth.profiles";
 					const client = skipAuth
 						? (new ElnoraApiClient("placeholder") as unknown as CommandContext["client"])
 						: ElnoraApiClient.fromEnv(profileName);

@@ -41,7 +41,8 @@ export function promptSecret(message: string): Promise<string> {
 					break;
 				}
 				case "\u0003": // Ctrl+C
-				case "\u001B": { // Escape
+				case "\u001B": {
+					// Escape
 					stdin.setRawMode(wasRaw);
 					stdin.pause();
 					stdin.removeListener("data", onData);

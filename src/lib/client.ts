@@ -223,7 +223,8 @@ export class ElnoraApiClient {
 				if (response.status === 403) {
 					throw new ElnoraError(errorMessage.slice(0, 200) || "Access denied", {
 						code: "FORBIDDEN",
-						suggestion: "You don't have permission to access this resource. Check the resource ID or your organization membership.",
+						suggestion:
+							"You don't have permission to access this resource. Check the resource ID or your organization membership.",
 					});
 				}
 				if (response.status === 404) {

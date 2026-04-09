@@ -217,8 +217,14 @@ export class ElnoraApiClient {
 					// Not JSON — use raw text
 				}
 
-				if (response.status === 401 || response.status === 403) {
+				if (response.status === 401) {
 					throw new AuthError(errorMessage.slice(0, 200) || "Authentication failed");
+				}
+				if (response.status === 403) {
+					throw new ElnoraError(errorMessage.slice(0, 200) || "Access denied", {
+						code: "FORBIDDEN",
+						suggestion: "You don't have permission to access this resource. Check the resource ID or your organization membership.",
+					});
 				}
 				if (response.status === 404) {
 					throw new NotFoundError("resource", errorMessage.slice(0, 200) || "not found");

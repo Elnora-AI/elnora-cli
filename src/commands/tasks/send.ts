@@ -84,7 +84,9 @@ export const tasksSend: ElnoraCommand<Input> = {
 	},
 
 	formatOutput(output: unknown, format: OutputFormat): string {
-		if (format === "compact") return (output as { id?: string }).id ?? JSON.stringify(output);
+		const data = output as { id?: string; streamed?: boolean };
+		if (format === "compact") return data.id ?? JSON.stringify(output);
+		if (data.streamed) return "";
 		return JSON.stringify(output, null, 2);
 	},
 };

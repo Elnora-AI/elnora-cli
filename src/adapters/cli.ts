@@ -259,18 +259,23 @@ export function buildProgram(registry: CommandRegistry): Command {
 
 					// Output (skip if result is null or command already handled output)
 					if (result != null) {
-						let formatted: string;
-						if (cmd.formatOutput) {
-							formatted = cmd.formatOutput(result, ctx.output.format);
-						} else {
-							formatted = formatOutput(result, {
-								format: ctx.output.format,
-								compact: ctx.output.compact,
-								fields: ctx.output.fields,
-							});
-						}
-						if (formatted) {
-							process.stdout.write(`${formatted}\n`);
+						// Skip stdout for streamed results (content already rendered via SSE)
+						const isStreamed = typeof result === "object" && (result as Record<string, unknown>).streamed === true;
+						if (!isStreamed) {
+							const hasGlobalFlags = ctx.output.compact || ctx.output.format !== "json" || ctx.output.fields;
+							let formatted: string;
+							if (cmd.formatOutput && !hasGlobalFlags) {
+								formatted = cmd.formatOutput(result, ctx.output.format);
+							} else {
+								formatted = formatOutput(result, {
+									format: ctx.output.format,
+									compact: ctx.output.compact,
+									fields: ctx.output.fields,
+								});
+							}
+							if (formatted) {
+								process.stdout.write(`${formatted}\n`);
+							}
 						}
 					}
 				} catch (err) {

@@ -42,7 +42,7 @@ process.on("uncaughtException", (err) => {
 	} else {
 		process.stderr.write(`${JSON.stringify(formatErrorPayload(err), null, 2)}\n`);
 	}
-	process.exit(getExitCode(err));
+	process.exitCode = getExitCode(err);
 });
 
 process.on("unhandledRejection", (reason) => {
@@ -52,7 +52,7 @@ process.on("unhandledRejection", (reason) => {
 	} else {
 		process.stderr.write(`${JSON.stringify(formatErrorPayload(err), null, 2)}\n`);
 	}
-	process.exit(1);
+	process.exitCode = 1;
 });
 
 // ---------------------------------------------------------------------------

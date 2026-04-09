@@ -276,9 +276,7 @@ export function buildProgram(registry: CommandRegistry): Command {
 						const payload = formatErrorPayload(error);
 						process.stderr.write(`${JSON.stringify(payload, null, 2)}\n`);
 					}
-					// Defer exit to let pending async cleanup finish (avoids UV_HANDLE_CLOSING assertion on Windows)
-					const code = getExitCode(error);
-					setTimeout(() => process.exit(code), 10);
+					process.exitCode = getExitCode(error);
 				}
 			});
 

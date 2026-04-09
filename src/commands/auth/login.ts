@@ -31,7 +31,7 @@ export const authLogin: ElnoraCommand<Input> = {
 
 		// No --api-key flag provided
 		if (!apiKey) {
-			// Profile already exists and has a key — show status, don't prompt
+			// Profile already exists and has a key — check if it still works
 			if (profileExists) {
 				let savedKey: string | undefined;
 				try {
@@ -41,7 +41,6 @@ export const authLogin: ElnoraCommand<Input> = {
 				}
 
 				if (savedKey && isTTY()) {
-					// Verify the existing key still works
 					process.stderr.write(`\n  Checking profile "${profileName}"...`);
 					try {
 						const client = new ElnoraApiClient(savedKey);
@@ -52,9 +51,9 @@ export const authLogin: ElnoraCommand<Input> = {
 						process.stderr.write(` authenticated (${projectCount} project${projectCount !== 1 ? "s" : ""}).\n\n`);
 						process.stderr.write("  To update your API key, run:\n");
 						process.stderr.write(`    elnora auth login --api-key <new-key>${profileName !== "default" ? ` --profile ${profileName}` : ""}\n\n`);
-						return { profile: profileName, verified: true, alreadyAuthenticated: true };
+						// Return null to suppress stdout output — all info already on stderr
+						return null;
 					} catch {
-						// Key is invalid/expired — fall through to prompt for new key
 						process.stderr.write(" key is invalid or expired.\n\n");
 					}
 				}
@@ -68,7 +67,12 @@ export const authLogin: ElnoraCommand<Input> = {
 					process.stderr.write("\n  Set up Elnora CLI authentication\n");
 				}
 				process.stderr.write("  Get your API key at: https://platform.elnora.ai > Settings > API Keys\n\n");
-				apiKey = await promptSecret("  API key (Ctrl+C to cancel): ");
+				try {
+					apiKey = await promptSecret("  API key (Ctrl+C to cancel): ");
+				} catch {
+					process.stderr.write("\n  Login cancelled.\n\n");
+					process.exit(0);
+				}
 				process.stderr.write("\n");
 			}
 		}
@@ -82,39 +86,48 @@ export const authLogin: ElnoraCommand<Input> = {
 
 		const key = apiKey.trim();
 		if (!key.startsWith("elnora_live_")) {
-			throw new AuthError("API key must start with 'elnora_live_'.");
+			throw new AuthError("API key must start with 'elnora_live_'. Check that you copied the full key.", {
+				suggestion: "Get your API key from: https://platform.elnora.ai > Settings > API Keys",
+			});
 		}
 		if (key.length < 20) {
-			throw new AuthError("API key looks too short. Check your key and try again.");
+			throw new AuthError("API key looks too short. Make sure you copied the full key.", {
+				suggestion: "Get your API key from: https://platform.elnora.ai > Settings > API Keys",
+			});
 		}
 
 		if (isTTY()) {
 			process.stderr.write("  Verifying...");
 		}
 
-		const tempClient = new ElnoraApiClient(key);
-		const result = await tempClient.get<{ items?: unknown[]; totalCount?: number }>("projects", {
-			queryParams: { page: 1, pageSize: 1 },
-		});
+		try {
+			const tempClient = new ElnoraApiClient(key);
+			const result = await tempClient.get<{ items?: unknown[]; totalCount?: number }>("projects", {
+				queryParams: { page: 1, pageSize: 1 },
+			});
 
-		const projectCount = result?.totalCount ?? result?.items?.length ?? 0;
-		const configPath = saveProfile(profileName, key);
+			const projectCount = result?.totalCount ?? result?.items?.length ?? 0;
+			const configPath = saveProfile(profileName, key);
 
-		if (isTTY()) {
-			process.stderr.write(` Done! ${projectCount} project${projectCount !== 1 ? "s" : ""} accessible.\n`);
-			process.stderr.write(`  Saved to profile "${profileName}" at ${configPath}\n\n`);
+			if (isTTY()) {
+				process.stderr.write(` Done! ${projectCount} project${projectCount !== 1 ? "s" : ""} accessible.\n`);
+				process.stderr.write(`  Saved to profile "${profileName}" at ${configPath}\n\n`);
+			}
+
+			return { profile: profileName, verified: true, configPath };
+		} catch (err) {
+			if (err instanceof AuthError) {
+				throw new AuthError("API key is invalid or has been revoked. Please check your key and try again.", {
+					suggestion: "Get a new key from: https://platform.elnora.ai > Settings > API Keys",
+				});
+			}
+			throw err;
 		}
-
-		return { profile: profileName, verified: true, configPath };
 	},
 
 	formatOutput(output: unknown, format: OutputFormat): string {
-		const data = output as { profile?: string; alreadyAuthenticated?: boolean };
+		const data = output as { profile?: string };
 		if (format === "compact") return data.profile ?? JSON.stringify(output);
-
-		if (data.alreadyAuthenticated) {
-			return `✓ Profile "${data.profile}" is authenticated.`;
-		}
 
 		const lines = [
 			`✓ Authenticated! API key saved to profile "${data.profile}".`,

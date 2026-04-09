@@ -18,7 +18,7 @@ import type { CommandContext } from "../core/command.js";
 import type { CommandRegistry } from "../core/registry.js";
 import { ElnoraApiClient } from "../lib/client.js";
 import { VERSION } from "../lib/config.js";
-import { AuthError, formatErrorForHuman, formatErrorPayload, getExitCode } from "../lib/errors.js";
+import { formatErrorForHuman, formatErrorPayload, getExitCode } from "../lib/errors.js";
 import { formatOutput, type OutputFormat } from "../lib/output.js";
 
 // ---------------------------------------------------------------------------
@@ -257,18 +257,20 @@ export function buildProgram(registry: CommandRegistry): Command {
 					const parsed = cmd.inputSchema.parse(input);
 					const result = await cmd.execute(parsed, ctx);
 
-					// Output
-					const formatted = formatOutput(result, {
-						format: ctx.output.format,
-						compact: ctx.output.compact,
-						fields: ctx.output.fields,
-					});
-					process.stdout.write(`${formatted}\n`);
+					// Output (skip if result is null or command already handled output)
+					if (result != null) {
+						const formatted = formatOutput(result, {
+							format: ctx.output.format,
+							compact: ctx.output.compact,
+							fields: ctx.output.fields,
+						});
+						if (formatted && formatted !== '""') {
+							process.stdout.write(`${formatted}\n`);
+						}
+					}
 				} catch (err) {
 					const error = err instanceof Error ? err : new Error(String(err));
-					if (error instanceof AuthError && process.stderr.isTTY) {
-						process.stderr.write(`\n  Not authenticated. Run: elnora auth login\n\n`);
-					} else if (process.stderr.isTTY) {
+					if (process.stderr.isTTY) {
 						process.stderr.write(`${formatErrorForHuman(error)}\n`);
 					} else {
 						const payload = formatErrorPayload(error);

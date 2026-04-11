@@ -13,7 +13,8 @@ declare const __APP_VERSION__: string;
 
 export const VERSION: string =
 	typeof __APP_VERSION__ !== "undefined" ? __APP_VERSION__ : (process.env.npm_package_version ?? "0.0.0-dev");
-export const BASE_URL = "https://platform.elnora.ai/api/v1";
+export const PRODUCTION_BASE_URL = "https://platform.elnora.ai/api/v1";
+export const BASE_URL = process.env.ELNORA_API_URL ?? PRODUCTION_BASE_URL;
 export const AI_SERVER_URL = process.env.ELNORA_AI_SERVER_URL ?? "https://platform.elnora.ai/ai-server";
 
 export const ENDPOINTS: Record<string, string> = {

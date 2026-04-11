@@ -13,6 +13,7 @@ import { orgsList } from "./list.js";
 import { orgsListAll } from "./list-all.js";
 import { orgsMembers } from "./members.js";
 import { orgsRemoveMember } from "./remove-member.js";
+import { orgsResendInvite } from "./resend-invite.js";
 import { orgsSetDefault } from "./set-default.js";
 import { orgsSetStripe } from "./set-stripe.js";
 import { orgsUpdate } from "./update.js";
@@ -34,6 +35,7 @@ export function registerOrgCommands(): ElnoraCommand[] {
 		orgsInvite,
 		orgsInvitations,
 		orgsCancelInvite,
+		orgsResendInvite,
 		orgsInvitationInfo,
 		orgsAcceptInvite,
 		orgsFiles,
@@ -56,6 +58,7 @@ export {
 	orgsListAll,
 	orgsMembers,
 	orgsRemoveMember,
+	orgsResendInvite,
 	orgsSetDefault,
 	orgsSetStripe,
 	orgsUpdate,

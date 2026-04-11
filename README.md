@@ -56,7 +56,7 @@ elnora tasks send <task-id> --message "Focus on selectivity" --stream
 | `projects` | list, get, create, update, archive, members, add-member, update-role, remove-member, leave |
 | `tasks` | list, get, create, send (--stream, --wait), messages, update, archive |
 | `files` | list, get, content, create, upload, download, update, archive, versions, fork, promote, working-copy, commit |
-| `orgs` | list, get, create, update, members, billing, invite, invitations, delete |
+| `orgs` | list, get, create, update, members, billing, invite, invitations, resend-invite, cancel-invite, delete |
 | `folders` | list, create, rename, move, delete |
 | `search` | tasks, files, all, file-content |
 | `library` | files, folders, create-folder, rename-folder, delete-folder |

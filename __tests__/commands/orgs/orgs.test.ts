@@ -2,6 +2,7 @@ import { describe, expect, test, vi } from "vitest";
 import { orgsAcceptInvite } from "../../../src/commands/orgs/accept-invite.js";
 import { orgsBilling } from "../../../src/commands/orgs/billing.js";
 import { orgsCancelInvite } from "../../../src/commands/orgs/cancel-invite.js";
+import { orgsResendInvite } from "../../../src/commands/orgs/resend-invite.js";
 import { orgsCreate } from "../../../src/commands/orgs/create.js";
 import { orgsDelete } from "../../../src/commands/orgs/delete.js";
 import { orgsFiles } from "../../../src/commands/orgs/files.js";
@@ -335,18 +336,36 @@ describe("orgs.invite", () => {
 		expect(parsed.role).toBe("Member");
 	});
 
-	test("returns existing pending invitation if email matches", async () => {
-		const existingInvite = { id: INVITE_ID, email: "user@example.com", status: "Pending" };
-		const ctx = mockContext({ getResult: [existingInvite] });
+	test("routes to resend endpoint when a pending invitation matches", async () => {
+		const existingInvite = { id: INVITE_ID, email: "user@example.com", isExpired: false };
+		const resendResult = { id: INVITE_ID, email: "user@example.com", isExpired: false, token: "fresh" };
+		const ctx = mockContext({ getResult: [existingInvite], postResult: resendResult });
 		const result = await orgsInvite.execute({ orgId: ORG_ID, email: "User@Example.com", role: "Member" }, ctx);
 		expect(ctx.client.get).toHaveBeenCalledWith("org_invitations", {
 			pathParams: { orgId: ORG_ID },
 		});
-		expect(ctx.client.post).not.toHaveBeenCalled();
-		expect(result).toEqual(existingInvite);
+		expect(ctx.client.post).toHaveBeenCalledWith(
+			"org_invitation_resend",
+			{},
+			{ pathParams: { orgId: ORG_ID, invId: INVITE_ID } },
+		);
+		expect(result).toEqual(resendResult);
 	});
 
-	test("creates new invitation when no pending match", async () => {
+	test("routes to resend endpoint when an expired invitation matches", async () => {
+		const expiredInvite = { id: INVITE_ID, email: "stale@example.com", isExpired: true };
+		const resendResult = { id: INVITE_ID, email: "stale@example.com", isExpired: false, token: "fresh" };
+		const ctx = mockContext({ getResult: [expiredInvite], postResult: resendResult });
+		const result = await orgsInvite.execute({ orgId: ORG_ID, email: "stale@example.com", role: "Member" }, ctx);
+		expect(ctx.client.post).toHaveBeenCalledWith(
+			"org_invitation_resend",
+			{},
+			{ pathParams: { orgId: ORG_ID, invId: INVITE_ID } },
+		);
+		expect(result).toEqual(resendResult);
+	});
+
+	test("creates new invitation when no existing row matches", async () => {
 		const ctx = mockContext({
 			getResult: [],
 			postResult: { id: INVITE_ID, email: "new@example.com" },
@@ -405,6 +424,38 @@ describe("orgs.cancelInvite", () => {
 			pathParams: { orgId: ORG_ID, invId: INVITE_ID },
 		});
 		expect(result).toEqual({ cancelled: true, invitationId: INVITE_ID });
+	});
+});
+
+// ---------------------------------------------------------------------------
+// orgs.resendInvite
+// ---------------------------------------------------------------------------
+
+describe("orgs.resendInvite", () => {
+	test("has correct name and group", () => {
+		expect(orgsResendInvite.name).toBe("orgs.resendInvite");
+		expect(orgsResendInvite.group).toBe("orgs");
+	});
+
+	test("has idempotentHint annotation", () => {
+		expect(orgsResendInvite.annotations?.idempotentHint).toBe(true);
+	});
+
+	test("calls POST /organizations/{orgId}/invitations/{invId}/resend", async () => {
+		const resendResult = { id: INVITE_ID, email: "user@example.com", isExpired: false };
+		const ctx = mockContext({ postResult: resendResult });
+		const result = await orgsResendInvite.execute({ orgId: ORG_ID, invitationId: INVITE_ID }, ctx);
+		expect(ctx.client.post).toHaveBeenCalledWith(
+			"org_invitation_resend",
+			{},
+			{ pathParams: { orgId: ORG_ID, invId: INVITE_ID } },
+		);
+		expect(result).toEqual(resendResult);
+	});
+
+	test("compact output returns invitation id", () => {
+		const formatted = orgsResendInvite.formatOutput?.({ id: INVITE_ID }, "compact");
+		expect(formatted).toBe(INVITE_ID);
 	});
 });
 
@@ -515,9 +566,9 @@ describe("orgs.listAll", () => {
 // ---------------------------------------------------------------------------
 
 describe("registerOrgCommands", () => {
-	test("returns all 18 org commands", () => {
+	test("returns all 19 org commands", () => {
 		const commands = registerOrgCommands();
-		expect(commands).toHaveLength(18);
+		expect(commands).toHaveLength(19);
 	});
 
 	test("all commands belong to orgs group", () => {

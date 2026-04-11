@@ -19,7 +19,12 @@ export const orgsInvite: ElnoraCommand<Input> = {
 	annotations: { idempotentHint: true },
 
 	async execute(input, ctx) {
-		// Check for existing pending invitation with same email (idempotent)
+		// Smart upsert: the backend list endpoint now returns both pending and
+		// expired invitations. If we find an existing row for this email, route to
+		// the resend endpoint instead of POST so:
+		//   - Pending rows get their expiry extended and a fresh email sent.
+		//   - Expired rows are recycled on the server, preserving the invitation ID.
+		// Only when no row exists do we create a new invitation.
 		const existing = await ctx.client.get("org_invitations", {
 			pathParams: { orgId: input.orgId },
 		});
@@ -28,11 +33,19 @@ export const orgsInvite: ElnoraCommand<Input> = {
 			: (((existing as Record<string, unknown>)?.items as unknown[]) ?? []);
 		const match = items.find((inv: unknown) => {
 			const i = inv as Record<string, string>;
-			return i.email?.toLowerCase() === input.email.toLowerCase() && i.status === "Pending";
+			return i.email?.toLowerCase() === input.email.toLowerCase();
 		});
-		if (match) return match;
 
-		// Create new invitation
+		if (match) {
+			const matchId = (match as Record<string, string>).id;
+			return ctx.client.post(
+				"org_invitation_resend",
+				{},
+				{ pathParams: { orgId: input.orgId, invId: matchId } },
+			);
+		}
+
+		// No existing row - create a fresh invitation.
 		return ctx.client.post(
 			"org_invitations",
 			{ email: input.email, role: input.role ?? "Member" },

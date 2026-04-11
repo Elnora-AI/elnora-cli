@@ -63,6 +63,7 @@ export const ENDPOINTS: Record<string, string> = {
 	// Organization invitations
 	org_invitations: "/organizations/{orgId}/invitations",
 	org_invitation: "/organizations/{orgId}/invitations/{invId}",
+	org_invitation_resend: "/organizations/{orgId}/invitations/{invId}/resend",
 	// Public invitations
 	invitation_info: "/invitations/{token}",
 	invitation_accept: "/invitations/{token}/accept",

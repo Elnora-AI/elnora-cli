@@ -23,7 +23,7 @@ The Elnora backend processes agent responses asynchronously. When you send a mes
 
 **Recommended:** Always use `--stream` unless you have a specific reason not to. Content tokens go to stdout, status events (`agent_status`) go to stderr — so output is pipeable: `elnora tasks send ... --stream > response.txt`.
 
-**MCP mode** (`elnora_tasks_send`): Collects the full response automatically — uses streaming when the backend provides a stream token, otherwise falls back to polling. The caller receives `{ sent, taskId, response }` with the complete assistant content.
+**MCP mode** (`elnora_tasks_send`): Always collects the full response automatically via streaming, with polling as fallback. The caller receives `{ sent, taskId, response }` with the complete assistant content.
 
 SSE event types: `agent_status`, `token`, `completed`, `error`, `timeout`.
 

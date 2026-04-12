@@ -50,7 +50,7 @@ Pagination: `--page` (default 1), `--page-size` (default 25, max 100).
 Response:
 
 ```json
-{"items":[{"id":"<UUID>","projectId":"<UUID>","title":"...","status":"active","messageCount":4,"lastMessageAt":"...","createdAt":"..."}],"page":1,"totalCount":N,"hasNextPage":false}
+{"items":[{"id":"<UUID>","projectId":"<UUID>","title":"...","status":"active","messageCount":4,"lastMessageAt":"...","createdAt":"..."}],"page":1,"pageSize":25,"totalCount":N,"totalPages":N,"hasNextPage":false,"hasPreviousPage":false}
 ```
 
 ### Get Task

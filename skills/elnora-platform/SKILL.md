@@ -18,11 +18,11 @@ Route Elnora Platform queries to the correct sub-skill. Load only what is needed
 CLI="elnora"
 ```
 
-Global flags go BEFORE the subcommand:
+Global flags go BEFORE the subcommand (recommended, always works):
 
 ```bash
-$CLI --compact projects list            # correct
-$CLI projects list --compact            # WRONG -- fails
+$CLI --compact projects list            # recommended
+$CLI projects list --compact            # also works for most commands
 ```
 
 ## Global Flags
@@ -74,7 +74,7 @@ elnora files fork <file-id> --target-project <UUID>  # fileId -> positional, tar
 
 ## ID Format
 
-All IDs are UUIDs: `bfdc6fbd-40ed-4042-9ea7-c79a5ec90085`. Invalid format exits 1 with a suggestion showing the correct list command.
+All IDs are UUIDs: `bfdc6fbd-40ed-4042-9ea7-c79a5ec90085`. Invalid format exits 1 with a validation error to stderr.
 
 Exception: `account get` and `account update` use `userId` which accepts any string (typically an integer like `42`).
 
@@ -83,7 +83,7 @@ Exception: `account get` and `account update` use `userId` which accepts any str
 List endpoints return:
 
 ```json
-{"items":[...],"page":1,"pageSize":25,"totalCount":N,"totalPages":N,"hasNextPage":true}
+{"items":[...],"page":1,"pageSize":25,"totalCount":N,"totalPages":N,"hasNextPage":true,"hasPreviousPage":false}
 ```
 
 Use `--page N --page-size N` (max 100). Check `hasNextPage` to paginate.

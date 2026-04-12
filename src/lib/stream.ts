@@ -41,11 +41,14 @@ async function getStreamToken(taskId: string, apiKey: string): Promise<string> {
 }
 
 // ---------------------------------------------------------------------------
-// Event types (matches AI server pipeline.py event types)
+// Event types (matches AI server pipeline.py EventType class)
 // ---------------------------------------------------------------------------
 
 export type StreamEvent =
-	| { type: "agent_status"; content: string }
+	| { type: "think"; content: string; turn?: number }
+	| { type: "tool_start"; tool: string }
+	| { type: "tool_end"; tool: string; duration_ms?: number; success?: boolean }
+	| { type: "progress"; content: string }
 	| { type: "token"; content: string; agent?: string }
 	| { type: "completed"; content?: string }
 	| { type: "error"; content: string }

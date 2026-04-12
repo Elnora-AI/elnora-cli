@@ -24,7 +24,19 @@ export class StreamRenderer {
 
 	renderEvent(event: StreamEvent): void {
 		switch (event.type) {
-			case "agent_status":
+			case "think":
+				this.startSpinner((event as { content: string }).content);
+				break;
+
+			case "tool_start":
+				this.startSpinner(`Using ${(event as { tool: string }).tool}…`);
+				break;
+
+			case "tool_end":
+				this.stopSpinner();
+				break;
+
+			case "progress":
 				this.startSpinner((event as { content: string }).content);
 				break;
 

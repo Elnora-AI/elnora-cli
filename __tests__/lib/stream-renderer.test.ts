@@ -22,11 +22,25 @@ describe("StreamRenderer", () => {
 		expect(stdoutWrite).toHaveBeenCalledWith("Hello world");
 	});
 
-	test("writes agent_status to stderr", () => {
+	test("writes think event to stderr", () => {
 		const renderer = new StreamRenderer();
-		renderer.renderEvent({ type: "agent_status", content: "Searching PubMed..." });
+		renderer.renderEvent({ type: "think", content: "Planning approach..." });
 		renderer.stopSpinner();
 		// Spinner writes to stderr (either animated frame or plain text in non-TTY)
+		expect(stderrWrite).toHaveBeenCalled();
+	});
+
+	test("writes tool_start event to stderr", () => {
+		const renderer = new StreamRenderer();
+		renderer.renderEvent({ type: "tool_start", tool: "pubmed_search" });
+		renderer.stopSpinner();
+		expect(stderrWrite).toHaveBeenCalled();
+	});
+
+	test("writes progress event to stderr", () => {
+		const renderer = new StreamRenderer();
+		renderer.renderEvent({ type: "progress", content: "Found 8 papers" });
+		renderer.stopSpinner();
 		expect(stderrWrite).toHaveBeenCalled();
 	});
 

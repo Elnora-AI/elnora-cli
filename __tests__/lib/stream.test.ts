@@ -64,7 +64,7 @@ describe("streamTask", () => {
 
 	test("parses multiple events in single chunk", async () => {
 		const combined =
-			sseEvent({ type: "agent_status", content: "Searching..." }) +
+			sseEvent({ type: "think", content: "Searching...", turn: 0 }) +
 			sseEvent({ type: "token", content: "Hi" }) +
 			sseEvent({ type: "completed" });
 
@@ -76,7 +76,7 @@ describe("streamTask", () => {
 		}
 
 		expect(events).toHaveLength(3);
-		expect(events[0].type).toBe("agent_status");
+		expect(events[0].type).toBe("think");
 		expect(events[1].type).toBe("token");
 		expect(events[2].type).toBe("completed");
 	});

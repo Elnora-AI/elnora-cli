@@ -21,11 +21,22 @@ The Elnora backend processes agent responses asynchronously. When you send a mes
 | Polling | `--wait` | Auto-polls every 2s until assistant message appears | 120s | You need the JSON message object, not real-time output |
 | Fire-and-forget | _(no flag)_ | Returns immediately, no response | — | You'll check `tasks messages` manually later |
 
-**Recommended:** Always use `--stream` unless you have a specific reason not to. Content tokens go to stdout, status events (`agent_status`) go to stderr — so output is pipeable: `elnora tasks send ... --stream > response.txt`.
+**Recommended:** Always use `--stream` unless you have a specific reason not to. Content tokens go to stdout, status events (`think`, `tool_start`, `tool_end`, `progress`) go to stderr — so output is pipeable: `elnora tasks send ... --stream > response.txt`.
 
 **MCP mode** (`elnora_tasks_send`): Always collects the full response automatically via streaming, with polling as fallback. The caller receives `{ sent, taskId, response }` with the complete assistant content.
 
-SSE event types: `agent_status`, `token`, `completed`, `error`, `timeout`.
+SSE event types:
+
+| Event | Payload | Direction | Description |
+|-------|---------|-----------|-------------|
+| `think` | `content`, `turn` | stderr | Agent reasoning/planning status |
+| `tool_start` | `tool` | stderr | Tool execution begins |
+| `tool_end` | `tool`, `duration_ms`, `success` | stderr | Tool execution completed |
+| `progress` | `content` | stderr | Intermediate status message |
+| `token` | `content`, `agent` | stdout | Streamed response content |
+| `completed` | `content` (optional) | — | Stream finished, client must close |
+| `error` | `content` | stderr | Pipeline error, client must close |
+| `timeout` | — | stderr | 300s inactivity, client must close |
 
 **IMPORTANT — Always show the full response:** When Elnora returns a response (protocol, literature review, analysis, etc.), print the **entire** assistant content back to the user. No truncation, no summarization, no "here are the key points." The user asked Elnora to generate something — show them everything Elnora said, including comments, suggestions, warnings, and explanations. Strip JSON wrapper/metadata but preserve all human-readable content.
 
@@ -100,9 +111,7 @@ $CLI --compact tasks send <TASK_ID> --message "Optimize based on this template" 
 | `--stream` | No | Stream agent response in real-time via SSE (300s timeout) |
 | `--wait` | No | Poll for agent response (120s timeout) |
 
-**Streaming details:** Status events (`agent_status`) go to stderr, content tokens go to stdout. This makes streaming pipeable: `elnora tasks send ... --stream > response.txt`.
-
-SSE event types: `agent_status`, `token`, `completed`, `error`, `timeout`.
+**Streaming details:** Status events (`think`, `tool_start`, `tool_end`, `progress`) go to stderr, content tokens go to stdout. This makes streaming pipeable: `elnora tasks send ... --stream > response.txt`.
 
 ### Get Messages
 

@@ -27,6 +27,8 @@ The Elnora backend processes agent responses asynchronously. When you send a mes
 
 SSE event types: `think`, `tool_start`, `tool_end`, `progress`, `token`, `completed`, `error`, `timeout`.
 
+**IMPORTANT — Always show the full response:** When Elnora returns a response (protocol, literature review, analysis, etc.), print the **entire** assistant content back to the user. No truncation, no summarization, no "here are the key points." The user asked Elnora to generate something — show them everything Elnora said, including comments, suggestions, warnings, and explanations. Strip JSON wrapper/metadata but preserve all human-readable content.
+
 ## Invocation
 
 ```bash

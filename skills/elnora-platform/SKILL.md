@@ -137,13 +137,13 @@ HTTP 429 on limit. Check the `Retry-After` header for seconds to wait.
 Projects contain tasks and files. Typical flow:
 
 1. `projects list` -> get project ID
-2. `tasks create --project <ID> --message "..."` -> create task with initial prompt
-3. `tasks send <TASK_ID> --message "..."` -> send message (returns user echo only)
-4. **Poll `tasks messages <TASK_ID>`** every 5-10s until last message is `role: "assistant"` with `metadata.status: "completed"` -> AI response ready
+2. `tasks create --project <ID> --message "..." --stream` -> create task and stream the agent response
+3. `tasks send <TASK_ID> --message "..." --stream` -> send follow-up and stream response
+4. `tasks messages <TASK_ID>` -> read conversation history (or use `--wait` instead of `--stream` in steps 2-3)
 5. `files list --project <ID>` -> browse generated outputs
 6. `files content <FILE_ID>` -> read a protocol file
 
-**Important:** Steps 3-4 apply to all message sending (send, create with message, generate protocol). The backend is fire-and-forget — AI responses are never returned inline. See `elnora-tasks` skill for full polling details.
+See `elnora-tasks` skill for full response retrieval details (`--stream`, `--wait`, MCP behavior).
 
 ## All Command Groups
 

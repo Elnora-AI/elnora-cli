@@ -4,7 +4,7 @@
  * Connects to GET /api/v1/tasks/{task_id}/stream on the AI server.
  * Uses native fetch() + ReadableStream — no external SSE library.
  *
- * Solves ELN-495 (CLI never receives agent responses).
+ * Provides real-time agent response streaming for CLI and MCP clients.
  */
 
 import { AI_SERVER_URL, BASE_URL, DEFAULT_HEADERS } from "./config.js";

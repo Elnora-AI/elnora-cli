@@ -2,7 +2,6 @@ import { z } from "zod";
 import type { ElnoraCommand } from "../../core/command.js";
 import type { OutputFormat } from "../../lib/output.js";
 import { pollForResponse } from "../../lib/poll.js";
-import { resolveApiKey } from "../../lib/profiles.js";
 import { collectStreamResponse, streamTask } from "../../lib/stream.js";
 import { StreamRenderer } from "../../lib/stream-renderer.js";
 
@@ -46,17 +45,23 @@ export const tasksSend: ElnoraCommand<Input> = {
 			{ pathParams: { id: input.taskId } },
 		);
 
-		// MCP mode: always collect full response via streaming
+		const streamToken = (result as Record<string, unknown>)?.streamToken as string | undefined;
+		const sequence =
+			((result as Record<string, unknown>)?.sequence as number) ??
+			((result as Record<string, unknown>)?.sequenceNumber as number) ??
+			0;
+
+		// MCP mode: always collect full response (streaming with polling fallback)
 		if (ctx.mode === "mcp") {
-			try {
-				const apiKey = resolveApiKey(ctx.profileName);
-				const content = await collectStreamResponse(input.taskId, apiKey);
-				return { sent: true, taskId: input.taskId, response: content };
-			} catch {
-				// If streaming fails in MCP mode, fall back to polling
-				const seq = ((result as Record<string, unknown>)?.sequence as number) ?? 0;
-				return pollForResponse(ctx.client, input.taskId, seq);
+			if (streamToken) {
+				try {
+					const content = await collectStreamResponse(input.taskId, streamToken);
+					return { sent: true, taskId: input.taskId, response: content };
+				} catch {
+					// Streaming failed — fall through to polling
+				}
 			}
+			return pollForResponse(ctx.client, input.taskId, sequence);
 		}
 
 		// CLI mode: fire-and-forget (default)
@@ -64,11 +69,14 @@ export const tasksSend: ElnoraCommand<Input> = {
 			return result;
 		}
 
-		// CLI mode: --stream (SSE)
+		// CLI mode: --stream (SSE) with polling fallback
 		if (input.stream) {
-			const apiKey = resolveApiKey(ctx.profileName);
+			if (!streamToken) {
+				process.stderr.write("Streaming not available — falling back to polling.\n");
+				return pollForResponse(ctx.client, input.taskId, sequence);
+			}
 			const renderer = new StreamRenderer();
-			for await (const event of streamTask(input.taskId, apiKey)) {
+			for await (const event of streamTask(input.taskId, streamToken)) {
 				renderer.renderEvent(event);
 			}
 			renderer.stopSpinner();
@@ -76,10 +84,6 @@ export const tasksSend: ElnoraCommand<Input> = {
 		}
 
 		// CLI mode: --wait (polling)
-		const sequence =
-			((result as Record<string, unknown>)?.sequence as number) ??
-			((result as Record<string, unknown>)?.sequenceNumber as number) ??
-			0;
 		return pollForResponse(ctx.client, input.taskId, sequence);
 	},
 

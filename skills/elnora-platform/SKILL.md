@@ -165,6 +165,8 @@ elnora open         Open platform pages in browser
 elnora orgs         Manage organizations (incl. set-default, delete, list-all)
 elnora projects     Manage projects
 elnora search       Search tasks, files, and file content
+elnora setup-claude Register Elnora skills as a Claude Code plugin
 elnora tasks        Manage tasks
+elnora update       Self-update the CLI to the latest version
 elnora whoami       Show current profile and org
 ```

@@ -40,11 +40,7 @@ export interface StreamOptions {
  * @param taskId - Task UUID
  * @param token - JWT accepted by the AI server (stream token from .NET backend or user session JWT)
  */
-export async function* streamTask(
-	taskId: string,
-	token: string,
-	options?: StreamOptions,
-): AsyncGenerator<StreamEvent> {
+export async function* streamTask(taskId: string, token: string, options?: StreamOptions): AsyncGenerator<StreamEvent> {
 	const baseUrl = options?.aiServerBaseUrl ?? AI_SERVER_URL;
 	const url = `${baseUrl}/api/v1/tasks/${taskId}/stream`;
 

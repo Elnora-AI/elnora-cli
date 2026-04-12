@@ -38,11 +38,7 @@ export const orgsInvite: ElnoraCommand<Input> = {
 
 		if (match) {
 			const matchId = (match as Record<string, string>).id;
-			return ctx.client.post(
-				"org_invitation_resend",
-				{},
-				{ pathParams: { orgId: input.orgId, invId: matchId } },
-			);
+			return ctx.client.post("org_invitation_resend", {}, { pathParams: { orgId: input.orgId, invId: matchId } });
 		}
 
 		// No existing row - create a fresh invitation.

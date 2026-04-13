@@ -37,7 +37,7 @@ $CLI projects list --compact            # also works for most commands
 
 ## Updates
 
-On first use in a session, run `elnora update` to check for updates. If an update is available, inform the user and offer to run `elnora update --install`.
+On first use in a session, run `elnora update` to check for updates. If an update is available, inform the user and follow the printed instructions to update.
 
 ## Auth
 

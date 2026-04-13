@@ -7,11 +7,7 @@ import { collectStreamResponse, streamTask } from "../../lib/stream.js";
 import { StreamRenderer } from "../../lib/stream-renderer.js";
 
 const inputSchema = z.object({
-	project: z
-		.string()
-		.uuid()
-		.optional()
-		.describe("Project ID (uses default project if omitted)"),
+	project: z.string().uuid().optional().describe("Project ID (uses default project if omitted)"),
 	title: z.string().optional().describe("Task title"),
 	message: z.string().optional().describe("Initial message"),
 	wait: z.boolean().default(false).describe("Wait for agent response (polling)"),

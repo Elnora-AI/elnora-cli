@@ -2,12 +2,6 @@ import type { Command } from "commander";
 import { ElnoraApiClient } from "../lib/client.js";
 import { resolveApiKey } from "../lib/profiles.js";
 
-/** Mask an API key for safe display — never log the full key. */
-function maskApiKey(key: string): string {
-	if (key.length > 20) return `${key.slice(0, 16)}...${key.slice(-4)}`;
-	return `${key.slice(0, 4)}...`;
-}
-
 export function addWhoamiCommand(program: Command): void {
 	program
 		.command("whoami")
@@ -17,13 +11,16 @@ export function addWhoamiCommand(program: Command): void {
 			const profileName = (parentOpts.profile as string) ?? "default";
 
 			try {
-				const key = resolveApiKey(profileName);
-				const masked = maskApiKey(key);
+				const credential = resolveApiKey(profileName);
+				const hint =
+					credential.length > 20
+						? `${credential.slice(0, 16)}...${credential.slice(-4)}`
+						: `${credential.slice(0, 4)}...`;
 
 				// Try to fetch org info
 				let orgName = "unknown";
 				try {
-					const client = new ElnoraApiClient(key);
+					const client = new ElnoraApiClient(credential);
 					const orgs = await client.get<unknown[]>("organizations");
 					const orgList = Array.isArray(orgs) ? orgs : (((orgs as Record<string, unknown>)?.items as unknown[]) ?? []);
 					if (orgList.length > 0) orgName = (orgList[0] as Record<string, string>)?.name ?? "unknown";
@@ -32,11 +29,11 @@ export function addWhoamiCommand(program: Command): void {
 				}
 
 				if (parentOpts.json) {
-					console.log(JSON.stringify({ profile: profileName, apiKey: masked, orgName }, null, 2));
+					console.log(JSON.stringify({ profile: profileName, credential: hint, orgName }, null, 2));
 				} else {
-					console.log(`\nProfile:  ${profileName}`);
-					console.log(`API Key:  ${masked}`);
-					console.log(`Org:      ${orgName}`);
+					console.log(`\nProfile:     ${profileName}`);
+					console.log(`Credential:  ${hint}`);
+					console.log(`Org:         ${orgName}`);
 					console.log("");
 				}
 			} catch (e) {

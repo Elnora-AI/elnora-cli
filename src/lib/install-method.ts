@@ -21,7 +21,7 @@ export function detectInstallMethod(): InstallMethod {
 export function getUpdateInstruction(method: InstallMethod): string {
 	switch (method) {
 		case "npm":
-			return "npm update -g @elnora-ai/cli";
+			return "npm install -g @elnora-ai/cli@latest";
 		case "homebrew":
 			return "brew upgrade elnora";
 		case "binary":

@@ -3,7 +3,7 @@ import { getUpdateInstruction } from "../../src/lib/install-method.js";
 
 describe("getUpdateInstruction", () => {
 	test("returns npm command for npm installs", () => {
-		expect(getUpdateInstruction("npm")).toBe("npm update -g @elnora-ai/cli");
+		expect(getUpdateInstruction("npm")).toBe("npm install -g @elnora-ai/cli@latest");
 	});
 
 	test("returns brew command for homebrew installs", () => {

@@ -59,7 +59,9 @@ export const tasksSend: ElnoraCommand<Input> = {
 				return { sent: true, taskId: input.taskId, response: content };
 			} catch (err) {
 				// If streaming fails in MCP mode, fall back to polling
-				process.stderr.write(`Stream failed (${err instanceof Error ? err.message : String(err)}), polling fallback.\n`);
+				process.stderr.write(
+					`Stream failed (${err instanceof Error ? err.message : String(err)}), polling fallback.\n`,
+				);
 				return pollForResponse(ctx.client, input.taskId, sequence);
 			}
 		}

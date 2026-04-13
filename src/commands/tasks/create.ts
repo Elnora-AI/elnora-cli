@@ -48,7 +48,9 @@ export const tasksCreate: ElnoraCommand<Input> = {
 				const content = await collectStreamResponse(taskId, apiKey);
 				return { ...result, response: content };
 			} catch (err) {
-				process.stderr.write(`Stream failed (${err instanceof Error ? err.message : String(err)}), polling fallback.\n`);
+				process.stderr.write(
+					`Stream failed (${err instanceof Error ? err.message : String(err)}), polling fallback.\n`,
+				);
 				return pollForResponse(ctx.client, taskId, sequence);
 			}
 		}

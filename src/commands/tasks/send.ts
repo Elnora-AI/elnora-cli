@@ -57,8 +57,9 @@ export const tasksSend: ElnoraCommand<Input> = {
 				const apiKey = resolveApiKey(ctx.profileName);
 				const content = await collectStreamResponse(input.taskId, apiKey);
 				return { sent: true, taskId: input.taskId, response: content };
-			} catch {
+			} catch (err) {
 				// If streaming fails in MCP mode, fall back to polling
+				process.stderr.write(`Stream failed (${err instanceof Error ? err.message : String(err)}), polling fallback.\n`);
 				return pollForResponse(ctx.client, input.taskId, sequence);
 			}
 		}

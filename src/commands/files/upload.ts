@@ -22,11 +22,12 @@ export const filesUpload: ElnoraCommand<Input> = {
 	outputSchema: z.any(),
 
 	async execute(input, ctx) {
+		const fileBuffer = readFileSync(input.filePath);
 		const fileName = input.fileName ?? basename(input.filePath);
 		const contentType = input.contentType ?? "application/octet-stream";
 		const fileSize = statSync(input.filePath).size;
 
-		// Step 1: Get presigned URL and validate before reading file content
+		// Step 1: Get presigned URL
 		const uploadInfo = await ctx.client.post<Record<string, unknown>>("file_upload", {
 			projectId: input.project,
 			fileName,
@@ -37,8 +38,7 @@ export const filesUpload: ElnoraCommand<Input> = {
 		const fileId = (uploadInfo.fileId ?? uploadInfo.id) as string;
 		validateUploadUrl(presignedUrl);
 
-		// Step 2: Read file and PUT to validated storage URL
-		const fileBuffer = readFileSync(input.filePath);
+		// Step 2: PUT to storage (file→HTTP is intentional — URL is validated above)
 		await fetch(presignedUrl, {
 			method: "PUT",
 			body: fileBuffer,

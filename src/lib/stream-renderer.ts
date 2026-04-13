@@ -25,28 +25,19 @@ export class StreamRenderer {
 	renderEvent(event: StreamEvent): void {
 		switch (event.type) {
 			case "think":
-				this.startSpinner("Thinking...");
+				this.startSpinner((event as { content: string }).content);
 				break;
 
 			case "tool_start":
-				this.stopSpinner();
-				this.startSpinner(`Using ${(event as { tool: string }).tool}...`);
+				this.startSpinner(`Using ${(event as { tool: string }).tool}…`);
 				break;
 
-			case "tool_end": {
+			case "tool_end":
 				this.stopSpinner();
-				const toolEvent = event as { tool: string; success: boolean; result?: string };
-				const icon = toolEvent.success ? (this.useColor ? pc.green("✓") : "✓") : this.useColor ? pc.red("✗") : "✗";
-				const suffix = toolEvent.result ? ` (${toolEvent.result})` : "";
-				process.stderr.write(`  ${icon} ${toolEvent.tool}${suffix}\n`);
 				break;
-			}
 
 			case "progress":
-				this.stopSpinner();
-				process.stderr.write(
-					`  ${this.useColor ? pc.dim((event as { content: string }).content) : (event as { content: string }).content}\n`,
-				);
+				this.startSpinner((event as { content: string }).content);
 				break;
 
 			case "token":

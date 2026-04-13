@@ -13,19 +13,32 @@ Tasks are conversations with the Elnora AI Agent. Send messages to generate prot
 
 ## Response Retrieval
 
-The Elnora backend processes agent responses asynchronously. When you send a message, the POST returns immediately with the user message echo — the AI response arrives separately.
+The Elnora backend processes agent responses asynchronously. When you send a message, the POST returns immediately with the user message echo — the AI response arrives separately. Use `--stream` or `--wait` to collect it.
 
-The CLI provides three modes for retrieving agent responses:
+| Mode | Flag | Behavior | Timeout | Use when |
+|------|------|----------|---------|----------|
+| **Streaming** | `--stream` | Real-time SSE token-by-token output | 300s | **Default choice.** Best UX, longest timeout, pipeable |
+| Polling | `--wait` | Auto-polls every 2s until assistant message appears | 120s | You need the JSON message object, not real-time output |
+| Fire-and-forget | _(no flag)_ | Returns immediately, no response | — | You'll check `tasks messages` manually later |
 
-| Mode | Flag | Behavior | Timeout |
-|------|------|----------|---------|
-| Fire-and-forget | _(default)_ | Returns immediately, no response | — |
-| Polling | `--wait` | Auto-polls every 2s until assistant message appears | 120s |
-| Streaming | `--stream` | Real-time SSE token-by-token output | 300s |
+**Recommended:** Always use `--stream` unless you have a specific reason not to. Content tokens go to stdout, status events (`think`, `tool_start`, `tool_end`, `progress`) go to stderr — so output is pipeable: `elnora tasks send ... --stream > response.txt`.
 
 **MCP mode** (`elnora_tasks_send`): Always collects the full response automatically via streaming, with polling as fallback. The caller receives `{ sent, taskId, response }` with the complete assistant content.
 
-**Recommended:** Use `--wait` for simple interactions, `--stream` for long responses where you want real-time output.
+SSE event types:
+
+| Event | Payload | Direction | Description |
+|-------|---------|-----------|-------------|
+| `think` | `content`, `turn` | stderr | Agent reasoning/planning status |
+| `tool_start` | `tool` | stderr | Tool execution begins |
+| `tool_end` | `tool`, `duration_ms`, `success` | stderr | Tool execution completed |
+| `progress` | `content` | stderr | Intermediate status message |
+| `token` | `content`, `agent` | stdout | Streamed response content |
+| `completed` | `content` (optional) | — | Stream finished, client must close |
+| `error` | `content` | stderr | Pipeline error, client must close |
+| `timeout` | — | stderr | 300s inactivity, client must close |
+
+**IMPORTANT — Always show the full response:** When Elnora returns a response (protocol, literature review, analysis, etc.), print the **entire** assistant content back to the user. No truncation, no summarization, no "here are the key points." The user asked Elnora to generate something — show them everything Elnora said, including comments, suggestions, warnings, and explanations. Strip JSON wrapper/metadata but preserve all human-readable content.
 
 ## Invocation
 
@@ -48,7 +61,7 @@ Pagination: `--page` (default 1), `--page-size` (default 25, max 100).
 Response:
 
 ```json
-{"items":[{"id":"<UUID>","projectId":"<UUID>","title":"...","status":"active","messageCount":4,"lastMessageAt":"...","createdAt":"..."}],"page":1,"totalCount":N,"hasNextPage":false}
+{"items":[{"id":"<UUID>","projectId":"<UUID>","title":"...","status":"active","messageCount":4,"lastMessageAt":"...","createdAt":"..."}],"page":1,"pageSize":25,"totalCount":N,"totalPages":N,"hasNextPage":false,"hasPreviousPage":false}
 ```
 
 ### Get Task
@@ -70,35 +83,35 @@ $CLI --compact tasks create --project <PROJECT_ID> --title "PCR protocol for BRC
 | `--project` | Yes | Project UUID |
 | `--title` | No | Task title (auto-generated if omitted) |
 | `--message` | No | Initial message to start the conversation |
+| `--stream` | No | Stream agent response in real-time via SSE (300s timeout). Requires `--message` |
+| `--wait` | No | Poll for agent response (120s timeout). Requires `--message` |
 
-Returns the created task with its `id`. If `--message` is provided, the agent will process it asynchronously — use `tasks send --wait` or `tasks messages` to retrieve the response.
+Returns the created task with its `id`. If `--message` is provided without `--stream` or `--wait`, the response is fire-and-forget — use `tasks messages` to check later.
 
 ### Send Message
 
 ```bash
-# Fire-and-forget (returns immediately)
-$CLI --compact tasks send <TASK_ID> --message "Use Taq polymerase and set annealing to 58C"
-
-# Wait for agent response (polls until complete, 120s timeout)
-$CLI --compact tasks send <TASK_ID> --message "Use Taq polymerase" --wait
-
-# Stream response in real-time via SSE
+# Stream response in real-time (recommended)
 $CLI --compact tasks send <TASK_ID> --message "Use Taq polymerase" --stream
 
+# Wait for response (returns message object)
+$CLI --compact tasks send <TASK_ID> --message "Use Taq polymerase" --wait
+
+# Fire-and-forget (returns immediately, check messages later)
+$CLI --compact tasks send <TASK_ID> --message "Use Taq polymerase and set annealing to 58C"
+
 # Reference uploaded files
-$CLI --compact tasks send <TASK_ID> --message "Optimize based on this template" --file-refs "<FILE_ID_1>,<FILE_ID_2>"
+$CLI --compact tasks send <TASK_ID> --message "Optimize based on this template" --file-refs "<FILE_ID_1>,<FILE_ID_2>" --stream
 ```
 
 | Flag | Required | Notes |
 |------|----------|-------|
 | `--message` | Yes | Message content |
 | `--file-refs` | No | Comma-separated file UUIDs to attach as context |
+| `--stream` | No | Stream agent response in real-time via SSE (300s timeout) |
 | `--wait` | No | Poll for agent response (120s timeout) |
-| `--stream` | No | Stream agent response in real-time via SSE |
 
-**Streaming details:** Status events (thinking, tool use) go to stderr, content tokens go to stdout. This makes streaming pipeable: `elnora tasks send ... --stream > response.txt`.
-
-SSE event types: `think`, `tool_start`, `tool_end`, `progress`, `token`, `completed`, `error`, `timeout`.
+**Streaming details:** Status events (`think`, `tool_start`, `tool_end`, `progress`) go to stderr, content tokens go to stdout. This makes streaming pipeable: `elnora tasks send ... --stream > response.txt`.
 
 ### Get Messages
 
@@ -152,24 +165,36 @@ MCP tools accept the same parameters as CLI flags (camelCase). `elnora_tasks_sen
 
 ## Agent Recipes
 
-**Full protocol generation with --wait:**
+**Create task and stream the response:**
 
 ```bash
 PROJECT=$($CLI --compact --fields "id" projects list | jq -r '.items[0].id')
-TASK=$($CLI --compact tasks create --project "$PROJECT" --title "PCR BRCA1" --message "Generate PCR protocol for BRCA1 exon 11" | jq -r '.id')
+$CLI --compact tasks create --project "$PROJECT" --title "PCR BRCA1" --message "Generate PCR protocol for BRCA1 exon 11" --stream
+```
+
+**Two-step (capture task ID, then stream follow-ups):**
+
+```bash
+TASK=$($CLI --compact tasks create --project "$PROJECT" --title "PCR BRCA1" | jq -r '.id')
+$CLI --compact tasks send "$TASK" --message "Generate PCR protocol for BRCA1 exon 11" --stream
+$CLI --compact tasks send "$TASK" --message "Add gel electrophoresis step" --stream
+```
+
+**Get response as JSON (--wait):**
+
+```bash
 $CLI --compact tasks send "$TASK" --message "Add gel electrophoresis step" --wait
 ```
 
-**Read latest assistant response:**
+**Read conversation history:**
 
 ```bash
 $CLI --compact tasks messages <TASK_ID> | jq '.items[-1] | select(.role == "assistant") | .content'
 ```
 
-**Manual polling (custom timeout/retry):**
+**Manual polling fallback (custom timeout):**
 
 ```bash
-# Poll until the last message is from the assistant
 LAST=$($CLI --compact tasks messages <TASK_ID> | jq '.items[-1]')
 echo "$LAST" | jq '{role: .role, status: (.metadata | fromjson? // {} | .status)}'
 # -> {"role":"assistant","status":"completed"}  <- ready

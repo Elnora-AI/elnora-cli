@@ -22,42 +22,26 @@ describe("StreamRenderer", () => {
 		expect(stdoutWrite).toHaveBeenCalledWith("Hello world");
 	});
 
-	test("writes think status to stderr", () => {
+	test("writes think event to stderr", () => {
 		const renderer = new StreamRenderer();
-		renderer.renderEvent({ type: "think", content: "reasoning" });
+		renderer.renderEvent({ type: "think", content: "Planning approach..." });
 		renderer.stopSpinner();
 		// Spinner writes to stderr (either animated frame or plain text in non-TTY)
 		expect(stderrWrite).toHaveBeenCalled();
 	});
 
-	test("writes tool_start to stderr", () => {
+	test("writes tool_start event to stderr", () => {
 		const renderer = new StreamRenderer();
-		renderer.renderEvent({ type: "tool_start", tool: "PubMed search" });
+		renderer.renderEvent({ type: "tool_start", tool: "pubmed_search" });
 		renderer.stopSpinner();
 		expect(stderrWrite).toHaveBeenCalled();
 	});
 
-	test("shows tool success icon on tool_end", () => {
+	test("writes progress event to stderr", () => {
 		const renderer = new StreamRenderer();
-		renderer.renderEvent({ type: "tool_end", tool: "PubMed search", success: true });
-		const output = stderrWrite.mock.calls.map((c) => String(c[0])).join("");
-		expect(output).toContain("✓");
-		expect(output).toContain("PubMed search");
-	});
-
-	test("shows tool failure icon on tool_end", () => {
-		const renderer = new StreamRenderer();
-		renderer.renderEvent({ type: "tool_end", tool: "UniProt", success: false });
-		const output = stderrWrite.mock.calls.map((c) => String(c[0])).join("");
-		expect(output).toContain("✗");
-		expect(output).toContain("UniProt");
-	});
-
-	test("writes progress to stderr", () => {
-		const renderer = new StreamRenderer();
-		renderer.renderEvent({ type: "progress", content: "Processing..." });
-		const output = stderrWrite.mock.calls.map((c) => String(c[0])).join("");
-		expect(output).toContain("Processing...");
+		renderer.renderEvent({ type: "progress", content: "Found 8 papers" });
+		renderer.stopSpinner();
+		expect(stderrWrite).toHaveBeenCalled();
 	});
 
 	test("writes newline on completed", () => {

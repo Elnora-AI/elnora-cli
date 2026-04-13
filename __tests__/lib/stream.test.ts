@@ -64,7 +64,7 @@ describe("streamTask", () => {
 
 	test("parses multiple events in single chunk", async () => {
 		const combined =
-			sseEvent({ type: "think", content: "reasoning" }) +
+			sseEvent({ type: "think", content: "Searching...", turn: 0 }) +
 			sseEvent({ type: "token", content: "Hi" }) +
 			sseEvent({ type: "completed" });
 

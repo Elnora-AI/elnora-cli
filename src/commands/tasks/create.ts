@@ -47,20 +47,29 @@ export const tasksCreate: ElnoraCommand<Input> = {
 				const apiKey = resolveApiKey(ctx.profileName);
 				const content = await collectStreamResponse(taskId, apiKey);
 				return { ...result, response: content };
-			} catch {
+			} catch (err) {
+				process.stderr.write(
+					`Stream failed (${err instanceof Error ? err.message : String(err)}), polling fallback.\n`,
+				);
 				return pollForResponse(ctx.client, taskId, sequence);
 			}
 		}
 
-		// CLI mode: --stream (SSE)
+		// CLI mode: --stream (SSE) with polling fallback
 		if (input.stream) {
-			const apiKey = resolveApiKey(ctx.profileName);
-			const renderer = new StreamRenderer();
-			for await (const event of streamTask(taskId, apiKey)) {
-				renderer.renderEvent(event);
+			try {
+				const apiKey = resolveApiKey(ctx.profileName);
+				const renderer = new StreamRenderer();
+				for await (const event of streamTask(taskId, apiKey)) {
+					renderer.renderEvent(event);
+				}
+				renderer.stopSpinner();
+				return { ...result, streamed: true };
+			} catch {
+				// Streaming failed — fall back to polling
+				process.stderr.write("Streaming failed — falling back to polling.\n");
+				return pollForResponse(ctx.client, taskId, sequence);
 			}
-			renderer.stopSpinner();
-			return { ...result, streamed: true };
 		}
 
 		// CLI mode: --wait (polling)

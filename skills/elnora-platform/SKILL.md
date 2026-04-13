@@ -18,11 +18,11 @@ Route Elnora Platform queries to the correct sub-skill. Load only what is needed
 CLI="elnora"
 ```
 
-Global flags go BEFORE the subcommand:
+Global flags go BEFORE the subcommand (recommended, always works):
 
 ```bash
-$CLI --compact projects list            # correct
-$CLI projects list --compact            # WRONG -- fails
+$CLI --compact projects list            # recommended
+$CLI projects list --compact            # also works for most commands
 ```
 
 ## Global Flags
@@ -74,7 +74,7 @@ elnora files fork <file-id> --target-project <UUID>  # fileId -> positional, tar
 
 ## ID Format
 
-All IDs are UUIDs: `bfdc6fbd-40ed-4042-9ea7-c79a5ec90085`. Invalid format exits 1 with a suggestion showing the correct list command.
+All IDs are UUIDs: `bfdc6fbd-40ed-4042-9ea7-c79a5ec90085`. Invalid format exits 1 with a validation error to stderr.
 
 Exception: `account get` and `account update` use `userId` which accepts any string (typically an integer like `42`).
 
@@ -83,7 +83,7 @@ Exception: `account get` and `account update` use `userId` which accepts any str
 List endpoints return:
 
 ```json
-{"items":[...],"page":1,"pageSize":25,"totalCount":N,"totalPages":N,"hasNextPage":true}
+{"items":[...],"page":1,"pageSize":25,"totalCount":N,"totalPages":N,"hasNextPage":true,"hasPreviousPage":false}
 ```
 
 Use `--page N --page-size N` (max 100). Check `hasNextPage` to paginate.
@@ -137,10 +137,13 @@ HTTP 429 on limit. Check the `Retry-After` header for seconds to wait.
 Projects contain tasks and files. Typical flow:
 
 1. `projects list` -> get project ID
-2. `tasks create --project <ID> --message "..."` -> create task with initial prompt
-3. `tasks send <TASK_ID> --message "..." --wait` -> send message and wait for response
-4. `files list --project <ID>` -> browse generated outputs
-5. `files content <FILE_ID>` -> read a protocol file
+2. `tasks create --project <ID> --message "..." --stream` -> create task and stream the agent response
+3. `tasks send <TASK_ID> --message "..." --stream` -> send follow-up and stream response
+4. `tasks messages <TASK_ID>` -> read conversation history (or use `--wait` instead of `--stream` in steps 2-3)
+5. `files list --project <ID>` -> browse generated outputs
+6. `files content <FILE_ID>` -> read a protocol file
+
+See `elnora-tasks` skill for full response retrieval details (`--stream`, `--wait`, MCP behavior).
 
 ## All Command Groups
 
@@ -162,6 +165,8 @@ elnora open         Open platform pages in browser
 elnora orgs         Manage organizations (incl. set-default, delete, list-all)
 elnora projects     Manage projects
 elnora search       Search tasks, files, and file content
+elnora setup-claude Register Elnora skills as a Claude Code plugin
 elnora tasks        Manage tasks
+elnora update       Self-update the CLI to the latest version
 elnora whoami       Show current profile and org
 ```

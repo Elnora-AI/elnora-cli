@@ -4,7 +4,9 @@
  * Connects to GET /api/v1/tasks/{task_id}/stream on the AI server.
  * Uses native fetch() + ReadableStream — no external SSE library.
  *
- * Solves ELN-495 (CLI never receives agent responses).
+ * Auth: Exchanges the CLI's API key for a short-lived stream JWT via
+ * POST /auth/stream-token on the .NET backend, then connects to the
+ * AI server's SSE endpoint with that JWT.
  */
 
 import { AI_SERVER_URL, BASE_URL, DEFAULT_HEADERS } from "./config.js";
@@ -39,15 +41,15 @@ async function getStreamToken(taskId: string, apiKey: string): Promise<string> {
 }
 
 // ---------------------------------------------------------------------------
-// Event types (matches AI server pipeline.py EventType)
+// Event types (matches AI server pipeline.py EventType class)
 // ---------------------------------------------------------------------------
 
 export type StreamEvent =
 	| { type: "think"; content: string; turn?: number }
-	| { type: "tool_start"; tool: string; args?: Record<string, unknown> }
-	| { type: "tool_end"; tool: string; success: boolean; result?: string }
+	| { type: "tool_start"; tool: string }
+	| { type: "tool_end"; tool: string; duration_ms?: number; success?: boolean }
 	| { type: "progress"; content: string }
-	| { type: "token"; content: string }
+	| { type: "token"; content: string; agent?: string }
 	| { type: "completed"; content?: string }
 	| { type: "error"; content: string }
 	| { type: "timeout" };

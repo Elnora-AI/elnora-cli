@@ -46,16 +46,23 @@ export const tasksSend: ElnoraCommand<Input> = {
 			{ pathParams: { id: input.taskId } },
 		);
 
+		const sequence =
+			((result as Record<string, unknown>)?.sequence as number) ??
+			((result as Record<string, unknown>)?.sequenceNumber as number) ??
+			0;
+
 		// MCP mode: always collect full response via streaming
 		if (ctx.mode === "mcp") {
 			try {
 				const apiKey = resolveApiKey(ctx.profileName);
 				const content = await collectStreamResponse(input.taskId, apiKey);
 				return { sent: true, taskId: input.taskId, response: content };
-			} catch {
+			} catch (err) {
 				// If streaming fails in MCP mode, fall back to polling
-				const seq = ((result as Record<string, unknown>)?.sequence as number) ?? 0;
-				return pollForResponse(ctx.client, input.taskId, seq);
+				process.stderr.write(
+					`Stream failed (${err instanceof Error ? err.message : String(err)}), polling fallback.\n`,
+				);
+				return pollForResponse(ctx.client, input.taskId, sequence);
 			}
 		}
 
@@ -64,22 +71,24 @@ export const tasksSend: ElnoraCommand<Input> = {
 			return result;
 		}
 
-		// CLI mode: --stream (SSE)
+		// CLI mode: --stream (SSE) with polling fallback
 		if (input.stream) {
-			const apiKey = resolveApiKey(ctx.profileName);
-			const renderer = new StreamRenderer();
-			for await (const event of streamTask(input.taskId, apiKey)) {
-				renderer.renderEvent(event);
+			try {
+				const apiKey = resolveApiKey(ctx.profileName);
+				const renderer = new StreamRenderer();
+				for await (const event of streamTask(input.taskId, apiKey)) {
+					renderer.renderEvent(event);
+				}
+				renderer.stopSpinner();
+				return { sent: true, taskId: input.taskId, streamed: true };
+			} catch {
+				// Streaming failed — fall back to polling
+				process.stderr.write("Streaming failed — falling back to polling.\n");
+				return pollForResponse(ctx.client, input.taskId, sequence);
 			}
-			renderer.stopSpinner();
-			return { sent: true, taskId: input.taskId, streamed: true };
 		}
 
 		// CLI mode: --wait (polling)
-		const sequence =
-			((result as Record<string, unknown>)?.sequence as number) ??
-			((result as Record<string, unknown>)?.sequenceNumber as number) ??
-			0;
 		return pollForResponse(ctx.client, input.taskId, sequence);
 	},
 

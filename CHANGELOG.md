@@ -5,6 +5,14 @@ All notable changes to the Elnora CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.3.1](https://github.com/Elnora-AI/elnora-cli/compare/v1.3.0...v1.3.1) (2026-04-13)
+
+
+### Bug Fixes
+
+* clarify project ID workflow in skills to reduce Claude Code confusion ([#86](https://github.com/Elnora-AI/elnora-cli/issues/86)) ([919b099](https://github.com/Elnora-AI/elnora-cli/commit/919b0996aaaf4b1bf2096683919bacbb4adda661))
+* make update check-only by default, add --install flag ([#88](https://github.com/Elnora-AI/elnora-cli/issues/88)) ([bb33825](https://github.com/Elnora-AI/elnora-cli/commit/bb338257648c8d5f975982c021805404cdaefc3d))
+
 ## [1.3.0](https://github.com/Elnora-AI/elnora-cli/compare/v1.2.1...v1.3.0) (2026-04-13)
 
 

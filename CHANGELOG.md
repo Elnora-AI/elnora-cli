@@ -5,6 +5,13 @@ All notable changes to the Elnora CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.3.2](https://github.com/Elnora-AI/elnora-cli/compare/v1.3.1...v1.3.2) (2026-04-13)
+
+
+### Bug Fixes
+
+* use build-npm.mjs to inject version into npm package ([#89](https://github.com/Elnora-AI/elnora-cli/issues/89)) ([7e050ce](https://github.com/Elnora-AI/elnora-cli/commit/7e050ce8d6653dbdfe956e24c51c3d22702a2eb4))
+
 ## [1.3.1](https://github.com/Elnora-AI/elnora-cli/compare/v1.3.0...v1.3.1) (2026-04-13)
 
 

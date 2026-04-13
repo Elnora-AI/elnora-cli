@@ -48,11 +48,10 @@ export const filesUploadBatch: ElnoraCommand<Input> = {
 		for (const filePath of paths) {
 			const fileName = basename(filePath);
 			try {
-				const fileBuffer = readFileSync(filePath);
 				const contentType = "application/octet-stream";
 				const fileSize = statSync(filePath).size;
 
-				// Step 1: Get presigned URL
+				// Step 1: Get presigned URL and validate before reading file content
 				const uploadInfo = await ctx.client.post<Record<string, unknown>>("file_upload", {
 					projectId: input.project,
 					fileName,
@@ -64,7 +63,8 @@ export const filesUploadBatch: ElnoraCommand<Input> = {
 				const fileId = (uploadInfo.fileId ?? uploadInfo.id) as string;
 				validateUploadUrl(presignedUrl);
 
-				// Step 2: PUT to storage
+				// Step 2: Read file and PUT to validated storage URL
+				const fileBuffer = readFileSync(filePath);
 				await fetch(presignedUrl, {
 					method: "PUT",
 					body: fileBuffer,

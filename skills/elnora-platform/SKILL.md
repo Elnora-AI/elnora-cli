@@ -173,6 +173,6 @@ elnora projects     Manage projects
 elnora search       Search tasks, files, and file content
 elnora setup        Configure AI coding tools (Claude Code, Cursor, VS Code, Codex)
 elnora tasks        Manage tasks
-elnora update       Self-update the CLI to the latest version
+elnora update       Check for updates (use --install to apply)
 elnora whoami       Show current profile and org
 ```

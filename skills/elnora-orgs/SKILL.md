@@ -2,9 +2,9 @@
 name: elnora-orgs
 description: >
   This skill should be used when the user asks to "list organizations", "create org",
-  "org members", "billing", "invite member", "manage invitations", "organization library",
-  "shared library", "library files", "library folders", "set default org", "delete org",
-  "list all orgs", "set stripe",
+  "org members", "billing", "invite member", "manage invitations", "resend invitation",
+  "reinvite", "organization library", "shared library", "library files", "library folders",
+  "set default org", "delete org", "list all orgs", "set stripe",
   or any task involving Elnora Platform organization management and shared library resources.
 ---
 
@@ -125,11 +125,32 @@ $CLI --compact orgs invite <ORG_ID> --email user@example.com
 $CLI --compact orgs invite <ORG_ID> --email user@example.com --role Admin
 ```
 
-### List Pending Invitations
+**Smart upsert:** if an invitation already exists for this email (pending *or*
+expired), `orgs invite` routes to the resend endpoint automatically — you don't
+need to cancel first, and the invitation ID stays stable across resends.
+
+### List Invitations
 
 ```bash
 $CLI --compact orgs invitations <ORG_ID>
 ```
+
+Returns all unaccepted invitations, both **pending** and **expired**. Use the
+`isExpired` field on each item to distinguish them. Accepted invitations are
+excluded (they're members now).
+
+### Resend Invitation
+
+```bash
+$CLI --compact orgs resend-invite <ORG_ID> <INVITATION_ID>
+```
+
+Regenerates the invitation token, extends the expiry by 7 days, and re-sends
+the invitation email. Works on both pending and expired invitations. Preserves
+the invitation ID so external references remain valid.
+
+Both positional. Prefer this command when you already have an invitation ID;
+use `orgs invite` by email when you don't.
 
 ### Cancel Invitation
 
@@ -138,7 +159,7 @@ $CLI --compact orgs cancel-invite <ORG_ID> <INVITATION_ID>
 # -> {"cancelled":true,"invitationId":"..."}
 ```
 
-Both positional.
+Both positional. Works on pending or expired invitations (any unaccepted row).
 
 ### Get Invitation Info (by token)
 
@@ -212,6 +233,23 @@ $CLI --compact orgs billing "$ORG"
 
 ```bash
 $CLI --compact orgs invite <ORG_ID> --email new.researcher@lab.com --role Member
+```
+
+**Resend a stalled or expired invitation (by email):**
+
+```bash
+# orgs invite is idempotent — if the email has any unaccepted invitation
+# (pending or expired), it automatically resends instead of creating a new one.
+$CLI --compact orgs invite <ORG_ID> --email new.researcher@lab.com
+```
+
+**Resend a specific invitation by ID:**
+
+```bash
+# 1. List invitations to find the ID (includes expired rows)
+$CLI --compact orgs invitations <ORG_ID>
+# 2. Resend the specific one
+$CLI --compact orgs resend-invite <ORG_ID> <INVITATION_ID>
 ```
 
 **Browse shared library:**

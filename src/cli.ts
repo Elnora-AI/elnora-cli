@@ -25,7 +25,6 @@ import { registerOrgCommands } from "./commands/orgs/index.js";
 import { registerProjectCommands } from "./commands/projects/index.js";
 import { registerSearchCommands } from "./commands/search/index.js";
 import { addSetupCommand } from "./commands/setup.js";
-import { addSetupClaudeCommand } from "./commands/setup-claude.js";
 import { registerTaskCommands } from "./commands/tasks/index.js";
 import { addUpdateCommand } from "./commands/update.js";
 import { addWhoamiCommand } from "./commands/whoami.js";
@@ -97,7 +96,6 @@ addDoctorCommand(program);
 addWhoamiCommand(program);
 addOpenCommand(program);
 addSetupCommand(program);
-addSetupClaudeCommand(program);
 addUpdateCommand(program);
 addCompletionCommand(program);
 

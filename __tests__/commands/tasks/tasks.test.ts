@@ -131,9 +131,10 @@ describe("tasks.create", () => {
 		expect(tasksCreate.group).toBe("tasks");
 	});
 
-	test("requires project UUID", () => {
-		expect(() => tasksCreate.inputSchema.parse({})).toThrow();
+	test("rejects invalid project UUID but allows omission", () => {
 		expect(() => tasksCreate.inputSchema.parse({ project: "not-uuid" })).toThrow();
+		const noProject = tasksCreate.inputSchema.parse({});
+		expect(noProject.project).toBeUndefined();
 	});
 
 	test("accepts project with optional title and message", () => {

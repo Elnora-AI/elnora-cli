@@ -7,7 +7,11 @@ import { collectStreamResponse, streamTask } from "../../lib/stream.js";
 import { StreamRenderer } from "../../lib/stream-renderer.js";
 
 const inputSchema = z.object({
-	project: z.string().uuid().describe("Project ID"),
+	project: z
+		.string()
+		.uuid()
+		.optional()
+		.describe("Project ID (uses default project if omitted)"),
 	title: z.string().optional().describe("Task title"),
 	message: z.string().optional().describe("Initial message"),
 	wait: z.boolean().default(false).describe("Wait for agent response (polling)"),
@@ -24,8 +28,22 @@ export const tasksCreate: ElnoraCommand<Input> = {
 	outputSchema: z.any(),
 
 	async execute(input, ctx) {
+		let projectId = input.project;
+		if (!projectId) {
+			const projects = (await ctx.client.get("projects", {
+				queryParams: { pageSize: 100 },
+			})) as { items: { id: string; isDefault: boolean }[] };
+			const defaultProject = projects.items.find((p) => p.isDefault);
+			if (!defaultProject) {
+				throw new Error(
+					"No --project specified and no default project found. Set a default project or pass --project.",
+				);
+			}
+			projectId = defaultProject.id;
+		}
+
 		const result = (await ctx.client.post("tasks", {
-			projectId: input.project,
+			projectId,
 			title: input.title,
 			initialMessage: input.message,
 		})) as { id: string; [key: string]: unknown };

@@ -38,7 +38,13 @@ SSE event types:
 | `error` | `content` | stderr | Pipeline error, client must close |
 | `timeout` | — | stderr | 300s inactivity, client must close |
 
-**IMPORTANT — Always show the full response:** When Elnora returns a response (protocol, literature review, analysis, etc.), print the **entire** assistant content back to the user. No truncation, no summarization, no "here are the key points." The user asked Elnora to generate something — show them everything Elnora said, including comments, suggestions, warnings, and explanations. Strip JSON wrapper/metadata but preserve all human-readable content.
+**IMPORTANT — Communicate everything back to the user in real time.** When streaming, relay all events as they arrive — not just the final response:
+- `think` events: tell the user what Elnora is thinking/planning (e.g., "Elnora is planning the protocol structure...")
+- `tool_start`/`tool_end` events: tell the user which tools Elnora is using (e.g., "Elnora is searching the literature...", "Literature search complete.")
+- `progress` events: relay any intermediate status updates verbatim
+- `token` events: show the streamed content as it arrives
+
+When the full response is complete, print the **entire** assistant content back to the user. No truncation, no summarization, no "here are the key points." The user asked Elnora to generate something — show them everything Elnora said, including comments, suggestions, warnings, and explanations. Strip JSON wrapper/metadata but preserve all human-readable content.
 
 ## Invocation
 
@@ -75,18 +81,28 @@ Returns full task detail. Use this to inspect a task before interacting.
 ### Create Task
 
 ```bash
+# Uses default project automatically
+$CLI --compact tasks create --title "PCR protocol for BRCA1" --message "Generate a simple PCR protocol for BRCA1 exon 11"
+
+# Or specify a project explicitly
 $CLI --compact tasks create --project <PROJECT_ID> --title "PCR protocol for BRCA1" --message "Generate a simple PCR protocol for BRCA1 exon 11"
 ```
 
 | Flag | Required | Notes |
 |------|----------|-------|
-| `--project` | Yes | Project UUID |
+| `--project` | No | Project UUID (uses default project if omitted) |
 | `--title` | No | Task title (auto-generated if omitted) |
 | `--message` | No | Initial message to start the conversation |
 | `--stream` | No | Stream agent response in real-time via SSE (300s timeout). Requires `--message` |
 | `--wait` | No | Poll for agent response (120s timeout). Requires `--message` |
 
 Returns the created task with its `id`. If `--message` is provided without `--stream` or `--wait`, the response is fire-and-forget — use `tasks messages` to check later.
+
+**Project resolution — agent behavior when user does not specify a project:**
+
+1. **Omit `--project`.** The CLI automatically uses the project marked `isDefault: true`. If this succeeds, you're done.
+2. **If the CLI errors with "no default project found"**, run `projects list` yourself, review the project names/descriptions, and pick the most appropriate one based on the user's prompt context (e.g., if the user asks about PCR protocols and there's a "Protocol Lab" project, use that). Pass the chosen project ID with `--project`.
+3. **If no project clearly matches the user's intent**, show the user the project list and ask which one to use. Do not guess blindly.
 
 ### Send Message
 
@@ -165,17 +181,16 @@ MCP tools accept the same parameters as CLI flags (camelCase). `elnora_tasks_sen
 
 ## Agent Recipes
 
-**Create task and stream the response:**
+**Create task and stream the response (uses default project):**
 
 ```bash
-PROJECT=$($CLI --compact --fields "id" projects list | jq -r '.items[0].id')
-$CLI --compact tasks create --project "$PROJECT" --title "PCR BRCA1" --message "Generate PCR protocol for BRCA1 exon 11" --stream
+$CLI --compact tasks create --title "PCR BRCA1" --message "Generate PCR protocol for BRCA1 exon 11" --stream
 ```
 
 **Two-step (capture task ID, then stream follow-ups):**
 
 ```bash
-TASK=$($CLI --compact tasks create --project "$PROJECT" --title "PCR BRCA1" | jq -r '.id')
+TASK=$($CLI --compact tasks create --title "PCR BRCA1" | jq -r '.id')
 $CLI --compact tasks send "$TASK" --message "Generate PCR protocol for BRCA1 exon 11" --stream
 $CLI --compact tasks send "$TASK" --message "Add gel electrophoresis step" --stream
 ```

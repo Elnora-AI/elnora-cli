@@ -77,7 +77,7 @@ function generateZsh(root: CommandInfo): string {
 	lines.push("  if (( CURRENT == 2 )); then");
 	lines.push("    commands=(");
 	for (const cmd of root.subcommands) {
-		lines.push(`      '${cmd.name}:${cmd.description.replace(/'/g, "")}'`);
+		lines.push(`      '${cmd.name}:${cmd.description.replace(/\\/g, "\\\\").replace(/'/g, "")}'`);
 	}
 	lines.push("    )");
 	lines.push("    _describe 'command' commands");
@@ -92,7 +92,7 @@ function generateZsh(root: CommandInfo): string {
 			lines.push("      local -a subcommands");
 			lines.push("      subcommands=(");
 			for (const sub of group.subcommands) {
-				lines.push(`        '${sub.name}:${sub.description.replace(/'/g, "")}'`);
+				lines.push(`        '${sub.name}:${sub.description.replace(/\\/g, "\\\\").replace(/'/g, "")}'`);
 			}
 			lines.push("      )");
 			lines.push("      _describe 'subcommand' subcommands");
@@ -117,7 +117,7 @@ function generateFish(root: CommandInfo): string {
 	// Top-level commands
 	for (const cmd of root.subcommands) {
 		lines.push(
-			`complete -c elnora -n "__fish_use_subcommand" -a "${cmd.name}" -d "${cmd.description.replace(/"/g, '\\"')}"`,
+			`complete -c elnora -n "__fish_use_subcommand" -a "${cmd.name}" -d "${cmd.description.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`,
 		);
 	}
 	lines.push("");
@@ -126,7 +126,7 @@ function generateFish(root: CommandInfo): string {
 	for (const group of root.subcommands) {
 		for (const sub of group.subcommands) {
 			lines.push(
-				`complete -c elnora -n "__fish_seen_subcommand_from ${group.name}" -a "${sub.name}" -d "${sub.description.replace(/"/g, '\\"')}"`,
+				`complete -c elnora -n "__fish_seen_subcommand_from ${group.name}" -a "${sub.name}" -d "${sub.description.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`,
 			);
 		}
 	}

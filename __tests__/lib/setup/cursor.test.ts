@@ -1,9 +1,9 @@
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
-const TEST_HOME = join(tmpdir(), `elnora-setup-cursor-${Date.now()}`);
+const TEST_HOME = mkdtempSync(join(tmpdir(), "elnora-setup-cursor-"));
 
 vi.mock("node:os", async () => {
 	const actual = await vi.importActual("node:os");

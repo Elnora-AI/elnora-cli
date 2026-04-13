@@ -2,6 +2,12 @@ import type { Command } from "commander";
 import { ElnoraApiClient } from "../lib/client.js";
 import { resolveApiKey } from "../lib/profiles.js";
 
+/** Mask an API key for safe display — never log the full key. */
+function maskApiKey(key: string): string {
+	if (key.length > 20) return `${key.slice(0, 16)}...${key.slice(-4)}`;
+	return `${key.slice(0, 4)}...`;
+}
+
 export function addWhoamiCommand(program: Command): void {
 	program
 		.command("whoami")
@@ -12,7 +18,7 @@ export function addWhoamiCommand(program: Command): void {
 
 			try {
 				const key = resolveApiKey(profileName);
-				const masked = key.length > 20 ? `${key.slice(0, 16)}...${key.slice(-4)}` : `${key.slice(0, 4)}...`;
+				const masked = maskApiKey(key);
 
 				// Try to fetch org info
 				let orgName = "unknown";

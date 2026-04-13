@@ -11,7 +11,7 @@
  * - Zero external HTTP dependencies (uses native fetch)
  */
 
-import { BASE_URL, buildUrl, DEFAULT_HEADERS, ENDPOINTS, VERSION } from "./config.js";
+import { BASE_URL, buildUrl, DEFAULT_HEADERS, ENDPOINTS, PRODUCTION_BASE_URL, VERSION } from "./config.js";
 import {
 	AuthError,
 	ElnoraError,
@@ -136,8 +136,10 @@ export class ElnoraApiClient {
 			url = `${url}?${qs.toString()}`;
 		}
 
-		// SSRF check (skip for custom base URLs like localhost dev)
-		if (this.baseUrl === BASE_URL) {
+		// SSRF check (skip for custom base URLs like localhost dev). We compare
+		// against the hardcoded production URL so that an ELNORA_API_URL override
+		// still bypasses the allowlist intentionally.
+		if (this.baseUrl === PRODUCTION_BASE_URL) {
 			validateApiUrl(url);
 		}
 

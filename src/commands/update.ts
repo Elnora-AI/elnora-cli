@@ -8,6 +8,7 @@ import { pipeline } from "node:stream/promises";
 import type { Command } from "commander";
 import pc from "picocolors";
 import { VERSION } from "../lib/config.js";
+import { detectInstallMethod, getUpdateInstruction } from "../lib/install-method.js";
 import { isColorEnabled } from "../lib/tty.js";
 import { isNewerVersion } from "../lib/update-check.js";
 
@@ -28,10 +29,11 @@ function getPlatformTarget(): { target: string; ext: string } | null {
 	}
 }
 
-function getManualHint(): string {
-	return process.platform === "win32"
-		? "  irm https://cli.elnora.ai/install.ps1 | iex"
-		: "  curl -fsSL https://cli.elnora.ai/install.sh | bash";
+async function fetchLatestVersion(): Promise<string> {
+	const res = await fetch(NPM_REGISTRY_URL, { signal: AbortSignal.timeout(5000) });
+	if (!res.ok) throw new Error(`Registry returned HTTP ${res.status}`);
+	const data = (await res.json()) as { version?: string };
+	return data.version ?? "unknown";
 }
 
 async function downloadToFile(url: string, dest: string): Promise<void> {
@@ -41,31 +43,109 @@ async function downloadToFile(url: string, dest: string): Promise<void> {
 	await pipeline(nodeStream, createWriteStream(dest));
 }
 
+async function installBinaryUpdate(latest: string): Promise<void> {
+	const color = isColorEnabled();
+	const platformInfo = getPlatformTarget();
+	if (!platformInfo) {
+		console.error(`Unsupported platform: ${process.platform}.`);
+		console.error("Try: npm update -g @elnora-ai/cli");
+		process.exitCode = 1;
+		return;
+	}
+
+	const { target, ext } = platformInfo;
+	const binaryUrl = `https://github.com/${GITHUB_REPO}/releases/download/v${latest}/${target}.${ext}`;
+	const checksumUrl = `https://github.com/${GITHUB_REPO}/releases/download/v${latest}/${target}.sha256`;
+
+	const tmp = join(tmpdir(), `elnora-update-${Date.now()}`);
+	mkdirSync(tmp, { recursive: true });
+	const archivePath = join(tmp, `${target}.${ext}`);
+
+	try {
+		console.error("Downloading...");
+		await downloadToFile(binaryUrl, archivePath);
+
+		// Verify checksum
+		let checksumVerified = false;
+		try {
+			const checksumRes = await fetch(checksumUrl, { signal: AbortSignal.timeout(15_000) });
+			if (checksumRes.ok) {
+				const checksumText = await checksumRes.text();
+				const expected = checksumText.split(/\s/)[0].trim();
+				if (expected.length === 64) {
+					const actual = createHash("sha256").update(readFileSync(archivePath)).digest("hex");
+					if (actual.toLowerCase() !== expected.toLowerCase()) {
+						console.error("Checksum verification failed. The download may be corrupted.");
+						process.exitCode = 1;
+						return;
+					}
+					checksumVerified = true;
+				}
+			}
+		} catch {
+			/* continue without verification */
+		}
+		if (!checksumVerified) {
+			console.error("Warning: Could not verify download checksum. Proceeding anyway.");
+		}
+
+		// Extract and install
+		if (process.platform === "win32") {
+			const extractDir = join(tmp, "extracted");
+			execFileSync("powershell", [
+				"-NoProfile",
+				"-Command",
+				`Expand-Archive -Path '${archivePath}' -DestinationPath '${extractDir}' -Force`,
+			]);
+			const installDir = join(process.env.USERPROFILE ?? process.env.HOME ?? "", ".elnora", "bin");
+			mkdirSync(installDir, { recursive: true });
+			copyFileSync(join(extractDir, target), join(installDir, "elnora.exe"));
+		} else {
+			execFileSync("tar", ["-xzf", archivePath, "-C", tmp]);
+			const installDir = process.env.ELNORA_INSTALL_DIR ?? join(process.env.HOME ?? "", ".local", "bin");
+			mkdirSync(installDir, { recursive: true });
+			const dest = join(installDir, "elnora");
+			copyFileSync(join(tmp, target), dest);
+			chmodSync(dest, 0o755);
+		}
+
+		const done = color ? `${pc.green("✓")} Updated to v${latest}` : `✓ Updated to v${latest}`;
+		console.error(done);
+	} finally {
+		try {
+			rmSync(tmp, { recursive: true, force: true });
+		} catch {
+			/* ignore */
+		}
+	}
+}
+
 export function addUpdateCommand(program: Command): void {
 	program
 		.command("update")
-		.description("Update Elnora CLI to the latest version")
-		.action(async () => {
+		.description("Check for updates (use --install to apply)")
+		.option("--install", "Download and install the update")
+		.action(async (opts: { install?: boolean }) => {
 			const color = isColorEnabled();
-			const hint = getManualHint();
+			const method = detectInstallMethod();
 
 			// Check latest version
 			let latest: string;
 			try {
-				const res = await fetch(NPM_REGISTRY_URL, { signal: AbortSignal.timeout(5000) });
-				if (!res.ok) {
-					console.error("Failed to check for updates. Try manually:");
-					console.error(hint);
-					process.exit(1);
-				}
-				const data = (await res.json()) as { version?: string };
-				latest = data.version ?? "unknown";
+				latest = await fetchLatestVersion();
 			} catch {
-				console.error("Failed to reach registry. Try manually:");
-				console.error(hint);
-				process.exit(1);
+				console.error("Failed to check for updates.");
+				process.exitCode = 1;
+				return;
 			}
 
+			if (latest === "unknown") {
+				console.error("Could not determine latest version.");
+				process.exitCode = 1;
+				return;
+			}
+
+			// Already up to date
 			if (latest === VERSION || !isNewerVersion(latest, VERSION)) {
 				const msg = color
 					? `${pc.green("✓")} Already on the latest version (v${VERSION})`
@@ -74,86 +154,48 @@ export function addUpdateCommand(program: Command): void {
 				return;
 			}
 
+			// Update available
+			const instruction = getUpdateInstruction(method);
+
+			if (!opts.install) {
+				// Check-only mode (default)
+				const msg = color
+					? `${pc.yellow("Update available:")} v${VERSION} → v${latest}`
+					: `Update available: v${VERSION} → v${latest}`;
+				console.error(msg);
+				console.error(`Run: ${instruction}`);
+				return;
+			}
+
+			// --install mode
 			const msg = color
 				? `Updating Elnora CLI ${pc.dim(`v${VERSION}`)} → ${pc.green(`v${latest}`)}...`
 				: `Updating Elnora CLI v${VERSION} → v${latest}...`;
 			console.error(msg);
 
-			const platformInfo = getPlatformTarget();
-			if (!platformInfo) {
-				console.error(`\nUnsupported platform: ${process.platform}. Try manually:`);
-				console.error("  npm update -g @elnora-ai/cli");
-				process.exit(1);
+			if (method === "npm") {
+				console.error("Installed via npm. Run:");
+				console.error(`  npm update -g @elnora-ai/cli`);
+				return;
 			}
 
-			const { target, ext } = platformInfo;
-			const binaryUrl = `https://github.com/${GITHUB_REPO}/releases/download/v${latest}/${target}.${ext}`;
-			const checksumUrl = `https://github.com/${GITHUB_REPO}/releases/download/v${latest}/${target}.sha256`;
+			if (method === "homebrew") {
+				console.error("Installed via Homebrew. Run:");
+				console.error(`  brew upgrade elnora`);
+				return;
+			}
 
-			const tmp = join(tmpdir(), `elnora-update-${Date.now()}`);
-			mkdirSync(tmp, { recursive: true });
-			const archivePath = join(tmp, `${target}.${ext}`);
-
+			// Binary self-replace
 			try {
-				await downloadToFile(binaryUrl, archivePath);
-
-				// Verify checksum
-				let checksumVerified = false;
-				try {
-					const checksumRes = await fetch(checksumUrl, { signal: AbortSignal.timeout(15_000) });
-					if (checksumRes.ok) {
-						const checksumText = await checksumRes.text();
-						const expected = checksumText.split(/\s/)[0].trim();
-						if (expected.length === 64) {
-							const actual = createHash("sha256").update(readFileSync(archivePath)).digest("hex");
-							if (actual.toLowerCase() !== expected.toLowerCase()) {
-								console.error("\nChecksum verification failed. The download may be corrupted.");
-								console.error("Try again, or install manually:");
-								console.error(hint);
-								process.exit(1);
-							}
-							checksumVerified = true;
-						}
-					}
-				} catch {
-					/* continue without verification */
-				}
-				if (!checksumVerified) {
-					console.error("Warning: Could not verify download checksum. Proceeding anyway.");
-				}
-
-				// Extract and install
-				if (process.platform === "win32") {
-					const extractDir = join(tmp, "extracted");
-					execFileSync("powershell", [
-						"-NoProfile",
-						"-Command",
-						`Expand-Archive -Path '${archivePath}' -DestinationPath '${extractDir}' -Force`,
-					]);
-					const installDir = join(process.env.USERPROFILE ?? process.env.HOME ?? "", ".elnora", "bin");
-					mkdirSync(installDir, { recursive: true });
-					copyFileSync(join(extractDir, target), join(installDir, "elnora.exe"));
-				} else {
-					execFileSync("tar", ["-xzf", archivePath, "-C", tmp]);
-					const installDir = process.env.ELNORA_INSTALL_DIR ?? join(process.env.HOME ?? "", ".local", "bin");
-					mkdirSync(installDir, { recursive: true });
-					const dest = join(installDir, "elnora");
-					copyFileSync(join(tmp, target), dest);
-					chmodSync(dest, 0o755);
-				}
-
-				const done = color ? `${pc.green("✓")} Updated to v${latest}` : `✓ Updated to v${latest}`;
-				console.error(done);
+				await installBinaryUpdate(latest);
 			} catch {
-				console.error("\nUpdate failed. Try manually:");
-				console.error(hint);
-				process.exit(1);
-			} finally {
-				try {
-					rmSync(tmp, { recursive: true, force: true });
-				} catch {
-					/* ignore */
-				}
+				console.error("Update failed. Try manually:");
+				console.error(
+					process.platform === "win32"
+						? "  irm https://cli.elnora.ai/install.ps1 | iex"
+						: "  curl -fsSL https://cli.elnora.ai/install.sh | bash",
+				);
+				process.exitCode = 1;
 			}
 		});
 }

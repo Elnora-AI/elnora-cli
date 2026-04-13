@@ -1,8 +1,9 @@
 /**
  * Background update check — non-blocking, 24h cache.
  *
- * Port of: elnora-cli/src/elnora/lib/update_check.py (69 lines)
- * Adapted for npm registry instead of PyPI.
+ * The cache refresh always runs (even in non-TTY) so that the next
+ * interactive session has fresh data. The notification is only shown
+ * in TTY contexts.
  */
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -24,13 +25,9 @@ interface CacheEntry {
 	latest: string;
 }
 
-function shouldSkip(): boolean {
-	// Skip in CI
+function shouldSkipEntirely(): boolean {
 	if (process.env.CI || process.env.GITHUB_ACTIONS) return true;
-	// Skip if opted out
 	if (process.env.ELNORA_NO_UPDATE_CHECK) return true;
-	// Skip in non-TTY (piped output)
-	if (!process.stderr.isTTY) return true;
 	return false;
 }
 
@@ -54,10 +51,13 @@ function writeCache(entry: CacheEntry): void {
 }
 
 function showUpdateNotice(latest: string): void {
+	// Only show in TTY
+	if (!process.stderr.isTTY) return;
+
 	const color = isColorEnabled();
 	const msg = color
-		? `\n${pc.yellow(`Update available: v${VERSION} → v${latest}`)}\nRun: curl -fsSL https://cli.elnora.ai/install.sh | bash\n`
-		: `\nUpdate available: v${VERSION} → v${latest}\nRun: curl -fsSL https://cli.elnora.ai/install.sh | bash\n`;
+		? `\n${pc.yellow(`Update available: v${VERSION} → v${latest}`)}\nRun: elnora update\n`
+		: `\nUpdate available: v${VERSION} → v${latest}\nRun: elnora update\n`;
 	process.stderr.write(msg);
 }
 
@@ -76,10 +76,10 @@ export function isNewerVersion(a: string, b: string): boolean {
 
 /**
  * Register update check to run at process exit.
- * Non-blocking — uses a fire-and-forget fetch.
+ * Cache refresh runs even in non-TTY; notification only in TTY.
  */
 export function registerUpdateCheck(): void {
-	if (shouldSkip()) return;
+	if (shouldSkipEntirely()) return;
 
 	// Check cache first
 	const cached = readCache();
@@ -88,7 +88,6 @@ export function registerUpdateCheck(): void {
 		if (elapsed < CHECK_INTERVAL_MS) {
 			// Cache is fresh — show notice if update available
 			if (cached.latest && cached.latest !== VERSION && cached.latest !== "unknown") {
-				// Compare versions simply — assumes semver
 				if (isNewerVersion(cached.latest, VERSION)) {
 					showUpdateNotice(cached.latest);
 				}
@@ -97,9 +96,12 @@ export function registerUpdateCheck(): void {
 		}
 	}
 
-	// Cache is stale or missing — fetch in background
-	// Use setTimeout(0) to ensure it doesn't block the main command
-	setTimeout(async () => {
+	// Cache is stale or missing — fetch in background.
+	// Keep the process alive with a ref'd timer until the fetch completes
+	// (bounded by FETCH_TIMEOUT_MS = 3s so it never hangs).
+	const keepAlive = setInterval(() => {}, 60_000);
+
+	(async () => {
 		try {
 			const response = await fetch(NPM_REGISTRY_URL, {
 				signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
@@ -108,7 +110,6 @@ export function registerUpdateCheck(): void {
 			const data = (await response.json()) as { version?: string };
 			const latest = data.version ?? "unknown";
 
-			// Validate version is a safe semver string before writing to cache file
 			if (latest !== "unknown" && !SEMVER_RE.test(latest)) return;
 
 			writeCache({ checkedAt: new Date().toISOString(), latest });
@@ -117,7 +118,9 @@ export function registerUpdateCheck(): void {
 				showUpdateNotice(latest);
 			}
 		} catch {
-			// Silently ignore — never block or error on update check
+			// Silently ignore
+		} finally {
+			clearInterval(keepAlive);
 		}
-	}, 0);
+	})();
 }

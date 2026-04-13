@@ -35,6 +35,10 @@ $CLI projects list --compact            # also works for most commands
 | `--profile <name>` | Named profile (default: `default`). Set with `auth login --api-key <KEY> --profile <name>` |
 | `--json` | Force JSON output |
 
+## Updates
+
+On first use in a session, run `elnora update` to check for updates. If an update is available, inform the user and offer to run `elnora update --install`.
+
 ## Auth
 
 Requires `ELNORA_API_KEY` environment variable (prefix: `elnora_live_`), `ELNORA_MCP_API_KEY`, or a saved profile in `~/.elnora/profiles.toml`.

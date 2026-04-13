@@ -21,8 +21,8 @@ const msg = `
   │   To get started, run:                                       │
   │     elnora auth login                                        │
   │                                                              │
-  │   Using Claude Code? Run:                                    │
-  │     elnora setup-claude                                      │
+  │   Set up your AI coding tools:                                │
+  │     elnora setup                                             │
   │                                                              │
   │   Documentation:                                             │
   │     https://github.com/Elnora-AI/elnora-cli                  │

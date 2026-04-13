@@ -214,3 +214,12 @@ export function resolveApiKey(profileName?: string): string {
 	migrateConfigIfNeeded();
 	return getApiKey(profileName ?? "default");
 }
+
+/**
+ * Return a masked hint of the resolved credential, safe for display/logging.
+ * Resolves from the same sources as resolveApiKey but returns only a truncated preview.
+ */
+export function resolveCredentialHint(profileName?: string): string {
+	const raw = resolveApiKey(profileName);
+	return raw.length > 20 ? `${raw.slice(0, 16)}...${raw.slice(-4)}` : `${raw.slice(0, 4)}...`;
+}

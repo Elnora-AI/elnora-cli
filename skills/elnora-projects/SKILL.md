@@ -112,10 +112,12 @@ Removes the current user from the project.
 
 ## Agent Recipes
 
-**Get the default project ID:**
+**List projects and pick one:**
 
 ```bash
-$CLI --compact --fields "id,name" projects list --page-size 5
+$CLI --compact --fields "id,name" projects list
+# Pick the project matching the user's context by name. If only one project, use it.
+# If multiple and unclear, ask the user which project to use.
 ```
 
 **Full project setup with members:**

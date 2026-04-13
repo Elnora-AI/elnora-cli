@@ -96,8 +96,12 @@ export function registerUpdateCheck(): void {
 		}
 	}
 
-	// Cache is stale or missing — fetch in background
-	const fetchPromise = (async () => {
+	// Cache is stale or missing — fetch in background.
+	// Keep the process alive with a ref'd timer until the fetch completes
+	// (bounded by FETCH_TIMEOUT_MS = 3s so it never hangs).
+	const keepAlive = setInterval(() => {}, 60_000);
+
+	(async () => {
 		try {
 			const response = await fetch(NPM_REGISTRY_URL, {
 				signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
@@ -115,13 +119,8 @@ export function registerUpdateCheck(): void {
 			}
 		} catch {
 			// Silently ignore
+		} finally {
+			clearInterval(keepAlive);
 		}
 	})();
-
-	// Keep the process alive until the fetch completes (max 3s timeout anyway)
-	// Use unref() so it doesn't prevent exit if the main command is done,
-	// but beforeExit will let it finish if there's nothing else pending.
-	process.once("beforeExit", () => {
-		fetchPromise.catch(() => {});
-	});
 }

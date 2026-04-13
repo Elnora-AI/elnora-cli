@@ -5,6 +5,25 @@ All notable changes to the Elnora CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.2.1](https://github.com/Elnora-AI/elnora-cli/compare/v1.2.0...v1.2.1) (2026-04-13)
+
+
+### Bug Fixes
+
+* use RELEASE_BOT_PAT for cross-repo release steps ([#82](https://github.com/Elnora-AI/elnora-cli/issues/82)) ([5421aa1](https://github.com/Elnora-AI/elnora-cli/commit/5421aa1979417167b2e25eff4d75f023c9b750f2))
+
+## [1.2.0](https://github.com/Elnora-AI/elnora-cli/compare/v1.1.3...v1.2.0) (2026-04-13)
+
+
+### Features
+
+* **orgs:** add resend-invite command and smart invite upsert (ELN-619) ([#76](https://github.com/Elnora-AI/elnora-cli/issues/76)) ([e8b0736](https://github.com/Elnora-AI/elnora-cli/commit/e8b0736cba48e6f920488432818a2acdcdfdb0ee))
+
+
+### Bug Fixes
+
+* align CLI streaming skills and add MCP error visibility ([#80](https://github.com/Elnora-AI/elnora-cli/issues/80)) ([910d944](https://github.com/Elnora-AI/elnora-cli/commit/910d944dffa49fa3404f589e0fa1b7bef9748fbc))
+
 ## [1.1.3](https://github.com/Elnora-AI/elnora-cli/compare/cli-v1.1.2...cli-v1.1.3) (2026-04-09)
 
 

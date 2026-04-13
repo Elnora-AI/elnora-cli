@@ -17,6 +17,7 @@ const CACHE_DIR = join(homedir(), ".elnora");
 const CACHE_FILE = join(CACHE_DIR, ".update-check");
 const CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000; // 24 hours
 const FETCH_TIMEOUT_MS = 3000;
+const SEMVER_RE = /^\d+\.\d+\.\d+(?:-[\w.]+)?(?:\+[\w.]+)?$/;
 
 interface CacheEntry {
 	checkedAt: string;
@@ -106,6 +107,9 @@ export function registerUpdateCheck(): void {
 			if (!response.ok) return;
 			const data = (await response.json()) as { version?: string };
 			const latest = data.version ?? "unknown";
+
+			// Validate version is a safe semver string before writing to cache file
+			if (latest !== "unknown" && !SEMVER_RE.test(latest)) return;
 
 			writeCache({ checkedAt: new Date().toISOString(), latest });
 

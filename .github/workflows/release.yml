@@ -114,7 +114,7 @@ jobs:
         uses: actions/checkout@v6
         with:
           repository: Elnora-AI/homebrew-cli
-          token: ${{ secrets.DEPENDABOT_PAT }}
+          token: ${{ secrets.RELEASE_BOT_PAT }}
 
       - name: Extract version from tag
         run: |
@@ -170,24 +170,35 @@ jobs:
         uses: actions/checkout@v6
         with:
           repository: Elnora-AI/elnora-plugins
-          token: ${{ secrets.DEPENDABOT_PAT }}
+          token: ${{ secrets.RELEASE_BOT_PAT }}
           path: elnora-plugins
 
-      - name: Sync skills
+      - name: Sync skills and update versions
         run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          echo "Syncing skills and updating version to $VERSION"
+
+          # Copy skill files
           for skill in elnora-admin elnora-agent elnora-files elnora-folders elnora-orgs elnora-platform elnora-projects elnora-search elnora-tasks; do
             cp "skills/$skill/SKILL.md" "elnora-plugins/elnora/skills/$skill/SKILL.md"
           done
+
+          # Update plugin.json version
+          cd elnora-plugins
+          jq --arg v "$VERSION" '.version = $v' \
+            elnora/.claude-plugin/plugin.json > tmp.json && mv tmp.json elnora/.claude-plugin/plugin.json
+          jq --arg v "$VERSION" '.metadata.version = $v' \
+            .claude-plugin/marketplace.json > tmp.json && mv tmp.json .claude-plugin/marketplace.json
 
       - name: Commit and push
         run: |
           cd elnora-plugins
           git config user.name "elnora-bot"
           git config user.email "bot@elnora.ai"
-          git add elnora/skills/
+          git add elnora/skills/ elnora/.claude-plugin/plugin.json .claude-plugin/marketplace.json
           if git diff --cached --quiet; then
-            echo "No skill changes to sync"
+            echo "No changes to sync"
           else
-            git commit -m "Sync skills from elnora-cli ${{ github.event.release.tag_name }}"
+            git commit -m "Sync skills and version from elnora-cli ${{ github.event.release.tag_name }}"
             git push
           fi

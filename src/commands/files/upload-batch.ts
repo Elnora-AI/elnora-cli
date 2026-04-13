@@ -64,7 +64,7 @@ export const filesUploadBatch: ElnoraCommand<Input> = {
 				const fileId = (uploadInfo.fileId ?? uploadInfo.id) as string;
 				validateUploadUrl(presignedUrl);
 
-				// Step 2: PUT to storage
+				// Step 2: PUT to storage (file→HTTP is intentional — URL is validated above)
 				await fetch(presignedUrl, {
 					method: "PUT",
 					body: fileBuffer,

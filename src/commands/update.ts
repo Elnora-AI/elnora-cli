@@ -48,7 +48,7 @@ async function installBinaryUpdate(latest: string): Promise<void> {
 	const platformInfo = getPlatformTarget();
 	if (!platformInfo) {
 		console.error(`Unsupported platform: ${process.platform}.`);
-		console.error("Try: npm update -g @elnora-ai/cli");
+		console.error("Try: npm install -g @elnora-ai/cli@latest");
 		process.exitCode = 1;
 		return;
 	}
@@ -175,7 +175,7 @@ export function addUpdateCommand(program: Command): void {
 
 			if (method === "npm") {
 				console.error("Installed via npm. Run:");
-				console.error(`  npm update -g @elnora-ai/cli`);
+				console.error(`  npm install -g @elnora-ai/cli@latest`);
 				return;
 			}
 

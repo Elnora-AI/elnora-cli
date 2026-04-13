@@ -25,10 +25,10 @@ export function addWhoamiCommand(program: Command): void {
 				}
 
 				if (parentOpts.json) {
-					console.log(JSON.stringify({ profile: profileName, apiKey: hint, orgName }, null, 2));
+					console.log(JSON.stringify({ profile: profileName, credential: hint, orgName }, null, 2));
 				} else {
-					console.log(`\nProfile:  ${profileName}`);
-					console.log(`API Key:  ${hint}`);
+					console.log(`\nProfile:     ${profileName}`);
+					console.log(`Credential:  ${hint}`);
 					console.log(`Org:      ${orgName}`);
 					console.log("");
 				}

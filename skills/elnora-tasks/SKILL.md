@@ -40,6 +40,17 @@ SSE event types:
 
 **IMPORTANT — Always show the full response:** When Elnora returns a response (protocol, literature review, analysis, etc.), print the **entire** assistant content back to the user. No truncation, no summarization, no "here are the key points." The user asked Elnora to generate something — show them everything Elnora said, including comments, suggestions, warnings, and explanations. Strip JSON wrapper/metadata but preserve all human-readable content.
 
+## Getting a Project ID
+
+Every task belongs to a project. You need a project ID to create tasks. **Do this once per session, then reuse the ID.**
+
+```bash
+# List the user's projects
+elnora --compact --fields "id,name" projects list
+```
+
+Pick the project that best matches the user's request by name. If there's only one project, use it. If unsure, ask the user which project to use. **Remember the project ID** — don't re-list projects for every task command.
+
 ## Invocation
 
 ```bash
@@ -165,38 +176,27 @@ MCP tools accept the same parameters as CLI flags (camelCase). `elnora_tasks_sen
 
 ## Agent Recipes
 
-**Create task and stream the response:**
+**Typical workflow (list projects → create task → stream response):**
 
 ```bash
-PROJECT=$($CLI --compact --fields "id" projects list | jq -r '.items[0].id')
+# Step 1: Get the project ID (do this once, reuse for all commands)
+$CLI --compact --fields "id,name" projects list
+# Pick the project that matches the user's context. Example with one project:
+# PROJECT="bfdc6fbd-40ed-4042-9ea7-c79a5ec90085"
+
+# Step 2: Create task and stream
 $CLI --compact tasks create --project "$PROJECT" --title "PCR BRCA1" --message "Generate PCR protocol for BRCA1 exon 11" --stream
 ```
 
-**Two-step (capture task ID, then stream follow-ups):**
+**Continue a conversation (reuse task ID):**
 
 ```bash
-TASK=$($CLI --compact tasks create --project "$PROJECT" --title "PCR BRCA1" | jq -r '.id')
-$CLI --compact tasks send "$TASK" --message "Generate PCR protocol for BRCA1 exon 11" --stream
 $CLI --compact tasks send "$TASK" --message "Add gel electrophoresis step" --stream
-```
-
-**Get response as JSON (--wait):**
-
-```bash
-$CLI --compact tasks send "$TASK" --message "Add gel electrophoresis step" --wait
+$CLI --compact tasks send "$TASK" --message "Reduce annealing temperature to 55C" --stream
 ```
 
 **Read conversation history:**
 
 ```bash
 $CLI --compact tasks messages <TASK_ID> | jq '.items[-1] | select(.role == "assistant") | .content'
-```
-
-**Manual polling fallback (custom timeout):**
-
-```bash
-LAST=$($CLI --compact tasks messages <TASK_ID> | jq '.items[-1]')
-echo "$LAST" | jq '{role: .role, status: (.metadata | fromjson? // {} | .status)}'
-# -> {"role":"assistant","status":"completed"}  <- ready
-# -> {"role":"user","status":null}              <- still processing
 ```

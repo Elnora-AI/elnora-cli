@@ -1,4 +1,4 @@
-import { describe, expect, test, vi } from "vitest";
+import { describe, expect, test } from "vitest";
 
 describe("promptSecret", () => {
 	test("module exports promptSecret function", async () => {
@@ -11,7 +11,6 @@ describe("promptSecret", () => {
 
 		// Save originals
 		const origStdin = process.stdin;
-		const origIsTTY = process.stdin.isTTY;
 
 		// Create a readable stream that emits a line
 		const mockStdin = new Readable({

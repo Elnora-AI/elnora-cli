@@ -34,13 +34,13 @@ export const CODEX_DIR = join(HOME, ".codex");
 // Marketplace / Plugin IDs
 // ---------------------------------------------------------------------------
 
-export const MARKETPLACE_NAME = "elnora-ai";
+export const MARKETPLACE_NAME = "elnora-plugins";
 export const MARKETPLACE_REPO = "Elnora-AI/elnora-plugins";
 export const PLUGIN_ID = `elnora@${MARKETPLACE_NAME}`;
 
 /** Old IDs to clean up from previous setup-claude versions. */
-export const LEGACY_PLUGIN_IDS = ["elnora@elnora-local"];
-export const LEGACY_MARKETPLACE_NAMES = ["elnora-local"];
+export const LEGACY_PLUGIN_IDS = ["elnora@elnora-local", "elnora@elnora-ai"];
+export const LEGACY_MARKETPLACE_NAMES = ["elnora-local", "elnora-ai"];
 
 // ---------------------------------------------------------------------------
 // JSON helpers

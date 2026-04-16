@@ -11,6 +11,29 @@ description: >
 
 Tasks are conversations with the Elnora AI Agent. Send messages to generate protocols, iterate on outputs, and reference uploaded files.
 
+## Tool Access
+
+Elnora is a **command-line tool**. Run commands via your Bash/Shell tool.
+
+- **Command:** `elnora`
+- **Verify:** `elnora --version`
+- **If not found:** tell the user to install it. Detect their platform:
+  - macOS/Linux: `curl -fsSL https://cli.elnora.ai/install.sh | bash`
+  - Windows (PowerShell): `irm https://cli.elnora.ai/install.ps1 | iex`
+  - Any platform with Node.js: `npm install -g @elnora-ai/cli`
+
+**CLI is the recommended path** — it uses fewer tokens, is more reliable, and the commands below are ready to copy-paste.
+
+If MCP tools prefixed `mcp__elnora__` are available in your tool list, they work too — use whichever the user prefers or whichever is already configured in your environment.
+
+**Never fabricate function names** like `elnora_generate_protocol`. All valid commands are listed under "Commands" in this skill.
+
+## Invocation
+
+```bash
+CLI="elnora"
+```
+
 ## Response Retrieval
 
 The Elnora backend processes agent responses asynchronously. When you send a message, the POST returns immediately with the user message echo — the AI response arrives separately. Use `--stream` or `--wait` to collect it.
@@ -50,12 +73,6 @@ elnora --compact --fields "id,name" projects list
 ```
 
 Pick the project that best matches the user's request by name. If there's only one project, use it. If unsure, ask the user which project to use. **Remember the project ID** — don't re-list projects for every task command.
-
-## Invocation
-
-```bash
-CLI="elnora"
-```
 
 ## Commands
 

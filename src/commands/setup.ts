@@ -121,4 +121,14 @@ export function addSetupCommand(program: Command): void {
 		const platforms = installed.map((p) => p.name as PlatformName);
 		runSetup(platforms, opts.profile);
 	});
+
+	// Top-level alias: `elnora setup-claude` → `elnora setup claude`
+	program
+		.command("setup-claude")
+		.description("Set up Claude Code (alias for 'setup claude')")
+		.option("--profile <name>", "API key profile to use", "default")
+		.action((opts: { profile: string }) => {
+			console.error("");
+			runSetup(["claude"], opts.profile);
+		});
 }

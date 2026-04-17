@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
 # ---------------------------------------------------------------------------
-# Carmen cold-start smoke test
+# Cold-start smoke test
 #
 # Verifies the install → auth → setup → skills flow works end-to-end.
 # Exits non-zero on any failure.
 #
 # Usage:
 #   # Full test (requires SMOKE_TEST_API_KEY env var for auth + API checks):
-#   SMOKE_TEST_API_KEY=elnora_live_xxx ./scripts/smoke-test-carmen.sh
+#   SMOKE_TEST_API_KEY=<your-api-key> ./scripts/smoke-test-coldstart.sh
 #
 #   # Structure-only test (skips auth + API — verifies install, PATH, setup, skills):
-#   ./scripts/smoke-test-carmen.sh
+#   ./scripts/smoke-test-coldstart.sh
 # ---------------------------------------------------------------------------
 
 set -euo pipefail
@@ -21,7 +21,7 @@ FAIL=0
 pass() { echo "  PASS: $1"; PASS=$((PASS + 1)); }
 fail() { echo "  FAIL: $1"; FAIL=$((FAIL + 1)); }
 
-echo "=== Carmen cold-start smoke test ==="
+echo "=== Cold-start smoke test ==="
 echo ""
 
 # ---------------------------------------------------------------------------

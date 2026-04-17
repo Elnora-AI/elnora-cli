@@ -1,16 +1,16 @@
 # ---------------------------------------------------------------------------
-# Carmen cold-start smoke test (Windows)
+# Cold-start smoke test (Windows)
 #
 # Verifies the install -> auth -> setup -> skills flow works end-to-end.
 # Exits non-zero on any failure.
 #
 # Usage:
 #   # Full test (requires SMOKE_TEST_API_KEY env var):
-#   $env:SMOKE_TEST_API_KEY = "elnora_live_xxx"
-#   .\scripts\smoke-test-carmen.ps1
+#   $env:SMOKE_TEST_API_KEY = "<your-api-key>"
+#   .\scripts\smoke-test-coldstart.ps1
 #
 #   # Structure-only test (skips auth + API):
-#   .\scripts\smoke-test-carmen.ps1
+#   .\scripts\smoke-test-coldstart.ps1
 # ---------------------------------------------------------------------------
 
 $ErrorActionPreference = "Continue"
@@ -20,7 +20,7 @@ $Fail = 0
 function Test-Pass($msg) { Write-Host "  PASS: $msg"; $script:Pass++ }
 function Test-Fail($msg) { Write-Host "  FAIL: $msg"; $script:Fail++ }
 
-Write-Host "=== Carmen cold-start smoke test (Windows) ==="
+Write-Host "=== Cold-start smoke test (Windows) ==="
 Write-Host ""
 
 # ---------------------------------------------------------------------------

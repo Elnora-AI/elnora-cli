@@ -1,10 +1,11 @@
-name: Create Issues from Dependabot Alerts
+# DEPRECATED: Issue creation is now handled by vuln-autofix.yml
+# which also applies automated fixes. Kept as manual-only backup.
+name: Create Issues from Dependabot Alerts (DEPRECATED)
 
 on:
-  schedule:
-    # Run daily at 7 AM UTC
-    - cron: '0 7 * * *'
-  workflow_dispatch: # Allow manual trigger for urgent situations
+  # Schedule disabled — vuln-autofix.yml handles detection + fix now
+  # - cron: '0 7 * * *'
+  workflow_dispatch: # Manual-only backup for emergencies
 
 permissions:
   issues: write

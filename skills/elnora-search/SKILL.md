@@ -12,6 +12,23 @@ description: >
 
 Search tasks, files, or all resources across projects by keyword.
 
+## Tool Access
+
+Elnora is a **command-line tool**. Run commands via your Bash/Shell tool.
+
+- **Command:** `elnora`
+- **Verify:** `elnora --version`
+- **If not found:** tell the user to install it. Detect their platform:
+  - macOS/Linux: `curl -fsSL https://cli.elnora.ai/install.sh | bash`
+  - Windows (PowerShell): `irm https://cli.elnora.ai/install.ps1 | iex`
+  - Any platform with Node.js: `npm install -g @elnora-ai/cli`
+
+**CLI is the recommended path** — it uses fewer tokens, is more reliable, and the commands below are ready to copy-paste.
+
+If MCP tools prefixed `mcp__elnora__` are available in your tool list, they work too — use whichever the user prefers or whichever is already configured in your environment.
+
+**Never fabricate function names** like `elnora_generate_protocol`. All valid commands are listed under "Commands" in this skill.
+
 ## Invocation
 
 ```bash

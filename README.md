@@ -39,6 +39,50 @@ npm install -g @elnora-ai/cli
 brew install elnora-ai/cli/elnora
 ```
 
+## Skills & Setup
+
+After installing the CLI, configure your AI coding tools:
+
+```bash
+elnora setup
+```
+
+This auto-detects which tools you have installed and configures them:
+
+- **Claude Code** — registers the `elnora-plugins` marketplace and enables 9 skills (`elnora-tasks`, `elnora-projects`, `elnora-files`, etc.) so you can use natural language.
+- **Cursor / VS Code / Codex** — writes an MCP server config pointing at `https://mcp.elnora.ai/mcp` with your API key.
+
+Target a specific tool: `elnora setup claude` · `elnora setup cursor` · `elnora setup vscode` · `elnora setup codex`.
+
+### What You Get in Claude Code
+
+Once configured, restart Claude Code and try any natural-language request:
+
+> "Use Elnora to generate a PCR protocol for BRCA1 exon 11"
+> "Use Elnora to list my projects"
+> "Use Elnora to optimize the protocol in task abc-123"
+
+Claude will invoke the `elnora` CLI under the hood using the bundled skills. No need to memorize command syntax.
+
+### Where Everything Lives
+
+| What | Where |
+|------|-------|
+| CLI binary (macOS/Linux) | `~/.local/bin/elnora` |
+| CLI binary (Windows) | `%USERPROFILE%\.elnora\bin\elnora.exe` |
+| Auth / profiles | `~/.elnora/profiles.toml` (mode 0600) |
+| Claude Code skills | `~/.claude/plugins/marketplaces/elnora-plugins/elnora/skills/` (auto-updated) |
+| Claude Code settings | `~/.claude/settings.json` — look for `elnora@elnora-plugins: true` |
+
+### Manual Plugin Setup
+
+If `elnora setup claude` doesn't work for some reason, you can install the plugin manually:
+
+1. In Claude Code, run `/plugin`
+2. Choose "Add marketplace"
+3. Enter: `Elnora-AI/elnora-plugins`
+4. Run `/plugin` again → Plugins → Enable `elnora`
+
 ## Quick Start
 
 ```bash

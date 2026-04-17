@@ -9,6 +9,7 @@
   "main": "dist/cli.js",
   "files": [
     "dist/",
+    "scripts/postinstall.mjs",
     "README.md",
     "LICENSE"
   ],
@@ -19,6 +20,7 @@
     "access": "public"
   },
   "scripts": {
+    "postinstall": "node scripts/postinstall.mjs",
     "build": "node scripts/build-npm.mjs",
     "build:binary": "node scripts/build.mjs --pkg",
     "dev": "tsx src/cli.ts",

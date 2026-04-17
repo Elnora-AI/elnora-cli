@@ -128,18 +128,25 @@ try {
     exit 1
 }
 
-# Add to PATH
+# Add to PATH — persist AND update current session
 $userPath = [Environment]::GetEnvironmentVariable("Path", "User")
 if ($userPath -notlike "*$InstallDir*") {
     try {
         [Environment]::SetEnvironmentVariable("Path", "$InstallDir;$userPath", "User")
-        Write-Host ""
-        Write-Host "Added $InstallDir to user PATH. Restart your terminal to use 'elnora'."
+        $env:PATH = "$InstallDir;$env:PATH"
+        Write-Host "  Added $InstallDir to PATH"
     } catch {
-        Write-Host ""
-        Write-Host "Warning: Could not add $InstallDir to PATH automatically."
-        Write-Host "  Add it manually: Settings > System > About > Advanced > Environment Variables > Path"
+        # Persist failed, but still update current session
+        $env:PATH = "$InstallDir;$env:PATH"
+        Write-Host "  Added $InstallDir to PATH (current session only)"
+        Write-Host "  To persist, add it manually via Settings > System > Environment Variables"
     }
+} else {
+    # Already in persisted PATH, ensure current session has it too
+    if ($env:PATH -notlike "*$InstallDir*") {
+        $env:PATH = "$InstallDir;$env:PATH"
+    }
+    Write-Host "  PATH already includes $InstallDir"
 }
 
 # Extract skills if bundled in the archive
@@ -153,17 +160,45 @@ if (Test-Path "$TmpDir\skills") {
 Remove-Item -Recurse -Force $TmpDir -ErrorAction SilentlyContinue
 
 Write-Host ""
-Write-Host "Elnora CLI $Version installed to $InstallDir\elnora.exe"
-Write-Host ""
+Write-Host "  Elnora CLI $Version installed to $InstallDir\elnora.exe"
 
-# Run interactive login
+# ---------------------------------------------------------------------------
+# Auth login — interactive only
+# ---------------------------------------------------------------------------
+
+$AuthOk = $false
 if ([Environment]::UserInteractive) {
-    & "$InstallDir\elnora.exe" auth login
     Write-Host ""
-    Write-Host "Using Claude Code or another AI tool? Run:"
-    Write-Host "  elnora setup-claude"
+    try {
+        & "$InstallDir\elnora.exe" auth login
+        $AuthOk = $true
+    } catch {
+        # Auth failed or was cancelled — continue to setup
+    }
+}
+
+# ---------------------------------------------------------------------------
+# Auto-setup — detect and configure AI coding tools
+# ---------------------------------------------------------------------------
+
+if ([Environment]::UserInteractive) {
+    try {
+        & "$InstallDir\elnora.exe" setup
+    } catch {
+        # Setup failed — non-fatal
+    }
+}
+
+# ---------------------------------------------------------------------------
+# Success banner
+# ---------------------------------------------------------------------------
+
+Write-Host ""
+if ($AuthOk) {
+    Write-Host "  Done! To get started, run: elnora --help" -ForegroundColor Green
 } else {
-    Write-Host "To get started:"
-    Write-Host "  elnora auth login"
-    Write-Host "  elnora setup-claude    # If using Claude Code"
+    Write-Host "  To get started:"
+    Write-Host "    elnora auth login"
+    Write-Host "    elnora setup          # Configure AI coding tools"
+    Write-Host "    elnora --help"
 }

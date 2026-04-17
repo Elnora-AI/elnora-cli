@@ -36,6 +36,17 @@ class Elnora < Formula
     end
   end
 
+  def caveats
+    <<~EOS
+      To get started:
+
+        elnora auth login
+        elnora setup          # Configure Claude Code, Cursor, etc.
+
+      You'll need an API key from https://platform.elnora.ai
+    EOS
+  end
+
   test do
     assert_match version.to_s, shell_output("#{bin}/elnora --version")
   end

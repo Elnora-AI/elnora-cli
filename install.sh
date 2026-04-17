@@ -104,50 +104,92 @@ if [ -d "skills" ]; then
 fi
 
 echo ""
-echo "Elnora CLI ${VERSION} installed to $INSTALL_DIR/elnora"
+echo "  Elnora CLI ${VERSION} installed to $INSTALL_DIR/elnora"
 
-# PATH guidance
-case "${SHELL:-unknown}" in
-  */zsh)
-    RC="$HOME/.zshrc"
-    if ! echo "$PATH" | grep -q "$INSTALL_DIR"; then
-      echo ""
-      echo "Add to your PATH by running:"
-      echo "  echo 'export PATH=\"$INSTALL_DIR:\$PATH\"' >> $RC && source $RC"
-    fi
-    ;;
-  */bash)
-    RC="$HOME/.bashrc"
-    if ! echo "$PATH" | grep -q "$INSTALL_DIR"; then
-      echo ""
-      echo "Add to your PATH by running:"
-      echo "  echo 'export PATH=\"$INSTALL_DIR:\$PATH\"' >> $RC && source $RC"
-    fi
-    ;;
-  */fish)
-    if ! echo "$PATH" | grep -q "$INSTALL_DIR"; then
-      echo ""
-      echo "Add to your PATH by running:"
-      echo "  fish_add_path $INSTALL_DIR"
-    fi
-    ;;
-  *)
-    if ! echo "$PATH" | grep -q "$INSTALL_DIR"; then
-      echo ""
-      echo "Add $INSTALL_DIR to your shell's PATH to use 'elnora' from anywhere."
-    fi
-    ;;
-esac
+# ---------------------------------------------------------------------------
+# Auto-PATH — add INSTALL_DIR to shell rc and current session
+# ---------------------------------------------------------------------------
 
-# Run interactive login — reads from /dev/tty since stdin is piped from curl
-echo ""
-if [ -t 1 ]; then
-  "$INSTALL_DIR/elnora" auth login </dev/tty
-  echo ""
-  echo "Using Claude Code or another AI tool? Run:"
-  echo "  elnora setup-claude"
+if echo "$PATH" | grep -q "$INSTALL_DIR"; then
+  echo "  PATH already includes $INSTALL_DIR"
 else
-  echo "To get started:"
-  echo "  elnora auth login"
-  echo "  elnora setup-claude    # If using Claude Code"
+  export PATH="$INSTALL_DIR:$PATH"
+
+  if [ -t 1 ]; then
+    # Interactive: append to shell rc file
+    case "${SHELL:-unknown}" in
+      */zsh)
+        RC="$HOME/.zshrc"
+        [ -f "$HOME/.zprofile" ] && [ ! -f "$RC" ] && RC="$HOME/.zprofile"
+        ;;
+      */bash)
+        # macOS uses .bash_profile for login shells; Linux uses .bashrc
+        if [ "$(uname -s)" = "Darwin" ]; then
+          RC="$HOME/.bash_profile"
+        else
+          RC="$HOME/.bashrc"
+        fi
+        ;;
+      */fish)
+        RC="$HOME/.config/fish/config.fish"
+        ;;
+      *)
+        RC=""
+        ;;
+    esac
+
+    if [ -n "$RC" ]; then
+      if [ "${SHELL:-}" = "*/fish" ] 2>/dev/null; then
+        echo "set -gx PATH $INSTALL_DIR \$PATH" >> "$RC"
+      else
+        echo "export PATH=\"$INSTALL_DIR:\$PATH\"" >> "$RC"
+      fi
+      echo "  Added $INSTALL_DIR to PATH (in $RC)"
+    else
+      echo "  Added $INSTALL_DIR to PATH (current session only)"
+      echo "  To persist, add this to your shell config:"
+      echo "    export PATH=\"$INSTALL_DIR:\$PATH\""
+    fi
+  else
+    # Non-interactive: just print the export command
+    echo "  Add to PATH: export PATH=\"$INSTALL_DIR:\$PATH\""
+  fi
+fi
+
+# ---------------------------------------------------------------------------
+# Auth login — interactive only (stdin is piped from curl, use /dev/tty)
+# ---------------------------------------------------------------------------
+
+AUTH_OK=""
+if [ -t 1 ]; then
+  echo ""
+  if "$INSTALL_DIR/elnora" auth login </dev/tty 2>/dev/null; then
+    AUTH_OK=1
+  fi
+fi
+
+# ---------------------------------------------------------------------------
+# Auto-setup — detect and configure AI coding tools
+# ---------------------------------------------------------------------------
+
+SETUP_OUTPUT=""
+if [ -t 1 ]; then
+  SETUP_OUTPUT=$("$INSTALL_DIR/elnora" setup 2>&1) || true
+  if [ -n "$SETUP_OUTPUT" ]; then
+    echo "$SETUP_OUTPUT" >&2
+  fi
+fi
+
+# ---------------------------------------------------------------------------
+# Success banner
+# ---------------------------------------------------------------------------
+
+echo ""
+if [ -n "$AUTH_OK" ]; then
+  echo "  Done! To get started, run: elnora --help"
+else
+  echo "  To get started:"
+  echo "    elnora auth login"
+  echo "    elnora setup          # Configure AI coding tools"
+  echo "    elnora --help"
 fi

@@ -5,6 +5,18 @@ All notable changes to the Elnora CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.4.0](https://github.com/Elnora-AI/elnora-cli/compare/v1.3.5...v1.4.0) (2026-04-20)
+
+
+### Features
+
+* dual-mode skills, trigger cleanup, enhanced doctor, CI smoke tests ([#102](https://github.com/Elnora-AI/elnora-cli/issues/102)) ([201ffc4](https://github.com/Elnora-AI/elnora-cli/commit/201ffc44af6cc399405b96b9df386a672b4b199c))
+
+
+### Bug Fixes
+
+* **doctor:** unbreak plugin-version test across release bumps ([#104](https://github.com/Elnora-AI/elnora-cli/issues/104)) ([586abcb](https://github.com/Elnora-AI/elnora-cli/commit/586abcb93a8738183e67ea8710b36594b42bf47f))
+
 ## [1.3.5](https://github.com/Elnora-AI/elnora-cli/compare/v1.3.4...v1.3.5) (2026-04-17)
 
 

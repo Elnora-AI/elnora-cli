@@ -137,8 +137,11 @@ describe("elnora doctor", () => {
 		// Verify the Claude Code section reports clean results
 		expect(output).toMatch(/✓[^\n]*Plugin enabled.*elnora@elnora-plugins/);
 		expect(output).toMatch(/✓[^\n]*Skills installed.*9 skills/);
-		const versionPattern = new RegExp(`✓[^\\n]*Plugin version.*v${VERSION.replace(/\./g, "\\.")} \\(matches CLI\\)`);
-		expect(output).toMatch(versionPattern);
+		// Split the Plugin version check into a structure match + a literal
+		// substring check so we don't have to build a regex from VERSION
+		// (avoids regex-escaping pitfalls flagged by CodeQL).
+		expect(output).toMatch(/✓[^\n]*Plugin version/);
+		expect(output).toContain(`v${VERSION} (matches CLI)`);
 		capture.restore();
 	});
 

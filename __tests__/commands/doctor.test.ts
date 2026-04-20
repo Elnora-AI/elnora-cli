@@ -13,6 +13,7 @@ vi.mock("node:os", async () => {
 
 // Dynamic import after mock so constants are built with mocked homedir
 const { addDoctorCommand } = await import("../../src/commands/doctor.js");
+const { VERSION } = await import("../../src/lib/config.js");
 
 // Helper to capture console.error output
 function captureStderr() {
@@ -123,7 +124,9 @@ describe("elnora doctor", () => {
 		writeFileSync(join(claude, "settings.json"), JSON.stringify({ enabledPlugins: { "elnora@elnora-plugins": true } }));
 		writeFileSync(
 			join(claude, "plugins", "marketplaces", "elnora-plugins", "elnora", ".claude-plugin", "plugin.json"),
-			JSON.stringify({ version: "1.3.5" }),
+			// Match the CLI version so the "Plugin version" check reports (matches CLI).
+			// Using VERSION dynamically keeps the test valid across release-please bumps.
+			JSON.stringify({ version: VERSION }),
 		);
 
 		const capture = captureStderr();
@@ -134,7 +137,11 @@ describe("elnora doctor", () => {
 		// Verify the Claude Code section reports clean results
 		expect(output).toMatch(/✓[^\n]*Plugin enabled.*elnora@elnora-plugins/);
 		expect(output).toMatch(/✓[^\n]*Skills installed.*9 skills/);
-		expect(output).toMatch(/✓[^\n]*Plugin version.*v1\.3\.5 \(matches CLI\)/);
+		// Split the Plugin version check into a structure match + a literal
+		// substring check so we don't have to build a regex from VERSION
+		// (avoids regex-escaping pitfalls flagged by CodeQL).
+		expect(output).toMatch(/✓[^\n]*Plugin version/);
+		expect(output).toContain(`v${VERSION} (matches CLI)`);
 		capture.restore();
 	});
 

@@ -166,10 +166,11 @@ export function buildProgram(registry: CommandRegistry): Command {
 		.description("Elnora AI Platform CLI")
 		.version(VERSION)
 		.option("--compact", "Token-efficient minimal output", false)
-		.option("--output <format>", "Output format (json, csv)", "json")
+		.option("--output <format>", "Output format (json, csv, md)", "json")
 		.option("--fields <fields>", "Comma-separated fields to include")
 		.option("--profile <name>", "Named profile to use")
-		.option("--json", "Force JSON output", false);
+		.option("--json", "Force JSON output", false)
+		.option("--md", "Markdown output (LLM-friendly tables)", false);
 
 	for (const group of registry.groups()) {
 		const groupCmd = new Command(group).description(`Manage ${group}`);
@@ -246,7 +247,11 @@ export function buildProgram(registry: CommandRegistry): Command {
 						profileName,
 						mode: "cli",
 						output: {
-							format: ((parentOpts.json ? "json" : parentOpts.output) ?? "json") as OutputFormat,
+							format: (parentOpts.json
+								? "json"
+								: parentOpts.md
+									? "md"
+									: (parentOpts.output ?? "json")) as OutputFormat,
 							compact: (parentOpts.compact as boolean) ?? false,
 							fields: parentOpts.fields
 								? (parentOpts.fields as string).split(",").map((f: string) => f.trim())

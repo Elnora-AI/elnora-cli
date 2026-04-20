@@ -6,7 +6,7 @@
 
 import { scrubData } from "./errors.js";
 
-export type OutputFormat = "json" | "csv" | "compact" | "table";
+export type OutputFormat = "json" | "csv" | "compact" | "table" | "md";
 
 export interface OutputOptions {
 	format: OutputFormat;
@@ -72,6 +72,79 @@ function toCsv(rows: Record<string, unknown>[]): string {
 	return lines.join("\n");
 }
 
+function isPlainObject(v: unknown): v is Record<string, unknown> {
+	return typeof v === "object" && v !== null && !Array.isArray(v);
+}
+
+function mdEscapeCell(v: unknown): string {
+	if (v === null || v === undefined) return "";
+	let s: string;
+	if (typeof v === "object") {
+		s = JSON.stringify(v);
+	} else {
+		s = String(v);
+	}
+	// Escape pipes, collapse newlines to spaces, trim
+	return s.replace(/\|/g, "\\|").replace(/\r?\n/g, " ").trim();
+}
+
+export function formatAsMarkdown(data: unknown): string {
+	// String → pass through unchanged
+	if (typeof data === "string") return data;
+	// null / undefined
+	if (data === null || data === undefined) return String(data);
+	// Primitive (number, boolean)
+	if (typeof data !== "object") return String(data);
+
+	// Unwrap { items: [...] } envelopes (paginated list responses)
+	let rows: unknown;
+	if (isPlainObject(data) && "items" in data && Array.isArray(data.items)) {
+		rows = data.items;
+	} else {
+		rows = data;
+	}
+
+	// Empty array → explicit empty marker
+	if (Array.isArray(rows) && rows.length === 0) return "_(empty)_";
+
+	// Array of plain objects → markdown table
+	if (Array.isArray(rows) && rows.every(isPlainObject)) {
+		const keys: string[] = [];
+		const seen = new Set<string>();
+		for (const row of rows as Record<string, unknown>[]) {
+			for (const k of Object.keys(row)) {
+				if (!seen.has(k)) {
+					keys.push(k);
+					seen.add(k);
+				}
+			}
+		}
+		const header = `| ${keys.join(" | ")} |`;
+		const sep = `| ${keys.map(() => "---").join(" | ")} |`;
+		const body = (rows as Record<string, unknown>[])
+			.map((row) => `| ${keys.map((k) => mdEscapeCell(row[k])).join(" | ")} |`)
+			.join("\n");
+		return `${header}\n${sep}\n${body}`;
+	}
+
+	// Array of mixed / primitive values
+	if (Array.isArray(rows)) {
+		return rows.map((v) => `- ${mdEscapeCell(v)}`).join("\n");
+	}
+
+	// Single plain object → key/value list
+	if (isPlainObject(rows)) {
+		return Object.entries(rows)
+			.map(([k, v]) => {
+				const rendered = typeof v === "object" && v !== null ? JSON.stringify(v) : String(v ?? "");
+				return `- **${k}**: ${rendered}`;
+			})
+			.join("\n");
+	}
+
+	return String(rows);
+}
+
 export function formatOutput(data: unknown, options: OutputOptions): string {
 	let output = scrubData(data);
 
@@ -81,6 +154,10 @@ export function formatOutput(data: unknown, options: OutputOptions): string {
 
 	if (options.format === "csv") {
 		return toCsv(toRows(output));
+	}
+
+	if (options.format === "md") {
+		return formatAsMarkdown(output);
 	}
 
 	// JSON

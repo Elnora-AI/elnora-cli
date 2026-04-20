@@ -321,7 +321,8 @@ export function addDoctorCommand(program: Command): void {
 			} else if (failed === 0) {
 				console.error(`${passed}/${total} checks passed (${warnings} warning${warnings === 1 ? "" : "s"}).`);
 			} else {
-				console.error(`${passed}/${total} checks passed — ${failed} failed.`);
+				const warnSuffix = warnings > 0 ? ` (${warnings} warning${warnings === 1 ? "" : "s"})` : "";
+				console.error(`${passed}/${total} checks passed — ${failed} failed${warnSuffix}.`);
 				if (!existsSync(PROFILES_FILE)) console.error("\nRun: elnora auth login");
 			}
 		});

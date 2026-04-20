@@ -249,8 +249,9 @@ describe("elnora doctor", () => {
 		addDoctorCommand(program);
 		await program.parseAsync(["node", "elnora", "doctor"]);
 		const output = capture.getOutput();
-		// Summary line format: "N/10 checks passed — N failed." (auth will also fail in test env without profile)
-		expect(output).toMatch(/\/10 checks passed — \d+ failed\./);
+		// Summary line format: "N/10 checks passed — N failed." or with warning suffix
+		// "N/10 checks passed — N failed (N warning(s))." — auth will also fail in test env.
+		expect(output).toMatch(/\/10 checks passed — \d+ failed/);
 		capture.restore();
 	});
 });

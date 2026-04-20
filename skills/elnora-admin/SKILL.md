@@ -268,7 +268,7 @@ No auth required. Returns `{"status":"ok","timestamp":"..."}` on success. Exits 
 $CLI doctor
 ```
 
-Runs diagnostic checks: API reachability, authentication, version currency, config permissions, AI server reachability.
+Runs 10 diagnostic checks across three sections: **CLI** (API reachability, authentication, version currency, config permissions, AI server reachability, PATH configured), **Claude Code** (plugin enabled, skills installed, plugin version match), and **MCP** (server reachable). Each check reports pass / fail / warn / skip; the summary line shows the tally.
 
 ### Open Platform
 

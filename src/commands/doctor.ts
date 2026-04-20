@@ -135,7 +135,11 @@ function checkClaudePlugin(): CheckResult {
 			msg: `Plugin enabled         settings.json unreadable (${e instanceof Error ? e.message : "parse error"})`,
 		};
 	}
-	const enabledPlugins = (settings.enabledPlugins as Record<string, boolean> | undefined) ?? {};
+	// Must be a plain object — reject arrays and non-objects to prevent confusing "not found"
+	// failures when settings.json is malformed (e.g. enabledPlugins is accidentally an array).
+	const raw = settings.enabledPlugins;
+	const enabledPlugins: Record<string, boolean> =
+		typeof raw === "object" && raw !== null && !Array.isArray(raw) ? (raw as Record<string, boolean>) : {};
 	const isEnabled = enabledPlugins[PLUGIN_ID] === true;
 	const legacyKeys = Object.keys(enabledPlugins).filter((k) => k.startsWith("elnora@") && k !== PLUGIN_ID);
 	if (isEnabled && legacyKeys.length === 0) {

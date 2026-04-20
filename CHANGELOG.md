@@ -5,6 +5,13 @@ All notable changes to the Elnora CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.3.5](https://github.com/Elnora-AI/elnora-cli/compare/v1.3.4...v1.3.5) (2026-04-17)
+
+
+### Bug Fixes
+
+* resolve critical usability issues blocking first-time install (ELN-627, ELN-628, ELN-629, ELN-630, ELN-631) ([#99](https://github.com/Elnora-AI/elnora-cli/issues/99)) ([26d55c8](https://github.com/Elnora-AI/elnora-cli/commit/26d55c87b2c5481481d096e65984c9049ab526d6))
+
 ## [1.3.4](https://github.com/Elnora-AI/elnora-cli/compare/v1.3.3...v1.3.4) (2026-04-13)
 
 

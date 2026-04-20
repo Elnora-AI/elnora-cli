@@ -247,11 +247,7 @@ export function buildProgram(registry: CommandRegistry): Command {
 						profileName,
 						mode: "cli",
 						output: {
-							format: (parentOpts.json
-								? "json"
-								: parentOpts.md
-									? "md"
-									: (parentOpts.output ?? "json")) as OutputFormat,
+							format: (parentOpts.json ? "json" : parentOpts.md ? "md" : (parentOpts.output ?? "json")) as OutputFormat,
 							compact: (parentOpts.compact as boolean) ?? false,
 							fields: parentOpts.fields
 								? (parentOpts.fields as string).split(",").map((f: string) => f.trim())

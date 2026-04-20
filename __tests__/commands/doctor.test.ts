@@ -33,10 +33,7 @@ function installFetchMock(overrides?: Record<string, { status: number; body?: un
 		if (overrides) {
 			for (const [key, spec] of Object.entries(overrides)) {
 				if (url.includes(key)) {
-					return new Response(
-						spec.body != null ? JSON.stringify(spec.body) : "",
-						{ status: spec.status },
-					);
+					return new Response(spec.body != null ? JSON.stringify(spec.body) : "", { status: spec.status });
 				}
 			}
 		}
@@ -89,7 +86,9 @@ describe("elnora doctor", () => {
 	test("passes plugin and skills checks when properly installed", async () => {
 		// Pre-populate a fully-installed Claude Code + elnora plugin state
 		const claude = join(TEST_HOME, ".claude");
-		mkdirSync(join(claude, "plugins", "marketplaces", "elnora-plugins", "elnora", ".claude-plugin"), { recursive: true });
+		mkdirSync(join(claude, "plugins", "marketplaces", "elnora-plugins", "elnora", ".claude-plugin"), {
+			recursive: true,
+		});
 		const skillsRoot = join(claude, "plugins", "marketplaces", "elnora-plugins", "elnora", "skills");
 		for (const s of [
 			"elnora-admin",
@@ -105,10 +104,7 @@ describe("elnora doctor", () => {
 			mkdirSync(join(skillsRoot, s), { recursive: true });
 			writeFileSync(join(skillsRoot, s, "SKILL.md"), "---\nname: x\n---\n");
 		}
-		writeFileSync(
-			join(claude, "settings.json"),
-			JSON.stringify({ enabledPlugins: { "elnora@elnora-plugins": true } }),
-		);
+		writeFileSync(join(claude, "settings.json"), JSON.stringify({ enabledPlugins: { "elnora@elnora-plugins": true } }));
 		writeFileSync(
 			join(claude, "plugins", "marketplaces", "elnora-plugins", "elnora", ".claude-plugin", "plugin.json"),
 			JSON.stringify({ version: "1.3.5" }),
@@ -129,10 +125,7 @@ describe("elnora doctor", () => {
 	test("fails plugin check when settings.json has legacy entry only", async () => {
 		const claude = join(TEST_HOME, ".claude");
 		mkdirSync(claude, { recursive: true });
-		writeFileSync(
-			join(claude, "settings.json"),
-			JSON.stringify({ enabledPlugins: { "elnora@elnora-ai": true } }),
-		);
+		writeFileSync(join(claude, "settings.json"), JSON.stringify({ enabledPlugins: { "elnora@elnora-ai": true } }));
 
 		const capture = captureStderr();
 		const program = new Command();
@@ -147,7 +140,9 @@ describe("elnora doctor", () => {
 
 	test("warns when plugin version differs from CLI version", async () => {
 		const claude = join(TEST_HOME, ".claude");
-		mkdirSync(join(claude, "plugins", "marketplaces", "elnora-plugins", "elnora", ".claude-plugin"), { recursive: true });
+		mkdirSync(join(claude, "plugins", "marketplaces", "elnora-plugins", "elnora", ".claude-plugin"), {
+			recursive: true,
+		});
 		const skillsRoot = join(claude, "plugins", "marketplaces", "elnora-plugins", "elnora", "skills");
 		for (const s of [
 			"elnora-admin",
@@ -163,10 +158,7 @@ describe("elnora doctor", () => {
 			mkdirSync(join(skillsRoot, s), { recursive: true });
 			writeFileSync(join(skillsRoot, s, "SKILL.md"), "---\nname: x\n---\n");
 		}
-		writeFileSync(
-			join(claude, "settings.json"),
-			JSON.stringify({ enabledPlugins: { "elnora@elnora-plugins": true } }),
-		);
+		writeFileSync(join(claude, "settings.json"), JSON.stringify({ enabledPlugins: { "elnora@elnora-plugins": true } }));
 		writeFileSync(
 			join(claude, "plugins", "marketplaces", "elnora-plugins", "elnora", ".claude-plugin", "plugin.json"),
 			JSON.stringify({ version: "1.2.0" }),
@@ -184,10 +176,7 @@ describe("elnora doctor", () => {
 	test("warns when marketplace enabled but not cloned yet", async () => {
 		const claude = join(TEST_HOME, ".claude");
 		mkdirSync(claude, { recursive: true });
-		writeFileSync(
-			join(claude, "settings.json"),
-			JSON.stringify({ enabledPlugins: { "elnora@elnora-plugins": true } }),
-		);
+		writeFileSync(join(claude, "settings.json"), JSON.stringify({ enabledPlugins: { "elnora@elnora-plugins": true } }));
 
 		const capture = captureStderr();
 		const program = new Command();

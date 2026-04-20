@@ -102,10 +102,7 @@ async function checkAiServerReachable(): Promise<CheckResult> {
 }
 
 function checkPathConfigured(): CheckResult {
-	const installDirs = [
-		join(homedir(), ".local", "bin"),
-		join(homedir(), ".elnora", "bin"),
-	];
+	const installDirs = [join(homedir(), ".local", "bin"), join(homedir(), ".elnora", "bin")];
 	const pathVar = process.env.PATH ?? "";
 	const entries = pathVar.split(delimiter).filter(Boolean);
 	const matched = installDirs.find((d) => entries.includes(d));
@@ -133,7 +130,10 @@ function checkClaudePlugin(): CheckResult {
 	try {
 		settings = JSON.parse(readFileSync(CLAUDE_SETTINGS_FILE, "utf-8")) as Record<string, unknown>;
 	} catch (e) {
-		return { status: "fail", msg: `Plugin enabled         settings.json unreadable (${e instanceof Error ? e.message : "parse error"})` };
+		return {
+			status: "fail",
+			msg: `Plugin enabled         settings.json unreadable (${e instanceof Error ? e.message : "parse error"})`,
+		};
 	}
 	const enabledPlugins = (settings.enabledPlugins as Record<string, boolean> | undefined) ?? {};
 	const isEnabled = enabledPlugins[PLUGIN_ID] === true;
@@ -205,7 +205,10 @@ function checkPluginVersion(): CheckResult {
 			msg: `Plugin version         v${pluginVersion} (CLI is v${VERSION}) — restart Claude Code to refresh`,
 		};
 	} catch (e) {
-		return { status: "fail", msg: `Plugin version         plugin.json unreadable (${e instanceof Error ? e.message : "parse error"})` };
+		return {
+			status: "fail",
+			msg: `Plugin version         plugin.json unreadable (${e instanceof Error ? e.message : "parse error"})`,
+		};
 	}
 }
 

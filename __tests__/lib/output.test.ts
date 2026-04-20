@@ -110,10 +110,7 @@ describe("markdown format", () => {
 	});
 
 	test("items wrapper unwraps for table rendering", () => {
-		const result = formatOutput(
-			{ items: [{ id: "1", name: "A" }], totalCount: 1, page: 1 },
-			{ format: "md" },
-		);
+		const result = formatOutput({ items: [{ id: "1", name: "A" }], totalCount: 1, page: 1 }, { format: "md" });
 		expect(result).toContain("| id | name |");
 		expect(result).toContain("| 1 | A |");
 		// envelope fields should NOT leak into the table
@@ -162,19 +159,13 @@ describe("markdown format", () => {
 	});
 
 	test("credential scrubbing applies to md format", () => {
-		const result = formatOutput(
-			[{ key: "elnora_live_orgA_abcdefgh12345678" }],
-			{ format: "md" },
-		);
+		const result = formatOutput([{ key: "elnora_live_orgA_abcdefgh12345678" }], { format: "md" });
 		expect(result).toContain("[REDACTED]");
 		expect(result).not.toContain("elnora_live_");
 	});
 
 	test("nested object in cell is inline JSON", () => {
-		const result = formatOutput(
-			[{ id: "1", meta: { key: "v" } }],
-			{ format: "md" },
-		);
+		const result = formatOutput([{ id: "1", meta: { key: "v" } }], { format: "md" });
 		expect(result).toContain('{"key":"v"}');
 	});
 

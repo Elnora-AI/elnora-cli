@@ -22,10 +22,6 @@ Elnora is available via two methods. Use whichever is configured.
 
 Run commands via your Bash/Shell tool as `elnora <group> <action> ...`. Verify with `elnora --version`. CLI uses ~5× fewer tokens than MCP.
 
-**Tip:** Add `--md` for markdown output (easier to read than JSON):
-
-    elnora --md files list --project <PROJECT_ID>
-
 **Option B — MCP tools (when CLI isn't installed)**
 
 Look for tools prefixed `mcp__elnora__` in your available tools. Call them with structured parameters (camelCase — e.g. `projectId`, not `project-id`). See the "MCP Tool Names" table below for the mapping.

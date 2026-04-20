@@ -26,21 +26,37 @@ function captureStderr() {
 	};
 }
 
-// Helper to install a default successful fetch mock
+// Helper to install a default successful fetch mock.
+// Matches by parsed URL hostname (not substring) to avoid CodeQL's
+// "Incomplete URL substring sanitization" false positive — even in test
+// code we shouldn't use url.includes("hostname"), because a malicious URL
+// could contain the hostname as a substring elsewhere in the URL.
 function installFetchMock(overrides?: Record<string, { status: number; body?: unknown }>) {
 	globalThis.fetch = vi.fn(async (input: string | URL | Request) => {
-		const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
+		const rawUrl = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
+		const parsed = new URL(rawUrl);
+		const host = parsed.hostname;
+
 		if (overrides) {
-			for (const [key, spec] of Object.entries(overrides)) {
-				if (url.includes(key)) {
+			for (const [overrideHost, spec] of Object.entries(overrides)) {
+				if (host === overrideHost) {
 					return new Response(spec.body != null ? JSON.stringify(spec.body) : "", { status: spec.status });
 				}
 			}
 		}
-		if (url.includes("platform.elnora.ai/health")) return new Response("{}", { status: 200 });
-		if (url.includes("registry.npmjs.org")) return new Response(JSON.stringify({ version: "1.3.5" }), { status: 200 });
-		if (url.includes("mcp.elnora.ai")) return new Response("", { status: 401 });
-		if (url.includes("/ai-server/health") || url.includes("/api/v1/health")) return new Response("{}", { status: 200 });
+
+		if (host === "platform.elnora.ai" && parsed.pathname.endsWith("/health")) {
+			return new Response("{}", { status: 200 });
+		}
+		if (host === "registry.npmjs.org") {
+			return new Response(JSON.stringify({ version: "1.3.5" }), { status: 200 });
+		}
+		if (host === "mcp.elnora.ai") {
+			return new Response("", { status: 401 });
+		}
+		if (parsed.pathname.endsWith("/ai-server/health") || parsed.pathname.endsWith("/api/v1/health")) {
+			return new Response("{}", { status: 200 });
+		}
 		return new Response("{}", { status: 200 });
 	}) as typeof fetch;
 }

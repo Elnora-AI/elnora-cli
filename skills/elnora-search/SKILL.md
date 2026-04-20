@@ -3,7 +3,8 @@ name: elnora-search
 description: >
   This skill should be used when the user asks to "search tasks", "find a protocol",
   "search files", "search file content", "search inside files", "find tasks about",
-  "query Elnora", "search Elnora platform", "full text search",
+  "query Elnora", "search Elnora platform", "full text search", "search all",
+  "search everything", "find",
   or any task involving searching the Elnora Platform for tasks, files, or all resources
   by keyword. NOT for web search — use elnora-agent for that.
 ---
@@ -14,20 +15,24 @@ Search tasks, files, or all resources across projects by keyword.
 
 ## Tool Access
 
-Elnora is a **command-line tool**. Run commands via your Bash/Shell tool.
+Elnora is available via two methods. Use whichever is configured.
 
-- **Command:** `elnora`
-- **Verify:** `elnora --version`
-- **If not found:** tell the user to install it. Detect their platform:
-  - macOS/Linux: `curl -fsSL https://cli.elnora.ai/install.sh | bash`
-  - Windows (PowerShell): `irm https://cli.elnora.ai/install.ps1 | iex`
-  - Any platform with Node.js: `npm install -g @elnora-ai/cli`
+**Option A — CLI via Bash (preferred)**
 
-**CLI is the recommended path** — it uses fewer tokens, is more reliable, and the commands below are ready to copy-paste.
+Run commands via your Bash/Shell tool as `elnora <group> <action> ...`. Verify with `elnora --version`. CLI uses ~5× fewer tokens than MCP.
 
-If MCP tools prefixed `mcp__elnora__` are available in your tool list, they work too — use whichever the user prefers or whichever is already configured in your environment.
+**Option B — MCP tools (when CLI isn't installed)**
 
-**Never fabricate function names** like `elnora_generate_protocol`. All valid commands are listed under "Commands" in this skill.
+Look for tools prefixed `mcp__elnora__` in your available tools. Call them with structured parameters (camelCase — e.g. `projectId`, not `project-id`). See the "MCP Tool Names" table below for the mapping.
+
+**If neither is available, tell the user to install one:**
+
+- CLI: `curl -fsSL https://cli.elnora.ai/install.sh | bash` (macOS/Linux)
+  or `irm https://cli.elnora.ai/install.ps1 | iex` (Windows)
+- MCP: `claude mcp add elnora --transport http --scope user https://mcp.elnora.ai/mcp`
+  then `/mcp` to authenticate.
+
+**Never fabricate tool names.** Valid commands are in the Commands section; their MCP equivalents are in the MCP Tool Names table.
 
 ## Invocation
 
@@ -86,6 +91,15 @@ All four commands share:
 | `--query` | Required | Search query string |
 | `--page` | 1 | Page number |
 | `--page-size` | 25 | Results per page (max 100) |
+
+## MCP Tool Names
+
+| CLI command | MCP tool name |
+|-------------|---------------|
+| `search tasks` | `elnora_search_tasks` |
+| `search files` | `elnora_search_files` |
+| `search file-content` | `elnora_search_fileContent` |
+| `search all` | `elnora_search_all` |
 
 ## Agent Recipes
 

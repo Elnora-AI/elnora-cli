@@ -1,10 +1,10 @@
 ---
 name: elnora-platform
 description: >
-  Use when the user asks about "Elnora platform", "elnora CLI",
-  "platform API", "elnora projects", "elnora tasks", "elnora files", "protocol generation",
-  "platform search", "elnora orgs", "elnora folders", "elnora admin", "API keys",
-  "elnora health", "elnora auth", or any task involving the Elnora AI Platform.
+  Use when the user asks about "Elnora platform", "elnora CLI", "platform API",
+  "platform overview", "what commands are available", "elnora help",
+  "how to use Elnora",
+  or any general question about the Elnora AI Platform that doesn't fit a specific domain.
   Routes to domain-specific sub-skills for token-efficient guidance.
 ---
 
@@ -14,20 +14,24 @@ Route Elnora Platform queries to the correct sub-skill. Load only what is needed
 
 ## Tool Access
 
-Elnora is a **command-line tool**. Run commands via your Bash/Shell tool.
+Elnora is available via two methods. Use whichever is configured.
 
-- **Command:** `elnora`
-- **Verify:** `elnora --version`
-- **If not found:** tell the user to install it. Detect their platform:
-  - macOS/Linux: `curl -fsSL https://cli.elnora.ai/install.sh | bash`
-  - Windows (PowerShell): `irm https://cli.elnora.ai/install.ps1 | iex`
-  - Any platform with Node.js: `npm install -g @elnora-ai/cli`
+**Option A — CLI via Bash (preferred)**
 
-**CLI is the recommended path** — it uses fewer tokens, is more reliable, and the commands below are ready to copy-paste.
+Run commands via your Bash/Shell tool as `elnora <group> <action> ...`. Verify with `elnora --version`. CLI uses ~5× fewer tokens than MCP.
 
-If MCP tools prefixed `mcp__elnora__` are available in your tool list, they work too — use whichever the user prefers or whichever is already configured in your environment.
+**Option B — MCP tools (when CLI isn't installed)**
 
-**Never fabricate function names** like `elnora_generate_protocol`. All valid commands are listed under "Commands" in this skill.
+Look for tools prefixed `mcp__elnora__` in your available tools. Each domain-specific sub-skill (elnora-projects, elnora-tasks, etc.) has an MCP Tool Names table showing the mapping from CLI commands to MCP tool names.
+
+**If neither is available, tell the user to install one:**
+
+- CLI: `curl -fsSL https://cli.elnora.ai/install.sh | bash` (macOS/Linux)
+  or `irm https://cli.elnora.ai/install.ps1 | iex` (Windows)
+- MCP: `claude mcp add elnora --transport http --scope user https://mcp.elnora.ai/mcp`
+  then `/mcp` to authenticate.
+
+**Never fabricate tool names.** This skill routes to sub-skills; each sub-skill lists its valid commands and their MCP equivalents.
 
 ## Invocation
 

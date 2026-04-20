@@ -4,8 +4,10 @@ description: >
   This skill should be used when the user asks to "list files", "read a file",
   "get file content", "view protocol output", "file versions", "version history",
   "download protocol", "upload file", "upload batch", "bulk upload", "create file",
-  "archive file", "fork file", "promote file", "working copy", "restore version",
-  "search file content", or any task involving Elnora Platform file management.
+  "archive file", "fork file", "promote file", "working copy", "commit working copy",
+  "update file", "restore version",
+  or any task involving Elnora Platform file management.
+  NOT for searching file contents across files — use elnora-search for that.
 ---
 
 # Elnora Files
@@ -14,20 +16,24 @@ Browse, read, create, upload, version, and manage files on the Elnora AI Platfor
 
 ## Tool Access
 
-Elnora is a **command-line tool**. Run commands via your Bash/Shell tool.
+Elnora is available via two methods. Use whichever is configured.
 
-- **Command:** `elnora`
-- **Verify:** `elnora --version`
-- **If not found:** tell the user to install it. Detect their platform:
-  - macOS/Linux: `curl -fsSL https://cli.elnora.ai/install.sh | bash`
-  - Windows (PowerShell): `irm https://cli.elnora.ai/install.ps1 | iex`
-  - Any platform with Node.js: `npm install -g @elnora-ai/cli`
+**Option A — CLI via Bash (preferred)**
 
-**CLI is the recommended path** — it uses fewer tokens, is more reliable, and the commands below are ready to copy-paste.
+Run commands via your Bash/Shell tool as `elnora <group> <action> ...`. Verify with `elnora --version`. CLI uses ~5× fewer tokens than MCP.
 
-If MCP tools prefixed `mcp__elnora__` are available in your tool list, they work too — use whichever the user prefers or whichever is already configured in your environment.
+**Option B — MCP tools (when CLI isn't installed)**
 
-**Never fabricate function names** like `elnora_generate_protocol`. All valid commands are listed under "Commands" in this skill.
+Look for tools prefixed `mcp__elnora__` in your available tools. Call them with structured parameters (camelCase — e.g. `projectId`, not `project-id`). See the "MCP Tool Names" table below for the mapping.
+
+**If neither is available, tell the user to install one:**
+
+- CLI: `curl -fsSL https://cli.elnora.ai/install.sh | bash` (macOS/Linux)
+  or `irm https://cli.elnora.ai/install.ps1 | iex` (Windows)
+- MCP: `claude mcp add elnora --transport http --scope user https://mcp.elnora.ai/mcp`
+  then `/mcp` to authenticate.
+
+**Never fabricate tool names.** Valid commands are in the Commands section; their MCP equivalents are in the MCP Tool Names table.
 
 ## Invocation
 
@@ -223,6 +229,30 @@ Full-text search inside file contents. Also available as `search file-content`.
 | `--project` | No | Project UUID to filter |
 | `--page` | No | Page number (default 1) |
 | `--page-size` | No | Results per page (default 25, max 100) |
+
+## MCP Tool Names
+
+| CLI command | MCP tool name |
+|-------------|---------------|
+| `files list` | `elnora_files_list` |
+| `files get` | `elnora_files_get` |
+| `files content` | `elnora_files_content` |
+| `files download` | `elnora_files_download` |
+| `files versions` | `elnora_files_versions` |
+| `files version-content` | `elnora_files_versionContent` |
+| `files create-version` | `elnora_files_createVersion` |
+| `files restore` | `elnora_files_restore` |
+| `files create` | `elnora_files_create` |
+| `files upload` | `elnora_files_upload` |
+| `files upload-batch` | `elnora_files_uploadBatch` |
+| `files confirm-upload` | `elnora_files_confirmUpload` |
+| `files update` | `elnora_files_update` |
+| `files archive` | `elnora_files_archive` |
+| `files promote` | `elnora_files_promote` |
+| `files fork` | `elnora_files_fork` |
+| `files working-copy` | `elnora_files_workingCopy` |
+| `files commit` | `elnora_files_commit` |
+| `files search-content` | `elnora_files_searchContent` |
 
 ## Agent Recipes
 

@@ -13,20 +13,24 @@ Manage projects on the Elnora AI Platform. Projects are containers for tasks, fi
 
 ## Tool Access
 
-Elnora is a **command-line tool**. Run commands via your Bash/Shell tool.
+Elnora is available via two methods. Use whichever is configured.
 
-- **Command:** `elnora`
-- **Verify:** `elnora --version`
-- **If not found:** tell the user to install it. Detect their platform:
-  - macOS/Linux: `curl -fsSL https://cli.elnora.ai/install.sh | bash`
-  - Windows (PowerShell): `irm https://cli.elnora.ai/install.ps1 | iex`
-  - Any platform with Node.js: `npm install -g @elnora-ai/cli`
+**Option A — CLI via Bash (preferred)**
 
-**CLI is the recommended path** — it uses fewer tokens, is more reliable, and the commands below are ready to copy-paste.
+Run commands via your Bash/Shell tool as `elnora <group> <action> ...`. Verify with `elnora --version`. CLI uses ~5× fewer tokens than MCP.
 
-If MCP tools prefixed `mcp__elnora__` are available in your tool list, they work too — use whichever the user prefers or whichever is already configured in your environment.
+**Option B — MCP tools (when CLI isn't installed)**
 
-**Never fabricate function names** like `elnora_generate_protocol`. All valid commands are listed under "Commands" in this skill.
+Look for tools prefixed `mcp__elnora__` in your available tools. Call them with structured parameters (camelCase — e.g. `projectId`, not `project-id`). See the "MCP Tool Names" table below for the mapping.
+
+**If neither is available, tell the user to install one:**
+
+- CLI: `curl -fsSL https://cli.elnora.ai/install.sh | bash` (macOS/Linux)
+  or `irm https://cli.elnora.ai/install.ps1 | iex` (Windows)
+- MCP: `claude mcp add elnora --transport http --scope user https://mcp.elnora.ai/mcp`
+  then `/mcp` to authenticate.
+
+**Never fabricate tool names.** Valid commands are in the Commands section; their MCP equivalents are in the MCP Tool Names table.
 
 ## Invocation
 
@@ -127,15 +131,39 @@ $CLI --compact projects leave <PROJECT_ID>
 
 Removes the current user from the project.
 
-## Agent Recipes
+## Choosing a Project
 
-**List projects and pick one:**
+Many commands require a project ID. Resolve it once per session, then reuse.
 
 ```bash
 $CLI --compact --fields "id,name" projects list
-# Pick the project matching the user's context by name. If only one project, use it.
-# If multiple and unclear, ask the user which project to use.
 ```
+
+**Decision tree:**
+
+1. **One project** → use it automatically, don't ask.
+2. **2–5 projects** → show the list, ask the user to pick by name or number. Remember the choice.
+3. **6+ projects** → ask the user to name or describe their project. Match by name. Don't dump the full list.
+4. **Zero projects** → tell the user to create one: `$CLI projects create --name "My Project"`.
+
+**Never re-list projects for every command.** Cache the project ID after the first lookup. If the user says "switch to project X", re-list then.
+
+## MCP Tool Names
+
+| CLI command | MCP tool name |
+|-------------|---------------|
+| `projects list` | `elnora_projects_list` |
+| `projects get` | `elnora_projects_get` |
+| `projects create` | `elnora_projects_create` |
+| `projects update` | `elnora_projects_update` |
+| `projects archive` | `elnora_projects_archive` |
+| `projects members` | `elnora_projects_members` |
+| `projects add-member` | `elnora_projects_addMember` |
+| `projects update-role` | `elnora_projects_updateRole` |
+| `projects remove-member` | `elnora_projects_removeMember` |
+| `projects leave` | `elnora_projects_leave` |
+
+## Agent Recipes
 
 **Full project setup with members:**
 

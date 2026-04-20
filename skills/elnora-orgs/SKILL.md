@@ -2,9 +2,11 @@
 name: elnora-orgs
 description: >
   This skill should be used when the user asks to "list organizations", "create org",
-  "org members", "billing", "invite member", "manage invitations", "resend invitation",
-  "reinvite", "organization library", "shared library", "library files", "library folders",
-  "set default org", "delete org", "list all orgs", "set stripe",
+  "org members", "billing", "invite member", "manage invitations", "list invitations",
+  "resend invitation", "reinvite", "cancel invitation", "accept invitation",
+  "get invitation info", "remove member from org", "organization library",
+  "shared library", "library files", "library folders", "set default org",
+  "delete org", "list all orgs", "set stripe",
   or any task involving Elnora Platform organization management and shared library resources.
 ---
 
@@ -14,20 +16,24 @@ Manage organizations, members, billing, invitations, and the shared organization
 
 ## Tool Access
 
-Elnora is a **command-line tool**. Run commands via your Bash/Shell tool.
+Elnora is available via two methods. Use whichever is configured.
 
-- **Command:** `elnora`
-- **Verify:** `elnora --version`
-- **If not found:** tell the user to install it. Detect their platform:
-  - macOS/Linux: `curl -fsSL https://cli.elnora.ai/install.sh | bash`
-  - Windows (PowerShell): `irm https://cli.elnora.ai/install.ps1 | iex`
-  - Any platform with Node.js: `npm install -g @elnora-ai/cli`
+**Option A — CLI via Bash (preferred)**
 
-**CLI is the recommended path** — it uses fewer tokens, is more reliable, and the commands below are ready to copy-paste.
+Run commands via your Bash/Shell tool as `elnora <group> <action> ...`. Verify with `elnora --version`. CLI uses ~5× fewer tokens than MCP.
 
-If MCP tools prefixed `mcp__elnora__` are available in your tool list, they work too — use whichever the user prefers or whichever is already configured in your environment.
+**Option B — MCP tools (when CLI isn't installed)**
 
-**Never fabricate function names** like `elnora_generate_protocol`. All valid commands are listed under "Commands" in this skill.
+Look for tools prefixed `mcp__elnora__` in your available tools. Call them with structured parameters (camelCase — e.g. `projectId`, not `project-id`). See the "MCP Tool Names" table below for the mapping.
+
+**If neither is available, tell the user to install one:**
+
+- CLI: `curl -fsSL https://cli.elnora.ai/install.sh | bash` (macOS/Linux)
+  or `irm https://cli.elnora.ai/install.ps1 | iex` (Windows)
+- MCP: `claude mcp add elnora --transport http --scope user https://mcp.elnora.ai/mcp`
+  then `/mcp` to authenticate.
+
+**Never fabricate tool names.** Valid commands are in the Commands section; their MCP equivalents are in the MCP Tool Names table.
 
 ## Invocation
 
@@ -236,6 +242,35 @@ $CLI --compact library delete-folder --org <ORG_ID> <FOLDER_ID>
 ```
 
 Destructive — confirm with user first.
+
+## MCP Tool Names
+
+| CLI command | MCP tool name |
+|-------------|---------------|
+| `orgs list` | `elnora_orgs_list` |
+| `orgs get` | `elnora_orgs_get` |
+| `orgs create` | `elnora_orgs_create` |
+| `orgs update` | `elnora_orgs_update` |
+| `orgs members` | `elnora_orgs_members` |
+| `orgs update-role` | `elnora_orgs_updateRole` |
+| `orgs remove-member` | `elnora_orgs_removeMember` |
+| `orgs billing` | `elnora_orgs_billing` |
+| `orgs files` | `elnora_orgs_files` |
+| `orgs set-default` | `elnora_orgs_setDefault` |
+| `orgs set-stripe` | `elnora_orgs_setStripe` |
+| `orgs list-all` | `elnora_orgs_listAll` |
+| `orgs delete` | `elnora_orgs_delete` |
+| `orgs invite` | `elnora_orgs_invite` |
+| `orgs invitations` | `elnora_orgs_invitations` |
+| `orgs resend-invite` | `elnora_orgs_resendInvite` |
+| `orgs cancel-invite` | `elnora_orgs_cancelInvite` |
+| `orgs invitation-info` | `elnora_orgs_invitationInfo` |
+| `orgs accept-invite` | `elnora_orgs_acceptInvite` |
+| `library files` | `elnora_library_files` |
+| `library folders` | `elnora_library_folders` |
+| `library create-folder` | `elnora_library_createFolder` |
+| `library rename-folder` | `elnora_library_renameFolder` |
+| `library delete-folder` | `elnora_library_deleteFolder` |
 
 ## Agent Recipes
 

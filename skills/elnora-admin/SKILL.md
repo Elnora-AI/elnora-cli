@@ -1,12 +1,13 @@
 ---
 name: elnora-admin
 description: >
-  This skill should be used when the user asks to "log in", "check auth", "create API key",
-  "revoke API key", "check health", "submit feedback", "view audit log",
-  "shell completions", "account details", "accept terms", "validate token", "elnora setup",
-  "api key policy", "delete account", "list users", "feature flags", "legal documents",
-  "set feature flag", "manage legal docs", "list profiles", "show profiles", "whoami",
-  "run diagnostics", "open platform",
+  This skill should be used when the user asks to "log in", "logout", "check auth",
+  "create API key", "revoke API key", "list API keys", "check health", "submit feedback",
+  "view audit log", "shell completions", "get account", "update account", "account details",
+  "view agreements", "accept terms", "validate token", "elnora setup", "api key policy",
+  "delete account", "list users", "feature flags", "legal documents", "set feature flag",
+  "manage legal docs", "list profiles", "show profiles", "whoami", "run diagnostics",
+  "open platform",
   or any task involving Elnora Platform authentication, administration, or diagnostics.
 ---
 
@@ -16,20 +17,24 @@ Authentication, API key management, account settings, health checks, audit logs,
 
 ## Tool Access
 
-Elnora is a **command-line tool**. Run commands via your Bash/Shell tool.
+Elnora is available via two methods. Use whichever is configured.
 
-- **Command:** `elnora`
-- **Verify:** `elnora --version`
-- **If not found:** tell the user to install it. Detect their platform:
-  - macOS/Linux: `curl -fsSL https://cli.elnora.ai/install.sh | bash`
-  - Windows (PowerShell): `irm https://cli.elnora.ai/install.ps1 | iex`
-  - Any platform with Node.js: `npm install -g @elnora-ai/cli`
+**Option A — CLI via Bash (preferred)**
 
-**CLI is the recommended path** — it uses fewer tokens, is more reliable, and the commands below are ready to copy-paste.
+Run commands via your Bash/Shell tool as `elnora <group> <action> ...`. Verify with `elnora --version`. CLI uses ~5× fewer tokens than MCP.
 
-If MCP tools prefixed `mcp__elnora__` are available in your tool list, they work too — use whichever the user prefers or whichever is already configured in your environment.
+**Option B — MCP tools (when CLI isn't installed)**
 
-**Never fabricate function names** like `elnora_generate_protocol`. All valid commands are listed under "Commands" in this skill.
+Look for tools prefixed `mcp__elnora__` in your available tools. Call them with structured parameters (camelCase — e.g. `projectId`, not `project-id`). See the "MCP Tool Names" table below for the mapping.
+
+**If neither is available, tell the user to install one:**
+
+- CLI: `curl -fsSL https://cli.elnora.ai/install.sh | bash` (macOS/Linux)
+  or `irm https://cli.elnora.ai/install.ps1 | iex` (Windows)
+- MCP: `claude mcp add elnora --transport http --scope user https://mcp.elnora.ai/mcp`
+  then `/mcp` to authenticate.
+
+**Never fabricate tool names.** Valid commands are in the Commands section; their MCP equivalents are in the MCP Tool Names table.
 
 ## Invocation
 
@@ -263,7 +268,7 @@ No auth required. Returns `{"status":"ok","timestamp":"..."}` on success. Exits 
 $CLI doctor
 ```
 
-Runs diagnostic checks: API reachability, authentication, version currency, config permissions, AI server reachability.
+Runs 10 diagnostic checks across three sections: **CLI** (API reachability, authentication, version currency, config permissions, AI server reachability, PATH configured), **Claude Code** (plugin enabled, skills installed, plugin version match), and **MCP** (server reachable). Each check reports pass / fail / warn / skip; the summary line shows the tally.
 
 ### Open Platform
 
@@ -300,6 +305,40 @@ elnora completion bash >> ~/.bashrc
 elnora completion zsh >> ~/.zshrc
 elnora completion fish > ~/.config/fish/completions/elnora.fish
 ```
+
+## MCP Tool Names
+
+All commands in this skill are auto-registered as MCP tools. The mapping is `elnora <group> <action>` → `elnora_<group>_<action>` (camelCase preserved; only dots are replaced with underscores).
+
+| CLI command | MCP tool name |
+|-------------|---------------|
+| `auth login` | `elnora_auth_login` |
+| `auth logout` | `elnora_auth_logout` |
+| `auth status` | `elnora_auth_status` |
+| `auth profiles` | `elnora_auth_profiles` |
+| `auth validate` | `elnora_auth_validate` |
+| `api-keys create` | `elnora_api-keys_create` |
+| `api-keys list` | `elnora_api-keys_list` |
+| `api-keys revoke` | `elnora_api-keys_revoke` |
+| `api-keys get-policy` | `elnora_api-keys_getPolicy` |
+| `api-keys set-policy` | `elnora_api-keys_setPolicy` |
+| `account get` | `elnora_account_get` |
+| `account update` | `elnora_account_update` |
+| `account agreements` | `elnora_account_agreements` |
+| `account accept-terms` | `elnora_account_acceptTerms` |
+| `account add-legal-doc` | `elnora_account_addLegalDoc` |
+| `account update-legal-doc` | `elnora_account_updateLegalDoc` |
+| `account delete-legal-doc` | `elnora_account_deleteLegalDoc` |
+| `account delete` | `elnora_account_delete` |
+| `account users` | `elnora_account_users` |
+| `flags list` | `elnora_flags_list` |
+| `flags get` | `elnora_flags_get` |
+| `flags set` | `elnora_flags_set` |
+| `audit list` | `elnora_audit_list` |
+| `feedback submit` | `elnora_feedback_submit` |
+| `health check` | `elnora_health_check` |
+
+Note: `whoami`, `doctor`, `open`, `completion`, `update`, and `setup` are CLI-only — no MCP equivalents.
 
 ## Agent Recipes
 

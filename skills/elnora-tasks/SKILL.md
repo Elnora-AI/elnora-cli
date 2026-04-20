@@ -2,8 +2,9 @@
 name: elnora-tasks
 description: >
   This skill should be used when the user asks to "create a task", "send a message",
-  "generate a protocol", "list tasks", "read task messages", "update task status",
-  "archive a task", "talk to Elnora", "ask Elnora to generate", "protocol conversation",
+  "generate a protocol", "list tasks", "get task", "view task details",
+  "read task messages", "update task status", "archive a task", "talk to Elnora",
+  "ask Elnora to generate", "protocol conversation",
   or any task involving Elnora Platform task management and protocol generation.
 ---
 
@@ -13,20 +14,24 @@ Tasks are conversations with the Elnora AI Agent. Send messages to generate prot
 
 ## Tool Access
 
-Elnora is a **command-line tool**. Run commands via your Bash/Shell tool.
+Elnora is available via two methods. Use whichever is configured.
 
-- **Command:** `elnora`
-- **Verify:** `elnora --version`
-- **If not found:** tell the user to install it. Detect their platform:
-  - macOS/Linux: `curl -fsSL https://cli.elnora.ai/install.sh | bash`
-  - Windows (PowerShell): `irm https://cli.elnora.ai/install.ps1 | iex`
-  - Any platform with Node.js: `npm install -g @elnora-ai/cli`
+**Option A — CLI via Bash (preferred)**
 
-**CLI is the recommended path** — it uses fewer tokens, is more reliable, and the commands below are ready to copy-paste.
+Run commands via your Bash/Shell tool as `elnora <group> <action> ...`. Verify with `elnora --version`. CLI uses ~5× fewer tokens than MCP.
 
-If MCP tools prefixed `mcp__elnora__` are available in your tool list, they work too — use whichever the user prefers or whichever is already configured in your environment.
+**Option B — MCP tools (when CLI isn't installed)**
 
-**Never fabricate function names** like `elnora_generate_protocol`. All valid commands are listed under "Commands" in this skill.
+Look for tools prefixed `mcp__elnora__` in your available tools. Call them with structured parameters (camelCase — e.g. `projectId`, `taskId`, not `project-id`). See the "MCP Tool Names" table below for the mapping.
+
+**If neither is available, tell the user to install one:**
+
+- CLI: `curl -fsSL https://cli.elnora.ai/install.sh | bash` (macOS/Linux)
+  or `irm https://cli.elnora.ai/install.ps1 | iex` (Windows)
+- MCP: `claude mcp add elnora --transport http --scope user https://mcp.elnora.ai/mcp`
+  then `/mcp` to authenticate.
+
+**Never fabricate tool names.** Valid commands are in the Commands section; their MCP equivalents are in the MCP Tool Names table.
 
 ## Invocation
 
@@ -65,14 +70,18 @@ SSE event types:
 
 ## Getting a Project ID
 
-Every task belongs to a project. You need a project ID to create tasks. **Do this once per session, then reuse the ID.**
+Every task belongs to a project. Use the decision tree in the `elnora-projects` skill's "Choosing a Project" section to pick one, then reuse the ID for the rest of the session. **Don't re-list projects for every task command.**
+
+Quick reminder of the decision tree:
+
+1. **One project** → use it automatically.
+2. **2–5 projects** → ask user to pick by name or number.
+3. **6+ projects** → ask user to name/describe; match by name.
+4. **Zero** → tell user to create one first.
 
 ```bash
-# List the user's projects
-elnora --compact --fields "id,name" projects list
+$CLI --compact --fields "id,name" projects list
 ```
-
-Pick the project that best matches the user's request by name. If there's only one project, use it. If unsure, ask the user which project to use. **Remember the project ID** — don't re-list projects for every task command.
 
 ## Commands
 

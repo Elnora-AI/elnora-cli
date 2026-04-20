@@ -154,7 +154,30 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# 6. API connectivity (requires SMOKE_TEST_API_KEY)
+# 6. --md global flag registered (Phase 2, v1.4.0)
+# ---------------------------------------------------------------------------
+
+if elnora --help 2>&1 | grep -qi '^\s*--md'; then
+  pass "--md flag registered in global help"
+else
+  fail "--md flag missing from global help"
+fi
+
+# ---------------------------------------------------------------------------
+# 7. doctor produces sectioned output (Phase 2, v1.4.0)
+# ---------------------------------------------------------------------------
+
+DOCTOR_OUT=$(elnora doctor 2>&1 || true)
+if echo "$DOCTOR_OUT" | grep -qE '^\s*CLI\s*$' && \
+   echo "$DOCTOR_OUT" | grep -qE '^\s*Claude Code\s*$' && \
+   echo "$DOCTOR_OUT" | grep -qE '^\s*MCP\s*$'; then
+  pass "doctor shows three sections (CLI / Claude Code / MCP)"
+else
+  fail "doctor missing one or more sections"
+fi
+
+# ---------------------------------------------------------------------------
+# 8. API connectivity (requires SMOKE_TEST_API_KEY)
 # ---------------------------------------------------------------------------
 
 if [ -n "${SMOKE_TEST_API_KEY:-}" ]; then

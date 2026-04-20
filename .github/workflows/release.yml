@@ -105,6 +105,47 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
+  smoke-test:
+    name: "Smoke Test (${{ matrix.os }})"
+    needs: publish-npm
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "20"
+
+      - name: Extract version from tag
+        id: ver
+        shell: bash
+        run: echo "VERSION=${GITHUB_REF_NAME##*-v}" >> "$GITHUB_OUTPUT"
+
+      - name: Wait for npm propagation
+        shell: bash
+        run: sleep 30
+
+      - name: Install CLI from npm
+        run: npm install -g @elnora-ai/cli@${{ steps.ver.outputs.VERSION }}
+
+      - name: Run smoke test (Unix)
+        if: runner.os != 'Windows'
+        shell: bash
+        env:
+          SMOKE_TEST_API_KEY: ${{ secrets.SMOKE_TEST_API_KEY }}
+        run: bash scripts/smoke-test-coldstart.sh
+
+      - name: Run smoke test (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        env:
+          SMOKE_TEST_API_KEY: ${{ secrets.SMOKE_TEST_API_KEY }}
+        run: .\scripts\smoke-test-coldstart.ps1
+
   update-homebrew:
     name: Update Homebrew Tap
     needs: build-binaries

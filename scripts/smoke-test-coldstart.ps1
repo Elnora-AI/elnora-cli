@@ -145,7 +145,31 @@ if ($skillsDir) {
 }
 
 # ---------------------------------------------------------------------------
-# 6. API connectivity (requires SMOKE_TEST_API_KEY)
+# 6. --md global flag registered (Phase 2, v1.4.0)
+# ---------------------------------------------------------------------------
+
+$helpOut = & elnora --help 2>&1 | Out-String
+if ($helpOut -match '--md\s') {
+    Test-Pass "--md flag registered in global help"
+} else {
+    Test-Fail "--md flag missing from global help"
+}
+
+# ---------------------------------------------------------------------------
+# 7. doctor produces sectioned output (Phase 2, v1.4.0)
+# ---------------------------------------------------------------------------
+
+$doctorOut = & elnora doctor 2>&1 | Out-String
+if (($doctorOut -match '(?m)^\s*CLI\s*$') -and
+    ($doctorOut -match '(?m)^\s*Claude Code\s*$') -and
+    ($doctorOut -match '(?m)^\s*MCP\s*$')) {
+    Test-Pass "doctor shows three sections (CLI / Claude Code / MCP)"
+} else {
+    Test-Fail "doctor missing one or more sections"
+}
+
+# ---------------------------------------------------------------------------
+# 8. API connectivity (requires SMOKE_TEST_API_KEY)
 # ---------------------------------------------------------------------------
 
 if ($env:SMOKE_TEST_API_KEY) {

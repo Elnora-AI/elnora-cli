@@ -2,11 +2,12 @@
 name: elnora-agent
 description: >
   This skill should be used when the user asks about "Elnora agent capabilities",
-  "what can the agent do", "agent tools", "web search", "academic search",
-  "PubMed", "ArXiv", "Exa", "Tavily", "Perplexity", "Valyu", "ToolUniverse",
-  "scientific tools", "agent memory", "code execution", "sandbox",
-  "search papers", "search literature", "drug discovery", "protein analysis",
-  "clinical trials", "file operations", "agent skills",
+  "what can the agent do", "what tools does Elnora have", "what can Elnora do",
+  "agent tools", "web search", "academic search", "PubMed", "ArXiv", "Exa",
+  "Tavily", "Perplexity", "Valyu", "ToolUniverse", "scientific tools",
+  "agent memory", "code execution", "sandbox", "search papers", "search literature",
+  "drug discovery", "protein analysis", "clinical trials", "file operations",
+  "agent skills",
   or any question about what the Elnora AI Agent can do when you send it a task.
 ---
 
@@ -16,20 +17,30 @@ The Elnora Agent is a sandboxed Python environment with ~78 core tools + 2,100 T
 
 ## Tool Access
 
-Elnora is a **command-line tool**. Run commands via your Bash/Shell tool.
+This skill documents **what the Elnora Agent can do**. It does not have dedicated CLI commands — interact with the agent through the `elnora-tasks` skill.
 
-- **Command:** `elnora`
-- **Verify:** `elnora --version`
-- **If not found:** tell the user to install it. Detect their platform:
-  - macOS/Linux: `curl -fsSL https://cli.elnora.ai/install.sh | bash`
-  - Windows (PowerShell): `irm https://cli.elnora.ai/install.ps1 | iex`
-  - Any platform with Node.js: `npm install -g @elnora-ai/cli`
+Elnora is available via two methods. Use whichever is configured.
 
-**CLI is the recommended path** — it uses fewer tokens, is more reliable, and the commands below are ready to copy-paste.
+**Option A — CLI via Bash (preferred)**
 
-If MCP tools prefixed `mcp__elnora__` are available in your tool list, they work too — use whichever the user prefers or whichever is already configured in your environment.
+Run commands via your Bash/Shell tool as `elnora tasks create ...` or `elnora tasks send ...`. Verify with `elnora --version`.
 
-**Never fabricate function names** like `elnora_generate_protocol`. All valid commands are listed under "Commands" in this skill.
+**Tip:** Add `--stream` for real-time agent output:
+
+    elnora --compact tasks send <TASK_ID> --message "..." --stream
+
+**Option B — MCP tools (when CLI isn't installed)**
+
+Look for tools prefixed `mcp__elnora__` in your available tools — specifically `mcp__elnora__elnora_tasks_create` and `mcp__elnora__elnora_tasks_send`. Call them with structured parameters (camelCase).
+
+**If neither is available, tell the user to install one:**
+
+- CLI: `curl -fsSL https://cli.elnora.ai/install.sh | bash` (macOS/Linux)
+  or `irm https://cli.elnora.ai/install.ps1 | iex` (Windows)
+- MCP: `claude mcp add elnora --transport http --scope user https://mcp.elnora.ai/mcp`
+  then `/mcp` to authenticate.
+
+**Never fabricate tool names** like `elnora_generate_protocol`. The agent is interacted with via `tasks.create` and `tasks.send` only — see the `elnora-tasks` skill for full command reference.
 
 ## Invocation
 

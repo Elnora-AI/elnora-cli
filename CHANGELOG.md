@@ -5,6 +5,13 @@ All notable changes to the Elnora CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.5.0](https://github.com/Elnora-AI/elnora-cli/compare/v1.4.0...v1.5.0) (2026-04-21)
+
+
+### Features
+
+* **ci:** lint PR titles to conventional-commits format ([#106](https://github.com/Elnora-AI/elnora-cli/issues/106)) ([8b867c9](https://github.com/Elnora-AI/elnora-cli/commit/8b867c90c5eb1852a4df3cbf3d377f475163eafb))
+
 ## [1.4.0](https://github.com/Elnora-AI/elnora-cli/compare/v1.3.5...v1.4.0) (2026-04-20)
 
 

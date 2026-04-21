@@ -20,6 +20,7 @@ export const authLogin: ElnoraCommand<Input> = {
 	description: "Set up authentication by saving an API key to a profile",
 	inputSchema,
 	outputSchema: z.any(),
+	annotations: { exposeInMcp: false },
 
 	async execute(input, _ctx) {
 		let apiKey = input.apiKey;

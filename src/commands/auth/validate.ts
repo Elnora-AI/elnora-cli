@@ -15,6 +15,7 @@ export const authValidate: ElnoraCommand<Input> = {
 	description: "Validate a JWT or API key token",
 	inputSchema,
 	outputSchema: z.any(),
+	annotations: { exposeInMcp: false },
 
 	async execute(input, ctx) {
 		const tokenToValidate = input.token ?? resolveApiKey();

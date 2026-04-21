@@ -41,7 +41,12 @@ export function commandToMcpTool(command: ElnoraCommand): McpToolDefinition {
 
 /**
  * Convert all commands in a registry to MCP tool definitions.
+ *
+ * Commands with `annotations.exposeInMcp: false` are excluded (CLI-only).
  */
 export function registryToMcpTools(registry: CommandRegistry): McpToolDefinition[] {
-	return registry.all().map(commandToMcpTool);
+	return registry
+		.all()
+		.filter((cmd) => cmd.annotations?.exposeInMcp !== false)
+		.map(commandToMcpTool);
 }

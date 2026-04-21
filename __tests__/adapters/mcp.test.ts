@@ -81,4 +81,29 @@ describe("registryToMcpTools", () => {
 		const registry = new CommandRegistry();
 		expect(registryToMcpTools(registry)).toEqual([]);
 	});
+
+	test("excludes commands annotated exposeInMcp: false", () => {
+		const registry = new CommandRegistry();
+		registry.register({
+			...testCommand,
+			name: "auth.login",
+			description: "Local login",
+			annotations: { exposeInMcp: false },
+		});
+		registry.register({
+			...testCommand,
+			name: "projects.list",
+			description: "List projects",
+		});
+
+		const tools = registryToMcpTools(registry);
+		expect(tools.map((t) => t.name)).toEqual(["elnora_projects_list"]);
+	});
+
+	test("includes commands without exposeInMcp annotation (default true)", () => {
+		const registry = new CommandRegistry();
+		registry.register({ ...testCommand, annotations: undefined });
+		const tools = registryToMcpTools(registry);
+		expect(tools).toHaveLength(1);
+	});
 });

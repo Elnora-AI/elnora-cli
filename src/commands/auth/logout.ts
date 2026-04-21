@@ -16,7 +16,7 @@ export const authLogout: ElnoraCommand<Input> = {
 	description: "Remove saved credentials",
 	inputSchema,
 	outputSchema: z.any(),
-	annotations: { destructiveHint: true },
+	annotations: { destructiveHint: true, exposeInMcp: false },
 
 	async execute(input, _ctx) {
 		if (input.all) {

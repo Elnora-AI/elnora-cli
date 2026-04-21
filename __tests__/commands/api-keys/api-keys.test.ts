@@ -1,10 +1,10 @@
 import { describe, expect, test, vi } from "vitest";
-import { apiKeysCreate } from "../../../src/commands/api-keys/create.js";
-import { apiKeysGetPolicy } from "../../../src/commands/api-keys/get-policy.js";
+import { keysCreate } from "../../../src/commands/api-keys/create.js";
+import { keysGetPolicy } from "../../../src/commands/api-keys/get-policy.js";
 import { registerApiKeyCommands } from "../../../src/commands/api-keys/index.js";
-import { apiKeysList } from "../../../src/commands/api-keys/list.js";
-import { apiKeysRevoke } from "../../../src/commands/api-keys/revoke.js";
-import { apiKeysSetPolicy } from "../../../src/commands/api-keys/set-policy.js";
+import { keysList } from "../../../src/commands/api-keys/list.js";
+import { keysRevoke } from "../../../src/commands/api-keys/revoke.js";
+import { keysSetPolicy } from "../../../src/commands/api-keys/set-policy.js";
 import type { CommandContext } from "../../../src/core/command.js";
 
 const KEY_ID = "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d";
@@ -34,17 +34,17 @@ function mockContext(overrides?: {
 
 describe("api-keys.create", () => {
 	test("has correct name and group", () => {
-		expect(apiKeysCreate.name).toBe("api-keys.create");
-		expect(apiKeysCreate.group).toBe("api-keys");
+		expect(keysCreate.name).toBe("api-keys.create");
+		expect(keysCreate.group).toBe("api-keys");
 	});
 
 	test("requires name", () => {
-		expect(() => apiKeysCreate.inputSchema.parse({})).toThrow();
+		expect(() => keysCreate.inputSchema.parse({})).toThrow();
 	});
 
 	test("parses comma-separated scopes", async () => {
 		const ctx = mockContext({ postResult: { id: KEY_ID } });
-		await apiKeysCreate.execute({ name: "My Key", scopes: "read, write , admin" }, ctx);
+		await keysCreate.execute({ name: "My Key", scopes: "read, write , admin" }, ctx);
 		expect(ctx.client.post).toHaveBeenCalledWith("api_keys", {
 			name: "My Key",
 			scopes: ["read", "write", "admin"],
@@ -53,7 +53,7 @@ describe("api-keys.create", () => {
 
 	test("sends undefined scopes when not provided", async () => {
 		const ctx = mockContext({ postResult: { id: KEY_ID } });
-		await apiKeysCreate.execute({ name: "My Key" }, ctx);
+		await keysCreate.execute({ name: "My Key" }, ctx);
 		expect(ctx.client.post).toHaveBeenCalledWith("api_keys", {
 			name: "My Key",
 			scopes: undefined,
@@ -67,17 +67,17 @@ describe("api-keys.create", () => {
 
 describe("api-keys.list", () => {
 	test("has correct name and group", () => {
-		expect(apiKeysList.name).toBe("api-keys.list");
-		expect(apiKeysList.group).toBe("api-keys");
+		expect(keysList.name).toBe("api-keys.list");
+		expect(keysList.group).toBe("api-keys");
 	});
 
 	test("has readOnlyHint annotation", () => {
-		expect(apiKeysList.annotations?.readOnlyHint).toBe(true);
+		expect(keysList.annotations?.readOnlyHint).toBe(true);
 	});
 
 	test("calls GET api_keys", async () => {
 		const ctx = mockContext({ getResult: [] });
-		await apiKeysList.execute({}, ctx);
+		await keysList.execute({}, ctx);
 		expect(ctx.client.get).toHaveBeenCalledWith("api_keys");
 	});
 });
@@ -88,22 +88,22 @@ describe("api-keys.list", () => {
 
 describe("api-keys.revoke", () => {
 	test("has correct name and group", () => {
-		expect(apiKeysRevoke.name).toBe("api-keys.revoke");
-		expect(apiKeysRevoke.group).toBe("api-keys");
+		expect(keysRevoke.name).toBe("api-keys.revoke");
+		expect(keysRevoke.group).toBe("api-keys");
 	});
 
 	test("has destructiveHint annotation", () => {
-		expect(apiKeysRevoke.annotations?.destructiveHint).toBe(true);
+		expect(keysRevoke.annotations?.destructiveHint).toBe(true);
 	});
 
 	test("requires valid UUID keyId", () => {
-		expect(() => apiKeysRevoke.inputSchema.parse({ keyId: "not-uuid" })).toThrow();
-		expect(apiKeysRevoke.inputSchema.parse({ keyId: KEY_ID })).toEqual({ keyId: KEY_ID });
+		expect(() => keysRevoke.inputSchema.parse({ keyId: "not-uuid" })).toThrow();
+		expect(keysRevoke.inputSchema.parse({ keyId: KEY_ID })).toEqual({ keyId: KEY_ID });
 	});
 
 	test("calls DELETE api_key", async () => {
 		const ctx = mockContext();
-		const result = await apiKeysRevoke.execute({ keyId: KEY_ID }, ctx);
+		const result = await keysRevoke.execute({ keyId: KEY_ID }, ctx);
 		expect(ctx.client.del).toHaveBeenCalledWith("api_key", {
 			pathParams: { id: KEY_ID },
 		});
@@ -117,17 +117,17 @@ describe("api-keys.revoke", () => {
 
 describe("api-keys.getPolicy", () => {
 	test("has correct name and group", () => {
-		expect(apiKeysGetPolicy.name).toBe("api-keys.getPolicy");
-		expect(apiKeysGetPolicy.group).toBe("api-keys");
+		expect(keysGetPolicy.name).toBe("api-keys.getPolicy");
+		expect(keysGetPolicy.group).toBe("api-keys");
 	});
 
 	test("has readOnlyHint annotation", () => {
-		expect(apiKeysGetPolicy.annotations?.readOnlyHint).toBe(true);
+		expect(keysGetPolicy.annotations?.readOnlyHint).toBe(true);
 	});
 
 	test("calls GET api_key_policy", async () => {
 		const ctx = mockContext({ getResult: { policy: "all_members" } });
-		await apiKeysGetPolicy.execute({}, ctx);
+		await keysGetPolicy.execute({}, ctx);
 		expect(ctx.client.get).toHaveBeenCalledWith("api_key_policy");
 	});
 });
@@ -138,19 +138,19 @@ describe("api-keys.getPolicy", () => {
 
 describe("api-keys.setPolicy", () => {
 	test("has correct name and group", () => {
-		expect(apiKeysSetPolicy.name).toBe("api-keys.setPolicy");
-		expect(apiKeysSetPolicy.group).toBe("api-keys");
+		expect(keysSetPolicy.name).toBe("api-keys.setPolicy");
+		expect(keysSetPolicy.group).toBe("api-keys");
 	});
 
 	test("validates policy enum", () => {
-		expect(apiKeysSetPolicy.inputSchema.parse({ policy: "all_members" })).toEqual({ policy: "all_members" });
-		expect(apiKeysSetPolicy.inputSchema.parse({ policy: "admins_only" })).toEqual({ policy: "admins_only" });
-		expect(() => apiKeysSetPolicy.inputSchema.parse({ policy: "invalid" })).toThrow();
+		expect(keysSetPolicy.inputSchema.parse({ policy: "all_members" })).toEqual({ policy: "all_members" });
+		expect(keysSetPolicy.inputSchema.parse({ policy: "admins_only" })).toEqual({ policy: "admins_only" });
+		expect(() => keysSetPolicy.inputSchema.parse({ policy: "invalid" })).toThrow();
 	});
 
 	test("calls PUT api_key_policy", async () => {
 		const ctx = mockContext({ putResult: {} });
-		await apiKeysSetPolicy.execute({ policy: "admins_only" }, ctx);
+		await keysSetPolicy.execute({ policy: "admins_only" }, ctx);
 		expect(ctx.client.put).toHaveBeenCalledWith("api_key_policy", { policy: "admins_only" });
 	});
 });

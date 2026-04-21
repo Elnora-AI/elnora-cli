@@ -38,7 +38,9 @@ export const protocolsGenerate: ElnoraCommand<Input> = {
 			// can retry with `tasks.send` instead of creating a duplicate task.
 			const message = err instanceof Error ? err.message : String(err);
 			throw Object.assign(
-				new Error(`Task ${task.id} created but message send failed: ${message}. Retry with 'elnora tasks send --task-id ${task.id}'.`),
+				new Error(
+					`Task ${task.id} created but message send failed: ${message}. Retry with 'elnora tasks send --task-id ${task.id}'.`,
+				),
 				{ taskId: task.id },
 			);
 		}

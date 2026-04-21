@@ -9,7 +9,7 @@ const inputSchema = z.object({
 type Input = z.infer<typeof inputSchema>;
 type Output = { revoked: boolean; keyId: string };
 
-export const apiKeysRevoke: ElnoraCommand<Input, Output> = {
+export const keysRevoke: ElnoraCommand<Input, Output> = {
 	name: "api-keys.revoke",
 	group: "api-keys",
 	description: "Revoke an API key",

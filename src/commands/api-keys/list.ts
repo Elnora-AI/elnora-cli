@@ -6,7 +6,7 @@ const inputSchema = z.object({});
 
 type Input = z.infer<typeof inputSchema>;
 
-export const apiKeysList: ElnoraCommand<Input> = {
+export const keysList: ElnoraCommand<Input> = {
 	name: "api-keys.list",
 	group: "api-keys",
 	description: "List all API keys",

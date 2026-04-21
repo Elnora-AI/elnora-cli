@@ -9,7 +9,7 @@ const inputSchema = z.object({
 
 type Input = z.infer<typeof inputSchema>;
 
-export const apiKeysCreate: ElnoraCommand<Input> = {
+export const keysCreate: ElnoraCommand<Input> = {
 	name: "api-keys.create",
 	group: "api-keys",
 	description: "Create a new API key",

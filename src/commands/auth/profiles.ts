@@ -13,7 +13,7 @@ export const authProfiles: ElnoraCommand<Input> = {
 	description: "List all configured profiles",
 	inputSchema,
 	outputSchema: z.any(),
-	annotations: { readOnlyHint: true },
+	annotations: { readOnlyHint: true, exposeInMcp: false },
 
 	async execute(_input, _ctx) {
 		const profiles = loadProfiles();

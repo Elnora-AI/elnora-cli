@@ -12,7 +12,7 @@ export const authStatus: ElnoraCommand<Input> = {
 	description: "Verify API key and show connection info",
 	inputSchema,
 	outputSchema: z.any(),
-	annotations: { readOnlyHint: true },
+	annotations: { readOnlyHint: true, exposeInMcp: false },
 
 	async execute(_input, ctx) {
 		const result = await ctx.client.get<unknown>("projects", {

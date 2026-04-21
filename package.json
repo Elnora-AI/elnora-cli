@@ -24,6 +24,7 @@
     "build": "node scripts/build-npm.mjs",
     "build:binary": "node scripts/build.mjs --pkg",
     "dev": "tsx src/cli.ts",
+    "audit:mcp-parity": "tsx scripts/audit-mcp-parity.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "biome check src/ __tests__/",

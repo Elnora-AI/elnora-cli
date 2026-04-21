@@ -40,7 +40,7 @@ Look for tools prefixed `mcp__elnora__` in your available tools — specifically
 - MCP: `claude mcp add elnora --transport http --scope user https://mcp.elnora.ai/mcp`
   then `/mcp` to authenticate.
 
-**Never fabricate tool names** like `elnora_generate_protocol`. The agent is interacted with via `tasks.create` and `tasks.send` only — see the `elnora-tasks` skill for full command reference.
+**Never fabricate tool names** like `elnora_run_agent` or `elnora_ask_agent`. The agent is interacted with via `elnora_tasks_create`, `elnora_tasks_send`, and the aggregate `elnora_protocols_generate` — see the `elnora-tasks` skill for full command reference.
 
 ## Invocation
 

@@ -7,28 +7,14 @@
  */
 
 import { buildProgram } from "./adapters/cli.js";
-import { registerAccountCommands } from "./commands/account/index.js";
-import { registerApiKeyCommands } from "./commands/api-keys/index.js";
-import { registerAuditCommands } from "./commands/audit/index.js";
-import { registerAuthCommands } from "./commands/auth/index.js";
 import { addCompletionCommand } from "./commands/completion.js";
 import { addDoctorCommand } from "./commands/doctor.js";
-import { registerFeedbackCommands } from "./commands/feedback/index.js";
-import { registerFileCommands } from "./commands/files/index.js";
-import { registerFlagCommands } from "./commands/flags/index.js";
-import { registerFolderCommands } from "./commands/folders/index.js";
-import { healthCheck } from "./commands/health.js";
-import { registerLibraryCommands } from "./commands/library/index.js";
 import { addMcpCommands } from "./commands/mcp/serve.js";
 import { addOpenCommand } from "./commands/open.js";
-import { registerOrgCommands } from "./commands/orgs/index.js";
-import { registerProjectCommands } from "./commands/projects/index.js";
-import { registerSearchCommands } from "./commands/search/index.js";
 import { addSetupCommand } from "./commands/setup.js";
-import { registerTaskCommands } from "./commands/tasks/index.js";
 import { addUpdateCommand } from "./commands/update.js";
 import { addWhoamiCommand } from "./commands/whoami.js";
-import { CommandRegistry } from "./core/registry.js";
+import { buildRegistry } from "./core/build-registry.js";
 import { formatErrorForHuman, formatErrorPayload, getExitCode } from "./lib/errors.js";
 import { registerUpdateCheck } from "./lib/update-check.js";
 
@@ -59,30 +45,7 @@ process.on("unhandledRejection", (reason) => {
 // Command registry — all ElnoraCommand instances
 // ---------------------------------------------------------------------------
 
-const registry = new CommandRegistry();
-
-const commandGroups = [
-	[healthCheck],
-	registerAuthCommands(),
-	registerProjectCommands(),
-	registerTaskCommands(),
-	registerFileCommands(),
-	registerOrgCommands(),
-	registerFolderCommands(),
-	registerSearchCommands(),
-	registerLibraryCommands(),
-	registerAccountCommands(),
-	registerApiKeyCommands(),
-	registerAuditCommands(),
-	registerFeedbackCommands(),
-	registerFlagCommands(),
-];
-
-for (const commands of commandGroups) {
-	for (const cmd of commands) {
-		registry.register(cmd);
-	}
-}
+const registry = buildRegistry();
 
 // ---------------------------------------------------------------------------
 // Build program and add standalone commands

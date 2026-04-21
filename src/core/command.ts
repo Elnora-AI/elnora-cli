@@ -58,5 +58,9 @@ export interface ElnoraCommand<I = unknown, O = unknown> {
 		readOnlyHint?: boolean;
 		destructiveHint?: boolean;
 		idempotentHint?: boolean;
+		/** If false, command is not exposed as an MCP tool (CLI-only). Default: true. */
+		exposeInMcp?: boolean;
+		/** Required OAuth scopes when this command is invoked via MCP. Empty array = public. */
+		mcpScopes?: string[];
 	};
 }

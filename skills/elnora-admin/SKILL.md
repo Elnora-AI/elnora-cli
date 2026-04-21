@@ -312,11 +312,11 @@ All commands in this skill are auto-registered as MCP tools. The mapping is `eln
 
 | CLI command | MCP tool name |
 |-------------|---------------|
-| `auth login` | `elnora_auth_login` |
-| `auth logout` | `elnora_auth_logout` |
-| `auth status` | `elnora_auth_status` |
-| `auth profiles` | `elnora_auth_profiles` |
-| `auth validate` | `elnora_auth_validate` |
+| `auth login` | _CLI only — writes to local `~/.elnora/profiles.toml`_ |
+| `auth logout` | _CLI only — removes from local profile store_ |
+| `auth status` | _CLI only — reports local profile state_ |
+| `auth profiles` | _CLI only — reads local profile store_ |
+| `auth validate` | _CLI only — uses local profile fallback_ |
 | `api-keys create` | `elnora_api-keys_create` |
 | `api-keys list` | `elnora_api-keys_list` |
 | `api-keys revoke` | `elnora_api-keys_revoke` |
@@ -338,7 +338,7 @@ All commands in this skill are auto-registered as MCP tools. The mapping is `eln
 | `feedback submit` | `elnora_feedback_submit` |
 | `health check` | `elnora_health_check` |
 
-Note: `whoami`, `doctor`, `open`, `completion`, `update`, and `setup` are CLI-only — no MCP equivalents.
+Note: `whoami`, `doctor`, `open`, `completion`, `update`, `setup`, and all `auth` sub-commands are CLI-only — no MCP equivalents. Auth commands manage local profile storage and interactive prompts, which don't translate to a remote MCP server.
 
 ## Agent Recipes
 

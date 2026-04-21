@@ -21,6 +21,7 @@ export const protocolsGenerate: ElnoraCommand<Input> = {
 	description: "Generate a bioprotocol — creates a task and sends the description in one call",
 	inputSchema,
 	outputSchema: z.any(),
+	annotations: { mcpScopes: ["tasks:write", "messages:write"] },
 
 	async execute(input, ctx) {
 		const body: Record<string, unknown> = { title: input.title || input.description.slice(0, 100) };
@@ -29,8 +30,18 @@ export const protocolsGenerate: ElnoraCommand<Input> = {
 		if (!task?.id) {
 			throw new Error("Task creation returned no ID");
 		}
-		const response = await ctx.client.post(`tasks/${task.id}/messages`, { content: input.description });
-		return { taskId: task.id, response };
+		try {
+			const response = await ctx.client.post(`tasks/${task.id}/messages`, { content: input.description });
+			return { taskId: task.id, response };
+		} catch (err) {
+			// Task exists but message send failed — surface the taskId so the caller
+			// can retry with `tasks.send` instead of creating a duplicate task.
+			const message = err instanceof Error ? err.message : String(err);
+			throw Object.assign(
+				new Error(`Task ${task.id} created but message send failed: ${message}. Retry with 'elnora tasks send --task-id ${task.id}'.`),
+				{ taskId: task.id },
+			);
+		}
 	},
 
 	formatOutput(output: unknown, format: OutputFormat): string {

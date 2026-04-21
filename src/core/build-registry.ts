@@ -20,6 +20,7 @@ import { healthCheck } from "../commands/health.js";
 import { registerLibraryCommands } from "../commands/library/index.js";
 import { registerOrgCommands } from "../commands/orgs/index.js";
 import { registerProjectCommands } from "../commands/projects/index.js";
+import { registerProtocolCommands } from "../commands/protocols/index.js";
 import { registerSearchCommands } from "../commands/search/index.js";
 import { registerTaskCommands } from "../commands/tasks/index.js";
 import { CommandRegistry } from "./registry.js";
@@ -36,6 +37,7 @@ export function buildRegistry(): CommandRegistry {
 		registerOrgCommands(),
 		registerFolderCommands(),
 		registerSearchCommands(),
+		registerProtocolCommands(),
 		registerLibraryCommands(),
 		registerAccountCommands(),
 		registerApiKeyCommands(),

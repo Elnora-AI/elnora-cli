@@ -26,6 +26,31 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
 
+  mcp-parity:
+    name: MCP tool parity
+    runs-on: ubuntu-latest
+    needs: lint-and-test
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: elnora-cli
+      - uses: actions/checkout@v4
+        with:
+          repository: Elnora-AI/elnora-mcp-server
+          path: elnora-mcp-server
+          ref: main
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+          cache-dependency-path: elnora-cli/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+        working-directory: elnora-cli
+      - name: Audit MCP parity against elnora-mcp-server/main
+        run: pnpm exec tsx scripts/audit-mcp-parity.ts --sibling-path ../elnora-mcp-server
+        working-directory: elnora-cli
+
   build:
     name: Build (${{ matrix.os }})
     needs: lint-and-test

@@ -29,6 +29,9 @@ jobs:
           - os: windows-latest
             target: win-x64
             binary: elnora-win-x64.exe
+          - os: windows-latest
+            target: win-arm64
+            binary: elnora-win-arm64.exe
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -49,7 +52,7 @@ jobs:
           # Copy skills into dist/ for bundling
           cp -r skills dist/skills
           cd dist
-          if [[ "${{ matrix.target }}" == "win-x64" ]]; then
+          if [[ "${{ matrix.target }}" == win-* ]]; then
             7z a ${{ matrix.binary }}.zip ${{ matrix.binary }} skills
           else
             tar -czf ${{ matrix.binary }}.tar.gz ${{ matrix.binary }} skills
@@ -59,7 +62,7 @@ jobs:
         shell: bash
         run: |
           cd dist
-          if [[ "${{ matrix.target }}" == "win-x64" ]]; then
+          if [[ "${{ matrix.target }}" == win-* ]]; then
             ARCHIVE="${{ matrix.binary }}.zip"
           else
             ARCHIVE="${{ matrix.binary }}.tar.gz"
@@ -111,7 +114,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest, windows-11-arm]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v6

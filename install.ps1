@@ -25,13 +25,13 @@ if (-not $Version) {
         Write-Host ""
         Write-Host "Error: Could not fetch the latest version. Check your internet connection." -ForegroundColor Red
         Write-Host "  Retry, or pin a version: irm https://cli.elnora.ai/install.ps1 | iex -Version v<VERSION>"
-        exit 1
+        throw "Could not fetch the latest version."
     }
     if (-not $Version) {
         Write-Host ""
         Write-Host "Error: Could not determine the latest version." -ForegroundColor Red
         Write-Host "  Check releases: https://github.com/$Repo/releases"
-        exit 1
+        throw "Could not determine the latest version."
     }
 }
 
@@ -48,20 +48,39 @@ try {
     Write-Host ""
     Write-Host "Error: Could not create directory: $InstallDir" -ForegroundColor Red
     Write-Host "  Try running PowerShell as Administrator."
-    exit 1
+    throw "Could not create install directory: $InstallDir"
 }
 
 # Download
 $TmpDir = New-TemporaryFile | ForEach-Object { Remove-Item $_; New-Item -ItemType Directory -Path $_ }
 
+# Try the native build first. If ARM64 asset is missing for this release,
+# fall back to x64 — Windows 11 on ARM runs x64 binaries transparently.
+$downloadOk = $false
 try {
     Invoke-WebRequest -Uri $DownloadUrl -OutFile "$TmpDir\$Target.zip" -TimeoutSec 120
+    $downloadOk = $true
 } catch {
+    if ($Arch -eq "arm64") {
+        Write-Host "  Note: native arm64 build not available for $Version; falling back to x64 (runs via Windows on ARM emulation)."
+        $Arch = "x64"
+        $Target = "elnora-win-$Arch.exe"
+        $DownloadUrl = "https://github.com/$Repo/releases/download/$Version/$Target.zip"
+        $ChecksumUrl = "https://github.com/$Repo/releases/download/$Version/$Target.sha256"
+        try {
+            Invoke-WebRequest -Uri $DownloadUrl -OutFile "$TmpDir\$Target.zip" -TimeoutSec 120
+            $downloadOk = $true
+        } catch {
+            # Fall through to the error branch below.
+        }
+    }
+}
+if (-not $downloadOk) {
     Write-Host ""
     Write-Host "Error: Failed to download Elnora CLI $Version for win-$Arch." -ForegroundColor Red
     Write-Host "  Check that this version exists: https://github.com/$Repo/releases/tag/$Version"
     Remove-Item -Recurse -Force $TmpDir -ErrorAction SilentlyContinue
-    exit 1
+    throw "Failed to download Elnora CLI $Version for win-$Arch."
 }
 
 $SkipChecksum = $false
@@ -89,7 +108,7 @@ if (-not $SkipChecksum) {
             Write-Host "  Got:      $actual"
             Write-Host "  Try running the installer again: irm https://cli.elnora.ai/install.ps1 | iex"
             Remove-Item -Recurse -Force $TmpDir -ErrorAction SilentlyContinue
-            exit 1
+            throw "Checksum verification failed for $Target.zip."
         }
     }
 }
@@ -102,7 +121,7 @@ try {
     Write-Host "Error: Failed to extract archive. The download may be corrupted." -ForegroundColor Red
     Write-Host "  Try running the installer again: irm https://cli.elnora.ai/install.ps1 | iex"
     Remove-Item -Recurse -Force $TmpDir -ErrorAction SilentlyContinue
-    exit 1
+    throw "Failed to extract $Target.zip."
 }
 
 if (-not (Test-Path "$TmpDir\$Target")) {
@@ -110,7 +129,7 @@ if (-not (Test-Path "$TmpDir\$Target")) {
     Write-Host "Error: Binary not found after extraction. The release archive may be incomplete." -ForegroundColor Red
     Write-Host "  Report this issue: https://github.com/$Repo/issues"
     Remove-Item -Recurse -Force $TmpDir -ErrorAction SilentlyContinue
-    exit 1
+    throw "Binary missing after extraction: $Target."
 }
 
 # Install
@@ -125,7 +144,7 @@ try {
         Write-Host "  Try running PowerShell as Administrator."
     }
     Remove-Item -Recurse -Force $TmpDir -ErrorAction SilentlyContinue
-    exit 1
+    throw "Failed to copy elnora.exe to $InstallDir."
 }
 
 # Add to PATH — persist AND update current session

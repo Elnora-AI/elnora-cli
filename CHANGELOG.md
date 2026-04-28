@@ -5,6 +5,13 @@ All notable changes to the Elnora CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.5.1](https://github.com/Elnora-AI/elnora-cli/compare/v1.5.0...v1.5.1) (2026-04-28)
+
+
+### Bug Fixes
+
+* **installer:** Windows ARM64 build + iex-safe error handling ([#109](https://github.com/Elnora-AI/elnora-cli/issues/109)) ([a07ca67](https://github.com/Elnora-AI/elnora-cli/commit/a07ca675ca0cc4f71508b3bb43e7d5277f7b6ff4))
+
 ## [1.5.0](https://github.com/Elnora-AI/elnora-cli/compare/v1.4.0...v1.5.0) (2026-04-21)
 
 

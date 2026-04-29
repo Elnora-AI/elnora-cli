@@ -17,7 +17,14 @@ export function setupCodex(apiKey: string): boolean {
 	}
 	console.error(ok("Codex CLI found"));
 
-	const config = readJsonFile(CODEX_MCP_FILE);
+	let config: Record<string, unknown>;
+	try {
+		config = readJsonFile(CODEX_MCP_FILE);
+	} catch (err) {
+		console.error(fail(err instanceof Error ? err.message : String(err)));
+		console.error("  Repair or delete the file and retry.");
+		return false;
+	}
 	if (!config.mcpServers || typeof config.mcpServers !== "object") {
 		config.mcpServers = {};
 	}

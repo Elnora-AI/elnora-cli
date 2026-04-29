@@ -15,14 +15,14 @@ import { setupVscode } from "../lib/setup/vscode.js";
 
 type PlatformName = "claude" | "cursor" | "vscode" | "codex";
 
-const PLATFORM_SETUP: Record<PlatformName, (apiKey: string) => boolean> = {
+const PLATFORM_SETUP: Record<PlatformName, (apiKey: string) => Promise<boolean>> = {
 	claude: () => setupClaude(),
-	cursor: (key) => setupCursor(key),
-	vscode: (key) => setupVscode(key),
-	codex: (key) => setupCodex(key),
+	cursor: async (key) => setupCursor(key),
+	vscode: async (key) => setupVscode(key),
+	codex: async (key) => setupCodex(key),
 };
 
-function runSetup(platforms: PlatformName[], profileName: string): void {
+async function runSetup(platforms: PlatformName[], profileName: string): Promise<void> {
 	// Resolve API key once (needed for MCP config on non-Claude platforms)
 	let apiKey: string | undefined;
 	const needsKey = platforms.some((p) => p !== "claude");
@@ -42,7 +42,7 @@ function runSetup(platforms: PlatformName[], profileName: string): void {
 	let anyFailed = false;
 	for (const platform of platforms) {
 		const setupFn = PLATFORM_SETUP[platform];
-		const success = setupFn(apiKey ?? "");
+		const success = await setupFn(apiKey ?? "");
 		if (!success) anyFailed = true;
 		console.error("");
 	}
@@ -62,41 +62,41 @@ export function addSetupCommand(program: Command): void {
 	setup
 		.command("claude")
 		.description("Set up Claude Code (skills + MCP server)")
-		.action(() => {
+		.action(async () => {
 			const opts = setup.opts<{ profile: string }>();
 			console.error("");
-			runSetup(["claude"], opts.profile);
+			await runSetup(["claude"], opts.profile);
 		});
 
 	setup
 		.command("cursor")
 		.description("Set up Cursor (MCP server)")
-		.action(() => {
+		.action(async () => {
 			const opts = setup.opts<{ profile: string }>();
 			console.error("");
-			runSetup(["cursor"], opts.profile);
+			await runSetup(["cursor"], opts.profile);
 		});
 
 	setup
 		.command("vscode")
 		.description("Set up VS Code Copilot (MCP server)")
-		.action(() => {
+		.action(async () => {
 			const opts = setup.opts<{ profile: string }>();
 			console.error("");
-			runSetup(["vscode"], opts.profile);
+			await runSetup(["vscode"], opts.profile);
 		});
 
 	setup
 		.command("codex")
 		.description("Set up OpenAI Codex (MCP server)")
-		.action(() => {
+		.action(async () => {
 			const opts = setup.opts<{ profile: string }>();
 			console.error("");
-			runSetup(["codex"], opts.profile);
+			await runSetup(["codex"], opts.profile);
 		});
 
 	// Default: auto-detect installed platforms
-	setup.action(() => {
+	setup.action(async () => {
 		const opts = setup.opts<{ profile: string }>();
 		console.error("");
 
@@ -119,7 +119,7 @@ export function addSetupCommand(program: Command): void {
 		console.error("");
 
 		const platforms = installed.map((p) => p.name as PlatformName);
-		runSetup(platforms, opts.profile);
+		await runSetup(platforms, opts.profile);
 	});
 
 	// Top-level alias: `elnora setup-claude` → `elnora setup claude`
@@ -127,8 +127,8 @@ export function addSetupCommand(program: Command): void {
 		.command("setup-claude")
 		.description("Set up Claude Code (alias for 'setup claude')")
 		.option("--profile <name>", "API key profile to use", "default")
-		.action((opts: { profile: string }) => {
+		.action(async (opts: { profile: string }) => {
 			console.error("");
-			runSetup(["claude"], opts.profile);
+			await runSetup(["claude"], opts.profile);
 		});
 }

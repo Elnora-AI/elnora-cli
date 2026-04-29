@@ -5,6 +5,13 @@ All notable changes to the Elnora CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.5.2](https://github.com/Elnora-AI/elnora-cli/compare/v1.5.1...v1.5.2) (2026-04-29)
+
+
+### Bug Fixes
+
+* **setup:** register marketplace via `claude plugin marketplace add` ([#111](https://github.com/Elnora-AI/elnora-cli/issues/111)) ([c592807](https://github.com/Elnora-AI/elnora-cli/commit/c592807f6c3d23b7c68b7fbd9126fd94bf522f70))
+
 ## [1.5.1](https://github.com/Elnora-AI/elnora-cli/compare/v1.5.0...v1.5.1) (2026-04-28)
 
 

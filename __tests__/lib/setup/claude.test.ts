@@ -17,11 +17,11 @@ vi.mock("node:os", async () => {
 type SpawnOutcome = { kind: "exit"; code: number } | { kind: "error"; err: NodeJS.ErrnoException };
 
 let nextOutcomes: SpawnOutcome[] = [];
-const spawnCalls: { file: string; args: readonly string[] }[] = [];
+const spawnCalls: { file: string; args: readonly string[]; options: { shell?: boolean | string } }[] = [];
 
 vi.mock("node:child_process", () => ({
-	spawn: (file: string, args: readonly string[], _options: unknown) => {
-		spawnCalls.push({ file, args });
+	spawn: (file: string, args: readonly string[], options: { shell?: boolean | string }) => {
+		spawnCalls.push({ file, args, options });
 		const ee = new EventEmitter();
 		const outcome: SpawnOutcome = nextOutcomes.shift() ?? { kind: "exit", code: 0 };
 		// Defer event emission to next microtask so the caller can attach listeners.
@@ -91,6 +91,20 @@ describe("setupClaude", () => {
 		const result = await setupClaude();
 		expect(result).toBe(false);
 		expect(spawnCalls).toHaveLength(1);
+	});
+
+	test("passes shell:true to spawn on Windows for .cmd file resolution", async () => {
+		mkdirSync(join(TEST_HOME, ".claude"), { recursive: true });
+
+		const result = await setupClaude();
+		expect(result).toBe(true);
+
+		// On Windows, npm installs CLIs as `<name>.cmd` and Node's CreateProcess-based
+		// spawn won't auto-resolve them. shell: true routes through cmd.exe + PATHEXT,
+		// which finds both .exe (native installer) and .cmd (npm install) variants.
+		const expectedShell = process.platform === "win32";
+		expect(spawnCalls[0].options.shell).toBe(expectedShell);
+		expect(spawnCalls[1].options.shell).toBe(expectedShell);
 	});
 
 	test("returns false if plugin install fails after successful marketplace add", async () => {

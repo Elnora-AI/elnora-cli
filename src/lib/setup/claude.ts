@@ -24,10 +24,19 @@ interface ExecError extends Error {
  * (clone, validation, success ✓) instead of a 30-120s frozen prompt. Resolves
  * on exit code 0; rejects with `code: "ENOENT"` if `claude` isn't on PATH or
  * `code: <number>` for a non-zero exit.
+ *
+ * `shell: true` on Windows because npm installs CLIs as `<name>.cmd` (a batch
+ * file), and Node's CreateProcess-based spawn won't auto-resolve `.cmd` files
+ * — only `.exe`/`.com`. Routing through `cmd.exe` makes PATHEXT do the lookup,
+ * which finds both `claude.exe` (native installer) and `claude.cmd` (npm).
+ * Args are hard-coded URLs/IDs, so no shell-injection surface.
  */
 function runClaudeCli(args: string[]): Promise<void> {
 	return new Promise((resolve, reject) => {
-		const child = spawn("claude", args, { stdio: "inherit" });
+		const child = spawn("claude", args, {
+			stdio: "inherit",
+			shell: process.platform === "win32",
+		});
 		child.on("error", (err) => reject(err));
 		child.on("close", (code) => {
 			if (code === 0) {

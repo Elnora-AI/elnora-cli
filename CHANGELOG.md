@@ -5,6 +5,13 @@ All notable changes to the Elnora CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.5.3](https://github.com/Elnora-AI/elnora-cli/compare/v1.5.2...v1.5.3) (2026-04-29)
+
+
+### Bug Fixes
+
+* **release:** unblock v1.5.x publishing + Windows spawn resolution ([#113](https://github.com/Elnora-AI/elnora-cli/issues/113)) ([32e263d](https://github.com/Elnora-AI/elnora-cli/commit/32e263d02d7bb7ca52517987c2e51383de5968a1))
+
 ## [1.5.2](https://github.com/Elnora-AI/elnora-cli/compare/v1.5.1...v1.5.2) (2026-04-29)
 
 

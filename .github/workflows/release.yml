@@ -12,6 +12,10 @@ jobs:
   build-binaries:
     name: Build ${{ matrix.binary }}
     strategy:
+      # Don't cancel the rest of the matrix if one arch fails. A single
+      # cross-compile blip should not block npm publish, homebrew update,
+      # or skill sync for the other 5 working artifacts.
+      fail-fast: false
       matrix:
         include:
           - os: ubuntu-latest
@@ -29,7 +33,11 @@ jobs:
           - os: windows-latest
             target: win-x64
             binary: elnora-win-x64.exe
-          - os: windows-latest
+          # win-arm64 must build on a native ARM64 runner. pkg fabricates the
+          # binary by spawning it during packaging — Windows on x64 cannot
+          # execute ARM64 EXEs (no Prism on the x64 host side), so cross-
+          # compile from windows-latest fails with `spawn UNKNOWN`.
+          - os: windows-11-arm
             target: win-arm64
             binary: elnora-win-arm64.exe
     runs-on: ${{ matrix.os }}

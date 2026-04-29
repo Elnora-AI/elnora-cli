@@ -103,7 +103,13 @@ export function scrub(text: string): string {
 		}
 	}
 	result = result.replace(SCRUB_KEY_VALUE_RE, "[REDACTED]");
-	result = result.replace(SCRUB_LONG_TOKEN_RE, "[REDACTED]");
+	result = result.replace(SCRUB_LONG_TOKEN_RE, (match) => {
+		// Always redact prefixed API tokens.
+		if (match.startsWith("elnora_live_")) return "[REDACTED]";
+		// For the generic long-token branch, require at least one digit so that
+		// long pure-letter strings (e.g. biological sequences) are not redacted.
+		return /\d/.test(match) ? "[REDACTED]" : match;
+	});
 	return result;
 }
 

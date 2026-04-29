@@ -17,7 +17,14 @@ export function setupVscode(apiKey: string): boolean {
 	}
 	console.error(ok("VS Code found"));
 
-	const config = readJsonFile(VSCODE_MCP_GLOBAL);
+	let config: Record<string, unknown>;
+	try {
+		config = readJsonFile(VSCODE_MCP_GLOBAL);
+	} catch (err) {
+		console.error(fail(err instanceof Error ? err.message : String(err)));
+		console.error("  Repair or delete the file and retry.");
+		return false;
+	}
 	if (!config.servers || typeof config.servers !== "object") {
 		config.servers = {};
 	}

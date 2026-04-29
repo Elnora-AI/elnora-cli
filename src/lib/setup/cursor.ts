@@ -14,7 +14,14 @@ export function setupCursor(apiKey: string): boolean {
 	}
 	console.error(ok("Cursor found"));
 
-	const config = readJsonFile(CURSOR_MCP_GLOBAL);
+	let config: Record<string, unknown>;
+	try {
+		config = readJsonFile(CURSOR_MCP_GLOBAL);
+	} catch (err) {
+		console.error(fail(err instanceof Error ? err.message : String(err)));
+		console.error("  Repair or delete the file and retry.");
+		return false;
+	}
 	if (!config.mcpServers || typeof config.mcpServers !== "object") {
 		config.mcpServers = {};
 	}

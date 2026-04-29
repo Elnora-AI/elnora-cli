@@ -36,21 +36,28 @@ export const CODEX_DIR = join(HOME, ".codex");
 
 export const MARKETPLACE_NAME = "elnora-plugins";
 export const MARKETPLACE_REPO = "Elnora-AI/elnora-plugins";
+export const MARKETPLACE_GITHUB_URL = `https://github.com/${MARKETPLACE_REPO}`;
 export const PLUGIN_ID = `elnora@${MARKETPLACE_NAME}`;
-
-/** Old IDs to clean up from previous setup-claude versions. */
-export const LEGACY_PLUGIN_IDS = ["elnora@elnora-local", "elnora@elnora-ai"];
-export const LEGACY_MARKETPLACE_NAMES = ["elnora-local", "elnora-ai"];
 
 // ---------------------------------------------------------------------------
 // JSON helpers
 // ---------------------------------------------------------------------------
 
+/**
+ * Read and parse a JSON config file.
+ *
+ * Missing file returns `{}` so callers can append a fresh config.
+ * Existing-but-corrupt throws — the previous swallow-and-return-{} masked the
+ * upstream cause of ELN-669, where a partial known_marketplaces.json entry
+ * silently triggered a clobbering rewrite instead of a clear error.
+ */
 export function readJsonFile(path: string): Record<string, unknown> {
+	if (!existsSync(path)) return {};
 	try {
 		return JSON.parse(readFileSync(path, "utf-8")) as Record<string, unknown>;
-	} catch {
-		return {};
+	} catch (err) {
+		const reason = err instanceof Error ? err.message : String(err);
+		throw new Error(`Cannot parse JSON config at ${path}: ${reason}`);
 	}
 }
 

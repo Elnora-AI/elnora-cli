@@ -1,4 +1,5 @@
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { EventEmitter } from "node:events";
+import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
@@ -11,23 +12,39 @@ vi.mock("node:os", async () => {
 	return { ...actual, homedir: () => TEST_HOME };
 });
 
+// Swappable mock for child_process.spawn so tests can simulate clean exit,
+// non-zero exit (command failed), or ENOENT (claude not on PATH).
+type SpawnOutcome = { kind: "exit"; code: number } | { kind: "error"; err: NodeJS.ErrnoException };
+
+let nextOutcomes: SpawnOutcome[] = [];
+const spawnCalls: { file: string; args: readonly string[] }[] = [];
+
+vi.mock("node:child_process", () => ({
+	spawn: (file: string, args: readonly string[], _options: unknown) => {
+		spawnCalls.push({ file, args });
+		const ee = new EventEmitter();
+		const outcome: SpawnOutcome = nextOutcomes.shift() ?? { kind: "exit", code: 0 };
+		// Defer event emission to next microtask so the caller can attach listeners.
+		queueMicrotask(() => {
+			if (outcome.kind === "error") ee.emit("error", outcome.err);
+			else ee.emit("close", outcome.code);
+		});
+		return ee;
+	},
+}));
+
 // Now import after mocks are set up
 const { setupClaude } = await import("../../../src/lib/setup/claude.js");
-const { MARKETPLACE_NAME, PLUGIN_ID, LEGACY_MARKETPLACE_NAMES, LEGACY_PLUGIN_IDS } = await import(
-	"../../../src/lib/setup/common.js"
-);
+const { MARKETPLACE_GITHUB_URL, PLUGIN_ID } = await import("../../../src/lib/setup/common.js");
 
 describe("setupClaude", () => {
-	let stderrWrite: ReturnType<typeof vi.spyOn>;
-
 	beforeEach(() => {
-		stderrWrite = vi.spyOn(process.stderr, "write").mockReturnValue(true);
-		// Suppress console.error output during tests
 		vi.spyOn(console, "error").mockImplementation(() => {});
+		spawnCalls.length = 0;
+		nextOutcomes = [];
 	});
 
 	afterEach(() => {
-		stderrWrite.mockRestore();
 		vi.restoreAllMocks();
 		try {
 			rmSync(TEST_HOME, { recursive: true, force: true });
@@ -36,88 +53,55 @@ describe("setupClaude", () => {
 		}
 	});
 
-	test("returns false if ~/.claude/ does not exist", () => {
-		const result = setupClaude();
+	test("returns false if ~/.claude/ does not exist", async () => {
+		const result = await setupClaude();
 		expect(result).toBe(false);
+		expect(spawnCalls).toHaveLength(0);
 	});
 
-	test("registers GitHub marketplace in known_marketplaces.json", () => {
-		// Create ~/.claude/
-		const claudeDir = join(TEST_HOME, ".claude");
-		mkdirSync(join(claudeDir, "plugins"), { recursive: true });
-		writeFileSync(join(claudeDir, "plugins", "known_marketplaces.json"), "{}");
-		writeFileSync(join(claudeDir, "settings.json"), "{}");
+	test("invokes `claude plugin marketplace add` and `claude plugin install` in order", async () => {
+		mkdirSync(join(TEST_HOME, ".claude"), { recursive: true });
 
-		const result = setupClaude();
+		const result = await setupClaude();
 		expect(result).toBe(true);
+		expect(spawnCalls).toHaveLength(2);
 
-		const marketplaces = JSON.parse(readFileSync(join(claudeDir, "plugins", "known_marketplaces.json"), "utf-8"));
-		expect(marketplaces[MARKETPLACE_NAME]).toBeDefined();
-		expect(marketplaces[MARKETPLACE_NAME].source.source).toBe("github");
-		expect(marketplaces[MARKETPLACE_NAME].source.repo).toBe("Elnora-AI/elnora-plugins");
+		expect(spawnCalls[0].file).toBe("claude");
+		expect(spawnCalls[0].args).toEqual(["plugin", "marketplace", "add", MARKETPLACE_GITHUB_URL]);
+
+		expect(spawnCalls[1].file).toBe("claude");
+		expect(spawnCalls[1].args).toEqual(["plugin", "install", PLUGIN_ID]);
 	});
 
-	test("enables plugin in settings.json", () => {
-		const claudeDir = join(TEST_HOME, ".claude");
-		mkdirSync(join(claudeDir, "plugins"), { recursive: true });
-		writeFileSync(join(claudeDir, "plugins", "known_marketplaces.json"), "{}");
-		writeFileSync(join(claudeDir, "settings.json"), "{}");
+	test("returns false and stops if marketplace add exits non-zero", async () => {
+		mkdirSync(join(TEST_HOME, ".claude"), { recursive: true });
+		nextOutcomes = [{ kind: "exit", code: 1 }];
 
-		setupClaude();
-
-		const settings = JSON.parse(readFileSync(join(claudeDir, "settings.json"), "utf-8"));
-		expect(settings.enabledPlugins[PLUGIN_ID]).toBe(true);
+		const result = await setupClaude();
+		expect(result).toBe(false);
+		// Install must not run after add fails.
+		expect(spawnCalls).toHaveLength(1);
 	});
 
-	test("cleans up legacy marketplace and plugin entries", () => {
-		const claudeDir = join(TEST_HOME, ".claude");
-		mkdirSync(join(claudeDir, "plugins"), { recursive: true });
+	test("returns false with friendly message if `claude` is missing from PATH", async () => {
+		mkdirSync(join(TEST_HOME, ".claude"), { recursive: true });
+		const enoentErr: NodeJS.ErrnoException = Object.assign(new Error("spawn claude ENOENT"), { code: "ENOENT" });
+		nextOutcomes = [{ kind: "error", err: enoentErr }];
 
-		// Pre-populate with legacy entries
-		const legacyMarketplaces: Record<string, unknown> = {};
-		for (const name of LEGACY_MARKETPLACE_NAMES) {
-			legacyMarketplaces[name] = { source: { source: "directory", path: "/old" } };
-		}
-		writeFileSync(join(claudeDir, "plugins", "known_marketplaces.json"), JSON.stringify(legacyMarketplaces));
-
-		const legacySettings: Record<string, unknown> = {
-			enabledPlugins: {} as Record<string, boolean>,
-		};
-		for (const id of LEGACY_PLUGIN_IDS) {
-			(legacySettings.enabledPlugins as Record<string, boolean>)[id] = true;
-		}
-		writeFileSync(join(claudeDir, "settings.json"), JSON.stringify(legacySettings));
-
-		setupClaude();
-
-		const marketplaces = JSON.parse(readFileSync(join(claudeDir, "plugins", "known_marketplaces.json"), "utf-8"));
-		for (const name of LEGACY_MARKETPLACE_NAMES) {
-			expect(marketplaces[name]).toBeUndefined();
-		}
-
-		const settings = JSON.parse(readFileSync(join(claudeDir, "settings.json"), "utf-8"));
-		for (const id of LEGACY_PLUGIN_IDS) {
-			expect(settings.enabledPlugins[id]).toBeUndefined();
-		}
+		const result = await setupClaude();
+		expect(result).toBe(false);
+		expect(spawnCalls).toHaveLength(1);
 	});
 
-	test("preserves existing settings", () => {
-		const claudeDir = join(TEST_HOME, ".claude");
-		mkdirSync(join(claudeDir, "plugins"), { recursive: true });
-		writeFileSync(join(claudeDir, "plugins", "known_marketplaces.json"), "{}");
-		writeFileSync(
-			join(claudeDir, "settings.json"),
-			JSON.stringify({
-				someOtherSetting: true,
-				enabledPlugins: { "other-plugin@other": true },
-			}),
-		);
+	test("returns false if plugin install fails after successful marketplace add", async () => {
+		mkdirSync(join(TEST_HOME, ".claude"), { recursive: true });
+		nextOutcomes = [
+			{ kind: "exit", code: 0 },
+			{ kind: "exit", code: 1 },
+		];
 
-		setupClaude();
-
-		const settings = JSON.parse(readFileSync(join(claudeDir, "settings.json"), "utf-8"));
-		expect(settings.someOtherSetting).toBe(true);
-		expect(settings.enabledPlugins["other-plugin@other"]).toBe(true);
-		expect(settings.enabledPlugins[PLUGIN_ID]).toBe(true);
+		const result = await setupClaude();
+		expect(result).toBe(false);
+		expect(spawnCalls).toHaveLength(2);
 	});
 });

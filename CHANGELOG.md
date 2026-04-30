@@ -5,6 +5,13 @@ All notable changes to the Elnora CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.5.4](https://github.com/Elnora-AI/elnora-cli/compare/v1.5.3...v1.5.4) (2026-04-30)
+
+
+### Bug Fixes
+
+* **scrub:** allow long pure-letter strings to pass through ([#116](https://github.com/Elnora-AI/elnora-cli/issues/116)) ([0652711](https://github.com/Elnora-AI/elnora-cli/commit/0652711e86e7c6ff9a22f9b79d7d063bb018eafa))
+
 ## [1.5.3](https://github.com/Elnora-AI/elnora-cli/compare/v1.5.2...v1.5.3) (2026-04-29)
 
 

@@ -105,9 +105,16 @@ describe("Credential scrubbing", () => {
 		expect(scrub(input)).toBe("key is [REDACTED]");
 	});
 
-	test("scrubs long token-like strings (40+ chars)", () => {
-		const longToken = "a".repeat(45);
+	test("scrubs long token-like strings (40+ chars with digits)", () => {
+		const longToken = "abc123def456ghi789jkl012mno345pqr678stu901";
 		expect(scrub(`token: ${longToken}`)).toBe("token: [REDACTED]");
+	});
+
+	test("does not scrub long pure-letter strings (e.g. biological sequences)", () => {
+		const dna = "ATGAGCATGCTGTTTTACACCCTGATCACCGCATTTCTGATTGGCATT";
+		expect(scrub(`sequence: ${dna}`)).toBe(`sequence: ${dna}`);
+		const protein = "MSMLFYTLITAFLIGIQAEPLWNSIEQLQSMETSQVQGSGSAGQNIK";
+		expect(scrub(`peptide: ${protein}`)).toBe(`peptide: ${protein}`);
 	});
 
 	test("scrubs key=value patterns", () => {

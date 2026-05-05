@@ -9,9 +9,9 @@
  *   node scripts/build.mjs --pkg        # CJS bundle + pkg binaries
  */
 
-import { build } from "esbuild";
 import { execSync } from "node:child_process";
 import { readFileSync } from "node:fs";
+import { build } from "esbuild";
 
 const pkg = JSON.parse(readFileSync("package.json", "utf-8"));
 const doPkg = process.argv.includes("--pkg");

@@ -5,6 +5,13 @@ All notable changes to the Elnora CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.5.5](https://github.com/Elnora-AI/elnora-cli/compare/v1.5.4...v1.5.5) (2026-05-06)
+
+
+### Bug Fixes
+
+* **ci:** clean up workflow config ([#120](https://github.com/Elnora-AI/elnora-cli/issues/120)) ([d0a661b](https://github.com/Elnora-AI/elnora-cli/commit/d0a661b9f22594ba1205267947eda653b2bfffcb))
+
 ## [1.5.4](https://github.com/Elnora-AI/elnora-cli/compare/v1.5.3...v1.5.4) (2026-04-30)
 
 

@@ -5,6 +5,17 @@ All notable changes to the Elnora CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.0.0](https://github.com/Elnora-AI/elnora-cli/compare/v1.5.6...v2.0.0) (2026-05-07)
+
+
+### ⚠ BREAKING CHANGES
+
+* drop Node 20 support, require Node 22+ ([#135](https://github.com/Elnora-AI/elnora-cli/issues/135))
+
+### Features
+
+* drop Node 20 support, require Node 22+ ([#135](https://github.com/Elnora-AI/elnora-cli/issues/135)) ([7a482a1](https://github.com/Elnora-AI/elnora-cli/commit/7a482a1437417871dda2defd52eed35f92ad60f3))
+
 ## [1.5.6](https://github.com/Elnora-AI/elnora-cli/compare/v1.5.5...v1.5.6) (2026-05-06)
 
 

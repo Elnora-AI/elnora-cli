@@ -46,13 +46,13 @@ jobs:
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v6
         with:
-          node-version: "20"
+          node-version: "22"
           cache: "pnpm"
       - run: pnpm install --frozen-lockfile
       - run: node scripts/build.mjs
 
       - name: Build binary
-        run: npx pkg dist/cli.cjs --target node20-${{ matrix.target }} --output dist/${{ matrix.binary }}
+        run: npx pkg dist/cli.cjs --target node22-${{ matrix.target }} --output dist/${{ matrix.binary }}
 
       - name: Archive
         shell: bash
@@ -101,7 +101,7 @@ jobs:
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v6
         with:
-          node-version: "24"
+          node-version: "22"
           registry-url: "https://registry.npmjs.org"
           cache: "pnpm"
       - name: Sync version from release tag
@@ -129,7 +129,7 @@ jobs:
 
       - uses: actions/setup-node@v6
         with:
-          node-version: "20"
+          node-version: "22"
 
       - name: Extract version from tag
         id: ver

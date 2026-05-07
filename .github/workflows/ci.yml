@@ -19,7 +19,7 @@ jobs:
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v6
         with:
-          node-version: "20"
+          node-version: "22"
           cache: "pnpm"
       - run: pnpm install --frozen-lockfile
       - name: Audit dependencies
@@ -47,7 +47,7 @@ jobs:
           package_json_file: elnora-cli/package.json
       - uses: actions/setup-node@v6
         with:
-          node-version: "20"
+          node-version: "22"
           cache: "pnpm"
           cache-dependency-path: elnora-cli/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
@@ -68,7 +68,7 @@ jobs:
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v6
         with:
-          node-version: "20"
+          node-version: "22"
           cache: "pnpm"
       - run: pnpm install --frozen-lockfile
       - run: pnpm build

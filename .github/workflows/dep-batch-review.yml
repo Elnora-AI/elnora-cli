@@ -1,0 +1,323 @@
+name: Batch Safe Dependency Updates
+
+on:
+  schedule:
+    # Tuesday + Friday at 07:00 UTC
+    - cron: '0 7 * * 2,5'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run — review and label PRs but do not open batch PR'
+        type: boolean
+        default: false
+      skip_age_filter:
+        description: 'Skip the 24h age filter — review all open Dependabot PRs regardless of age'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  id-token: write
+
+concurrency:
+  group: dep-batch-review
+  cancel-in-progress: false
+
+jobs:
+  detect-review-batch:
+    name: Detect, Review, and Batch Dependabot PRs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.0
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - run: pnpm install --frozen-lockfile
+
+      # ─────────────────────────────────────────────────────────
+      # PHASE 1 — Detect open Dependabot PRs eligible for review
+      # ─────────────────────────────────────────────────────────
+      - name: Identify open Dependabot PRs
+        id: detect
+        uses: actions/github-script@v9
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = await import('fs');
+
+            const { data: prs } = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              per_page: 100
+            });
+
+            const cutoff = Date.now() - 24 * 60 * 60 * 1000;  // 24h ago
+            const skipAgeFilter = '${{ github.event.inputs.skip_age_filter }}' === 'true';
+
+            const eligible = [];
+            for (const pr of prs) {
+              if (pr.user.login !== 'dependabot[bot]') continue;
+              if (!skipAgeFilter && new Date(pr.created_at).getTime() > cutoff) continue;
+
+              // Skip PRs that already have human comments (manual review in flight)
+              const { data: comments } = await github.rest.issues.listComments({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number,
+                per_page: 100
+              });
+              const humanComments = comments.filter(
+                c => !c.user.login.endsWith('[bot]') && c.user.login !== 'claude'
+              );
+              if (humanComments.length > 0) {
+                console.log(`Skipping PR #${pr.number} — has human comments`);
+                continue;
+              }
+
+              eligible.push({
+                number: pr.number,
+                title: pr.title,
+                head: pr.head.ref,
+                body: pr.body || '',
+                url: pr.html_url
+              });
+            }
+
+            console.log(`Found ${eligible.length} eligible Dependabot PRs`);
+
+            // ── Guard: skip if an open batch PR already exists ──
+            const hasExistingBatchPR = prs.some(pr =>
+              pr.head.ref.startsWith('chore/dep-batch-')
+            );
+            if (hasExistingBatchPR) {
+              console.log('An open dep-batch PR already exists — skipping to avoid duplicates');
+              core.setOutput('has_prs', 'false');
+              return;
+            }
+
+            fs.writeFileSync('/tmp/dep-prs.json', JSON.stringify(eligible, null, 2));
+            core.setOutput('has_prs', eligible.length > 0 ? 'true' : 'false');
+
+      # ─────────────────────────────────────────────────────────
+      # PHASE 2 + 3 — Claude reviews each PR, then batches SAFE
+      # ─────────────────────────────────────────────────────────
+      - name: Claude — Review and Batch
+        if: steps.detect.outputs.has_prs == 'true'
+        uses: anthropics/claude-code-action@v1
+        env:
+          DRY_RUN: ${{ github.event.inputs.dry_run || 'false' }}
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            You are an automated dependency-update review agent for the
+            Elnora CLI (a TypeScript CLI using pnpm 10.33.0, Biome 2.x,
+            Vitest, esbuild, Node ≥20).
+
+            ## Public-Repository Disclosure Rules
+
+            This repository is PUBLIC. Individual Dependabot PRs, the batch
+            PR, sticky comments, and workflow logs are all visible to anyone
+            on the internet. Before writing any GitHub-visible text, ask
+            yourself whether it would help someone attack us.
+
+            Do NOT publish anywhere (PR body, commit message, comment, log):
+            - which files in our codebase import or use a given dependency
+            - which specific APIs/exports of a dependency our code calls
+            - CVE / advisory IDs with reasoning about whether they affect
+              our code paths (that analysis is an attack roadmap)
+            - attack preconditions, exploit paths, or threat reasoning
+            - defensive posture details about our runtime environment
+
+            For the "Codebase impact" line in sticky comments, emit only a
+            high-level count or Boolean-style note — never file paths,
+            function names, or API names. Examples of acceptable phrasings:
+            - "No direct imports; transitive only."
+            - "Direct import in a small number of internal modules."
+            - "Direct import; CI gates exercise the affected paths."
+            If you cannot describe the impact without naming files or APIs,
+            omit the line entirely.
+
+            ## Your Task
+
+            Read /tmp/dep-prs.json — a list of open Dependabot PRs. Review
+            each, then build ONE batch PR containing every SAFE update.
+
+            ## Per-PR Review Routine
+
+            For each PR in the input:
+
+            1. **Extract update metadata** — parse the PR title and body for
+               package name, old version, new version, ecosystem. Dependabot
+               PR titles look like:
+               `chore(deps): bump <pkg> from <old> to <new>`
+               or `chore(deps-dev): bump <pkg> from <old> to <new>`
+               GitHub Actions bumps look like:
+               `chore(deps)(deps): bump <action> from <old> to <new>`
+               Determine semver bump type: patch | minor | major.
+
+            2. **Fetch the real changelog** (not Dependabot's summary):
+               - `npm view <pkg>@<new> repository.url` to find the source repo
+               - `gh release view <new> --repo <owner>/<repo>` for GitHub releases
+               - WebFetch the CHANGELOG.md at the new version's tag if available
+               - Look for: BREAKING, breaking change, removed, renamed, deprecated
+
+            3. **Map our usage** of the package:
+               - Grep for: `from ['"]<pkg>['"]` and `require\(['"]<pkg>['"]\)`
+               - Read each call site to identify which exports/APIs we use
+               - This is critical: a "breaking change" only matters if it
+                 affects code paths *we* use
+
+            4. **Apply the bump locally** and run CI:
+               - `git fetch origin <pr-head-branch>`
+               - `git checkout <pr-head-branch>`
+               - `pnpm install --frozen-lockfile` (drop `--frozen-lockfile`
+                 only if the lockfile must be updated for the fix)
+               - Run: `pnpm exec biome check src/ __tests__/`,
+                 `pnpm typecheck`, `pnpm build`, `pnpm test`
+               - Capture pass/fail + relevant errors
+               - `git checkout main` after each check to reset
+
+            5. **Check transitive/peer pressure**:
+               - `pnpm why <pkg>` — does the new version create version conflicts?
+               - Check peerDependencies of the new version
+
+            6. **Decide verdict** using this matrix:
+
+               | Verdict | Triggers |
+               |---------|----------|
+               | **SAFE** | semver-patch OR (semver-minor AND no breaking-change entries match our call sites AND lint+typecheck+build+test all pass AND no peer-dep conflicts) |
+               | **NEEDS-REVIEW** | semver-minor with new defaults that might shift behavior, OR test failure that may be flaky, OR our code uses a now-deprecated (not removed) API, OR peer-dep tension |
+               | **UNSAFE-MAJOR** | semver-major bump. Default verdict for majors regardless of whether tests pass — they need dedicated planning. EXCEPTION: if the package is a devDependency only AND tests pass AND no breaking changes affect us, may downgrade to NEEDS-REVIEW |
+               | **UNSAFE-BROKEN** | lint/typecheck/build/test fails after applying the bump cleanly |
+
+               GitHub Actions version bumps (e.g., `actions/setup-node@v4 → v6`)
+               are tracked in `.github/workflows/*.yml`, not package.json.
+               Default to UNSAFE-MAJOR for those — they bypass the npm
+               toolchain entirely and need dedicated review of action
+               release notes for input/behavior changes.
+
+            7. **Post a sticky comment on the Dependabot PR** with this format:
+
+               ```
+               <!-- claude-dep-review:sticky -->
+               ## Automated Dependency Review
+
+               **Verdict**: SAFE / NEEDS-REVIEW / UNSAFE-MAJOR / UNSAFE-BROKEN
+               **Bump type**: patch | minor | major
+               **Package**: <name> (<old> → <new>)
+
+               ### Rationale
+               - Changelog summary: <key entries — public release notes only>
+               - Codebase impact: <high-level phrasing per public-repo rules,
+                 or omit entirely; never name files or APIs>
+               - CI gates: lint ✓ / typecheck ✓ / build ✓ / test ✓ (or specific failures)
+               - Transitive/peer notes: <if any — no CVE analysis>
+
+               ### Recommendation
+               <merge in the next batch PR | review manually before merging |
+                close — major version requires dedicated migration work>
+               ```
+
+               Find any existing comment with the marker
+               `<!-- claude-dep-review:sticky -->`. To check, list comments
+               on the PR using `gh api repos/{owner}/{repo}/issues/<num>/comments`
+               where you derive owner/repo from `git remote get-url origin` or
+               by running `gh repo view --json owner,name`. If a comment with
+               the marker exists, PATCH it (update in place). If not, POST a
+               new one.
+
+            8. **Apply a verdict label** to the PR:
+               - `auto-review: safe`
+               - `auto-review: needs-review`
+               - `auto-review: unsafe-major`
+               - `auto-review: unsafe-broken`
+               Remove any prior `auto-review:*` label first (use
+               `gh pr edit <num> --remove-label "auto-review: safe"` etc.
+               for each label, ignore errors if the label isn't present).
+               Then add the correct one.
+
+            ## Batch Phase
+
+            After reviewing all PRs:
+
+            1. Collect every SAFE verdict.
+            2. If zero SAFE: skip the batch PR. Output a summary noting what
+               was reviewed and why nothing was batchable. Do NOT create a PR.
+            3. If at least one SAFE: build the batch:
+               - `git checkout main && git pull`
+               - `git checkout -b chore/dep-batch-<YYYY-MM-DD>` (today's date)
+               - For each SAFE PR, update package.json (or `pnpm.overrides`
+                 for transitive deps) to the new version. Do NOT cherry-pick
+                 from the Dependabot branches — apply versions directly so
+                 the lockfile resolves cleanly in a single pass.
+               - `pnpm install` once to regenerate the lockfile (drop
+                 `--frozen-lockfile` here since we're intentionally updating)
+               - Run `pnpm exec biome check src/ __tests__/`,
+                 `pnpm typecheck`, `pnpm build`, `pnpm test`
+
+            4. **If combined CI fails — bisect**:
+               - Revert one bump at a time (largest version-jump first), regen
+                 lockfile, re-run tests
+               - When tests go green, the last-removed bump is the offender
+               - Demote that PR's verdict to NEEDS-REVIEW: update its sticky
+                 comment with "demoted from SAFE — failed in combined batch"
+                 and swap its label
+               - Continue with remaining SAFE bumps
+
+            5. **Open the batch PR** (only if env var DRY_RUN != 'true'):
+               - Branch: `chore/dep-batch-<YYYY-MM-DD>`
+               - Title: `chore(deps): batched safe dependency bumps <YYYY-MM-DD>`
+               - Body must include:
+
+                 ## Included Bumps
+                 | PR | Package | Old | New | Type | Rationale |
+                 |----|---------|-----|-----|------|-----------|
+
+                 ## Skipped — Needs Review
+                 | PR | Package | Old | New | Reason |
+                 |----|---------|-----|-----|--------|
+
+                 ## Recommended to Close — Major
+                 | PR | Package | Old | New | Why dedicated work is needed |
+                 |----|---------|-----|-----|------------------------------|
+
+                 ## Verification
+                 - lint ✓ / typecheck ✓ / build ✓ / test ✓ (paste summary)
+                 - pnpm audit summary
+
+                 ## How to Merge
+                 Merging this PR will cause Dependabot to auto-close the
+                 individual PRs listed above whose changes appear in main.
+
+               - Request review: `gh pr create ... --reviewer rjamul-elnora-ai`
+               - Do NOT add the `security` label
+
+            ## Important Rules
+
+            - Modify only package.json + pnpm-lock.yaml + `pnpm.overrides`.
+              No source code edits.
+            - Tests MUST pass on the combined batch before opening the PR.
+            - Sticky-comment marker is `<!-- claude-dep-review:sticky -->` —
+              always use it so re-runs update rather than duplicate.
+            - For UNSAFE-MAJOR: only label and comment. Do NOT close the PR.
+            - When DRY_RUN env var is 'true': do all reviewing/labeling/commenting
+              on individual PRs but do NOT open the batch PR — just print the
+              summary that would have been the PR body.
+
+          claude_args: |
+            --model claude-sonnet-4-6
+            --max-turns 100
+            --allowedTools "Read,Write,Edit,Glob,Grep,WebFetch,Bash(pnpm:*),Bash(npm:*),Bash(npx:*),Bash(node:*),Bash(git:*),Bash(gh:*),Bash(cat:*),Bash(echo:*)"

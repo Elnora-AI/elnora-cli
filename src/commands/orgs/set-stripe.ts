@@ -4,7 +4,7 @@ import type { OutputFormat } from "../../lib/output.js";
 
 const inputSchema = z.object({
 	orgId: z.string().uuid().describe("Organization ID"),
-	customerId: z.string().min(1).describe("Stripe customer ID (e.g. cus_xxx)"),
+	stripeCustomerId: z.string().min(1).describe("Stripe customer ID (e.g. cus_xxx)"),
 });
 
 type Input = z.infer<typeof inputSchema>;
@@ -20,7 +20,7 @@ export const orgsSetStripe: ElnoraCommand<Input> = {
 	async execute(input, ctx) {
 		return ctx.client.put(
 			"organization_stripe_customer",
-			{ customerId: input.customerId },
+			{ stripeCustomerId: input.stripeCustomerId },
 			{ pathParams: { id: input.orgId } },
 		);
 	},

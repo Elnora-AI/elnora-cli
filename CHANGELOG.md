@@ -5,6 +5,13 @@ All notable changes to the Elnora CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.0.2](https://github.com/Elnora-AI/elnora-cli/compare/v2.0.1...v2.0.2) (2026-05-19)
+
+
+### Bug Fixes
+
+* **orgs:** use stripeCustomerId in set-stripe wire payload ([#146](https://github.com/Elnora-AI/elnora-cli/issues/146)) ([2fe3874](https://github.com/Elnora-AI/elnora-cli/commit/2fe3874d11bf7bb488f950db8a866e15d48af884))
+
 ## [2.0.1](https://github.com/Elnora-AI/elnora-cli/compare/v2.0.0...v2.0.1) (2026-05-15)
 
 

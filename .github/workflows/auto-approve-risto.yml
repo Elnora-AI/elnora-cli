@@ -5,10 +5,21 @@ name: Auto-approve Risto's reviews
 # posts it as Carmen's review (via CARMEN_REVIEW_PAT) so SOC 2 / ISO 27001
 # audit trails see Carmen as the approver, not github-actions[bot].
 # Does NOT merge, does NOT delete the branch.
+#
+# Also supports workflow_dispatch for manual validation: pass a PR number,
+# the workflow runs the diff → AI → comment pipeline end-to-end but skips
+# the actual approval post (dry run). Use to validate against any PR
+# without leaving stray approval artifacts.
 
 on:
   pull_request:
     types: [review_requested]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "PR number to dry-run against (no approval is posted)"
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -17,26 +28,31 @@ permissions:
 jobs:
   approve:
     if: >
-      github.event.requested_reviewer.login == 'ckivisild-elnora-ai' &&
-      github.event.pull_request.user.login == 'rjamul-elnora-ai'
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.requested_reviewer.login == 'ckivisild-elnora-ai' &&
+       github.event.pull_request.user.login == 'rjamul-elnora-ai')
     runs-on: ubuntu-latest
+    env:
+      PR_NUMBER: ${{ github.event.pull_request.number || inputs.pr_number }}
+      REPO: ${{ github.repository }}
     steps:
-      - name: Fetch PR diff
+      - name: Fetch PR title and diff
+        id: pr
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          REPO: ${{ github.repository }}
         run: |
+          TITLE=$(gh pr view "$PR_NUMBER" --repo "$REPO" --json title -q .title)
+          echo "title=$TITLE" >> "$GITHUB_OUTPUT"
           gh pr diff "$PR_NUMBER" --repo "$REPO" > /tmp/diff.patch || echo "(diff unavailable)" > /tmp/diff.patch
           # Truncate at 50KB to stay within token budget for the generation step
           head -c 50000 /tmp/diff.patch > /tmp/diff.trunc
           mv /tmp/diff.trunc /tmp/diff.patch
-          wc -c /tmp/diff.patch
+          echo "Diff size: $(wc -c < /tmp/diff.patch) bytes"
 
       - name: Generate Carmen-voice approval comment
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_TITLE: ${{ steps.pr.outputs.title }}
         run: |
           DIFF_CONTENT=$(cat /tmp/diff.patch)
           jq -n \
@@ -57,12 +73,17 @@ jobs:
             -H "content-type: application/json" \
             --data-binary @/tmp/request.json > /tmp/response.json
           jq -r '.content[0].text // "reviewed and approved, looks good"' /tmp/response.json > /tmp/comment.txt
-          echo "--- comment ---"
+          echo "--- generated comment ---"
           cat /tmp/comment.txt
+          echo ""
 
       - name: Post approval as Carmen
+        # Skipped on workflow_dispatch — that path is dry-run-only
+        if: github.event_name == 'pull_request'
         env:
           GH_TOKEN: ${{ secrets.CARMEN_REVIEW_PAT }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          REPO: ${{ github.repository }}
         run: gh pr review "$PR_NUMBER" --repo "$REPO" --approve --body-file /tmp/comment.txt
+
+      - name: Dry-run notice (workflow_dispatch only)
+        if: github.event_name == 'workflow_dispatch'
+        run: echo "::notice::Dry run — comment generated above but NOT posted as approval. Real review_requested events post for real."

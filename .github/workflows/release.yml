@@ -101,7 +101,7 @@ jobs:
       - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v6
         with:
-          node-version: "22"
+          node-version: "24"
           registry-url: "https://registry.npmjs.org"
           cache: "pnpm"
       - name: Sync version from release tag
@@ -113,8 +113,6 @@ jobs:
       - run: pnpm build
       - run: pnpm test
       - run: pnpm publish --access public --no-git-checks --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   smoke-test:
     name: "Smoke Test (${{ matrix.os }})"

@@ -49,9 +49,9 @@
 	"homepage": "https://platform.elnora.ai",
 	"packageManager": "pnpm@10.33.0",
 	"dependencies": {
-		"@commander-js/extra-typings": "^14.0.0",
+		"@commander-js/extra-typings": "^15.0.0",
 		"@modelcontextprotocol/sdk": "^1.29.0",
-		"commander": "^14.0.3",
+		"commander": "^15.0.0",
 		"express": "^5.2.1",
 		"express-rate-limit": "^8.5.2",
 		"picocolors": "^1.1.1",

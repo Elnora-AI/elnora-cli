@@ -5,6 +5,13 @@ All notable changes to the Elnora CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.0.5](https://github.com/Elnora-AI/elnora-cli/compare/v2.0.4...v2.0.5) (2026-06-05)
+
+
+### Bug Fixes
+
+* **cli:** doctor accuracy, install-aware updater, actionable network errors ([#161](https://github.com/Elnora-AI/elnora-cli/issues/161)) ([cd2ee3a](https://github.com/Elnora-AI/elnora-cli/commit/cd2ee3a36b052c49d8302375e633ca455ac2fada))
+
 ## [2.0.4](https://github.com/Elnora-AI/elnora-cli/compare/v2.0.3...v2.0.4) (2026-06-05)
 
 

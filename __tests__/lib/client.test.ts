@@ -1,6 +1,6 @@
-import { describe, expect, test } from "vitest";
-import { validateApiUrl, validateUploadUrl } from "../../src/lib/client.js";
-import { ElnoraError, ValidationError } from "../../src/lib/errors.js";
+import { afterEach, describe, expect, test, vi } from "vitest";
+import { ElnoraApiClient, validateApiUrl, validateUploadUrl } from "../../src/lib/client.js";
+import { ElnoraError, NetworkError, ValidationError } from "../../src/lib/errors.js";
 
 describe("SSRF protection — validateApiUrl", () => {
 	test("accepts platform.elnora.ai", () => {
@@ -65,5 +65,50 @@ describe("Upload URL validation — validateUploadUrl", () => {
 	test("allows userinfo in query string (not path)", () => {
 		// @ in query string should be fine — only path/authority matters
 		expect(() => validateUploadUrl("https://bucket.s3.amazonaws.com/key?email=user@example.com")).not.toThrow();
+	});
+});
+
+describe("Network error mapping", () => {
+	afterEach(() => {
+		vi.restoreAllMocks();
+	});
+
+	// A custom (non-production) baseUrl bypasses the SSRF allowlist so we can
+	// drive a real fetch rejection without hitting the network.
+	const client = new ElnoraApiClient("elnora_live_test_key", { baseUrl: "https://api.example.test/api/v1" });
+
+	test("DNS failure surfaces host + underlying code + doctor pointer", async () => {
+		globalThis.fetch = vi.fn(async () => {
+			throw new TypeError("fetch failed", { cause: { code: "ENOTFOUND" } });
+		}) as typeof fetch;
+
+		await expect(client.get("/projects")).rejects.toMatchObject({
+			code: "NETWORK_ERROR",
+		});
+		try {
+			await client.get("/projects");
+		} catch (e) {
+			const err = e as NetworkError;
+			expect(err).toBeInstanceOf(NetworkError);
+			expect(err.message).toContain("api.example.test");
+			expect(err.message).toContain("ENOTFOUND");
+			expect(err.suggestion).toContain("elnora doctor");
+		}
+	});
+
+	test("connection refused names the host", async () => {
+		globalThis.fetch = vi.fn(async () => {
+			throw new TypeError("fetch failed", { cause: { code: "ECONNREFUSED" } });
+		}) as typeof fetch;
+
+		try {
+			await client.get("/projects");
+			throw new Error("expected NetworkError");
+		} catch (e) {
+			const err = e as NetworkError;
+			expect(err).toBeInstanceOf(NetworkError);
+			expect(err.message).toContain("ECONNREFUSED");
+			expect(err.host).toBe("api.example.test");
+		}
 	});
 });

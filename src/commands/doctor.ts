@@ -119,36 +119,63 @@ function checkPathConfigured(): CheckResult {
 	};
 }
 
+/** The enabledPlugins map from a settings.json, plus a parse-error note if unreadable. */
+interface SettingsRead {
+	enabledPlugins: Record<string, boolean>;
+	unreadable?: string;
+}
+
+/** Read enabledPlugins from a settings.json. Returns null when the file is absent. */
+function readEnabledPlugins(file: string): SettingsRead | null {
+	if (!existsSync(file)) return null;
+	try {
+		const settings = JSON.parse(readFileSync(file, "utf-8")) as Record<string, unknown>;
+		const raw = settings.enabledPlugins;
+		// Must be a plain object — reject arrays and non-objects to prevent confusing
+		// "not found" failures when settings.json is malformed.
+		const enabledPlugins =
+			typeof raw === "object" && raw !== null && !Array.isArray(raw) ? (raw as Record<string, boolean>) : {};
+		return { enabledPlugins };
+	} catch (e) {
+		return { enabledPlugins: {}, unreadable: e instanceof Error ? e.message : "parse error" };
+	}
+}
+
 function checkClaudePlugin(): CheckResult {
 	if (!existsSync(CLAUDE_DIR)) {
 		return { status: "skip", msg: "Plugin enabled         (Claude Code not installed)" };
 	}
-	if (!existsSync(CLAUDE_SETTINGS_FILE)) {
+	// Claude Code merges user-level and project-level settings at runtime (project
+	// takes precedence). Read both, or the check reports a false negative inside a
+	// project that enables the plugin at project scope.
+	const projectSettingsFile = join(process.cwd(), ".claude", "settings.json");
+	const user = readEnabledPlugins(CLAUDE_SETTINGS_FILE);
+	const project = readEnabledPlugins(projectSettingsFile);
+
+	if (!user && !project) {
 		return { status: "fail", msg: "Plugin enabled         settings.json not found — run 'elnora setup claude'" };
 	}
-	let settings: Record<string, unknown>;
-	try {
-		settings = JSON.parse(readFileSync(CLAUDE_SETTINGS_FILE, "utf-8")) as Record<string, unknown>;
-	} catch (e) {
-		return {
-			status: "fail",
-			msg: `Plugin enabled         settings.json unreadable (${e instanceof Error ? e.message : "parse error"})`,
-		};
+	// Only surface "unreadable" when there's no usable settings at the other scope.
+	if (user?.unreadable && !project?.enabledPlugins[PLUGIN_ID]) {
+		return { status: "fail", msg: `Plugin enabled         settings.json unreadable (${user.unreadable})` };
 	}
-	// Must be a plain object — reject arrays and non-objects to prevent confusing "not found"
-	// failures when settings.json is malformed (e.g. enabledPlugins is accidentally an array).
-	const raw = settings.enabledPlugins;
-	const enabledPlugins: Record<string, boolean> =
-		typeof raw === "object" && raw !== null && !Array.isArray(raw) ? (raw as Record<string, boolean>) : {};
-	const isEnabled = enabledPlugins[PLUGIN_ID] === true;
-	const legacyKeys = Object.keys(enabledPlugins).filter((k) => k.startsWith("elnora@") && k !== PLUGIN_ID);
+
+	const userEnabled = user?.enabledPlugins[PLUGIN_ID] === true;
+	const projectEnabled = project?.enabledPlugins[PLUGIN_ID] === true;
+	const isEnabled = userEnabled || projectEnabled;
+	const scope = projectEnabled ? (userEnabled ? "user + project" : "project") : "user";
+
+	const legacyKeys = [
+		...new Set([...Object.keys(user?.enabledPlugins ?? {}), ...Object.keys(project?.enabledPlugins ?? {})]),
+	].filter((k) => k.startsWith("elnora@") && k !== PLUGIN_ID);
+
 	if (isEnabled && legacyKeys.length === 0) {
-		return { status: "pass", msg: `Plugin enabled         ${PLUGIN_ID}` };
+		return { status: "pass", msg: `Plugin enabled         ${PLUGIN_ID} (${scope} scope)` };
 	}
 	if (isEnabled && legacyKeys.length > 0) {
 		return {
 			status: "warn",
-			msg: `Plugin enabled         ${PLUGIN_ID} — but stale legacy entries also present: ${legacyKeys.join(", ")}`,
+			msg: `Plugin enabled         ${PLUGIN_ID} (${scope} scope) — but stale legacy entries also present: ${legacyKeys.join(", ")}`,
 		};
 	}
 	if (legacyKeys.length > 0) {
@@ -160,15 +187,57 @@ function checkClaudePlugin(): CheckResult {
 	return { status: "fail", msg: "Plugin enabled         not found — run 'elnora setup claude'" };
 }
 
+/**
+ * Whether the elnora marketplace has been *registered* (via `elnora setup
+ * claude`) — distinct from whether Claude Code has *cloned* it yet. Registration
+ * shows up as an enabledPlugins entry or extraKnownMarketplaces in user/project
+ * settings, or in Claude Code's known_marketplaces.json once setup has run.
+ */
+function isMarketplaceRegistered(): boolean {
+	for (const file of [CLAUDE_SETTINGS_FILE, join(process.cwd(), ".claude", "settings.json")]) {
+		if (!existsSync(file)) continue;
+		try {
+			const settings = JSON.parse(readFileSync(file, "utf-8")) as Record<string, unknown>;
+			const enabled = settings.enabledPlugins;
+			if (typeof enabled === "object" && enabled !== null && (enabled as Record<string, boolean>)[PLUGIN_ID] === true) {
+				return true;
+			}
+			const extra = settings.extraKnownMarketplaces;
+			if (extra != null && JSON.stringify(extra).includes(MARKETPLACE_NAME)) return true;
+		} catch {
+			/* unreadable settings — ignore, fall through */
+		}
+	}
+	const knownMarketplaces = join(CLAUDE_DIR, "plugins", "known_marketplaces.json");
+	if (existsSync(knownMarketplaces)) {
+		try {
+			if (JSON.stringify(JSON.parse(readFileSync(knownMarketplaces, "utf-8"))).includes(MARKETPLACE_NAME)) {
+				return true;
+			}
+		} catch {
+			/* ignore */
+		}
+	}
+	return false;
+}
+
 function checkSkillsInstalled(): CheckResult {
 	if (!existsSync(CLAUDE_DIR)) {
 		return { status: "skip", msg: "Skills installed       (Claude Code not installed)" };
 	}
 	const skillsDir = join(CLAUDE_DIR, "plugins", "marketplaces", MARKETPLACE_NAME, "elnora", "skills");
 	if (!existsSync(skillsDir)) {
+		// Distinguish "registered but pre-first-launch" (expected, self-resolving)
+		// from "never set up" (actionable) so customers stop chasing a non-problem.
+		if (isMarketplaceRegistered()) {
+			return {
+				status: "warn",
+				msg: "Skills installed       registered but not cloned yet — open this folder in Claude Code once to clone",
+			};
+		}
 		return {
 			status: "warn",
-			msg: "Skills installed       marketplace not cloned yet — restart Claude Code to trigger clone",
+			msg: "Skills installed       marketplace not registered — run 'elnora setup claude'",
 		};
 	}
 	const found = EXPECTED_SKILLS.filter((s) => existsSync(join(skillsDir, s, "SKILL.md")));
@@ -269,16 +338,30 @@ export function addDoctorCommand(program: Command): void {
 			console.error(`\nElnora CLI v${VERSION}\n`);
 
 			let passed = 0;
+			let skipped = 0;
 			let failed = 0;
 			let warnings = 0;
-			let total = 0;
 			const tally = (r: CheckResult) => {
-				total++;
-				if (r.status === "pass" || r.status === "skip") passed++;
-				else if (r.status === "warn") {
-					passed++;
-					warnings++;
-				} else failed++;
+				switch (r.status) {
+					case "pass":
+						passed++;
+						break;
+					case "warn":
+						// A warning is non-fatal, so it still counts toward "passed",
+						// but is surfaced separately in the summary.
+						passed++;
+						warnings++;
+						break;
+					case "skip":
+						// `skip` means "not verified" (e.g. Claude Code never launched).
+						// It must NOT count as a pass, or fresh machines falsely report
+						// a clean bill of health.
+						skipped++;
+						break;
+					case "fail":
+						failed++;
+						break;
+				}
 			};
 
 			// ------ CLI section ------
@@ -320,14 +403,18 @@ export function addDoctorCommand(program: Command): void {
 			console.error("");
 
 			// ------ Summary ------
-			if (failed === 0 && warnings === 0) {
+			// Report passed / skipped / warnings / failed separately so the score
+			// reflects what was actually verified and stays consistent across
+			// platforms (skips no longer masquerade as passes).
+			if (failed === 0 && warnings === 0 && skipped === 0) {
 				console.error("All checks passed.");
-			} else if (failed === 0) {
-				console.error(`${passed}/${total} checks passed (${warnings} warning${warnings === 1 ? "" : "s"}).`);
 			} else {
-				const warnSuffix = warnings > 0 ? ` (${warnings} warning${warnings === 1 ? "" : "s"})` : "";
-				console.error(`${passed}/${total} checks passed — ${failed} failed${warnSuffix}.`);
-				if (!existsSync(PROFILES_FILE)) console.error("\nRun: elnora auth login");
+				const parts = [`${passed} passed`];
+				if (skipped > 0) parts.push(`${skipped} skipped`);
+				if (warnings > 0) parts.push(`${warnings} warning${warnings === 1 ? "" : "s"}`);
+				if (failed > 0) parts.push(`${failed} failed`);
+				console.error(`${parts.join(", ")}.`);
+				if (failed > 0 && !existsSync(PROFILES_FILE)) console.error("\nRun: elnora auth login");
 			}
 		});
 }

@@ -11,6 +11,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import pc from "picocolors";
 import { VERSION } from "./config.js";
+import { detectInstallMethod, getUpdateInstruction } from "./install-method.js";
 import { isColorEnabled } from "./tty.js";
 
 const NPM_REGISTRY_URL = "https://registry.npmjs.org/@elnora-ai/cli/latest";
@@ -50,14 +51,18 @@ function writeCache(entry: CacheEntry): void {
 	}
 }
 
-function showUpdateNotice(latest: string): void {
+/** Exported for testing. Writes the update banner with the install-aware command. */
+export function showUpdateNotice(latest: string): void {
 	// Only show in TTY
 	if (!process.stderr.isTTY) return;
 
+	// Advertise the command that actually installs the update, routed by how the
+	// CLI was installed (npm / Homebrew / binary). Previously this always said
+	// "elnora update", which only *checks* — the wrong command for every channel.
+	const command = getUpdateInstruction(detectInstallMethod());
 	const color = isColorEnabled();
-	const msg = color
-		? `\n${pc.yellow(`Update available: v${VERSION} → v${latest}`)}\nRun: elnora update\n`
-		: `\nUpdate available: v${VERSION} → v${latest}\nRun: elnora update\n`;
+	const head = `Update available: v${VERSION} → v${latest}`;
+	const msg = color ? `\n${pc.yellow(head)}\nRun: ${command}\n` : `\n${head}\nRun: ${command}\n`;
 	process.stderr.write(msg);
 }
 

@@ -77,6 +77,31 @@ export class ServerError extends ElnoraError {
 	}
 }
 
+/**
+ * Network-layer failure (DNS resolution, connection refused, timeout, etc.).
+ *
+ * Unlike a bare `fetch failed`, this names the actual host the CLI tried to
+ * reach and the underlying cause, and points the user at `elnora doctor` for
+ * connectivity diagnostics — so the next agent or human sees ground truth in
+ * the error itself. Mirrors the AuthError pattern above.
+ */
+export class NetworkError extends ElnoraError {
+	readonly host: string | undefined;
+
+	constructor(host?: string, cause?: string) {
+		const target = host ? ` reaching ${host}` : "";
+		const reason = cause ? ` (${cause})` : "";
+		super(`Network error${target}${reason}`, {
+			code: "NETWORK_ERROR",
+			suggestion: host
+				? `Run 'elnora doctor' to diagnose connectivity, then confirm ${host} is reachable from this machine.`
+				: "Run 'elnora doctor' to diagnose connectivity.",
+		});
+		this.name = "NetworkError";
+		this.host = host;
+	}
+}
+
 /** Distinct exit codes per error type — matches Python CLI exactly. */
 export const EXIT_CODES = new Map<new (...args: never[]) => ElnoraError, number>([
 	[ValidationError, 2],

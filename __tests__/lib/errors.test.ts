@@ -5,6 +5,7 @@ import {
 	EXIT_CODES,
 	formatErrorPayload,
 	getExitCode,
+	NetworkError,
 	NotFoundError,
 	RateLimitError,
 	ServerError,
@@ -65,6 +66,23 @@ describe("Error hierarchy", () => {
 		const err = new ServerError();
 		expect(err.code).toBe("SERVER_ERROR");
 		expect(EXIT_CODES.get(ServerError)).toBe(6);
+	});
+
+	test("NetworkError includes host, cause, and a doctor pointer", () => {
+		const err = new NetworkError("platform.elnora.ai", "ENOTFOUND");
+		expect(err.code).toBe("NETWORK_ERROR");
+		expect(err.message).toContain("platform.elnora.ai");
+		expect(err.message).toContain("ENOTFOUND");
+		expect(err.suggestion).toContain("elnora doctor");
+		expect(err.suggestion).toContain("platform.elnora.ai");
+		expect(err.host).toBe("platform.elnora.ai");
+	});
+
+	test("NetworkError without a host still points at doctor", () => {
+		const err = new NetworkError();
+		expect(err.code).toBe("NETWORK_ERROR");
+		expect(err.suggestion).toContain("elnora doctor");
+		expect(err.host).toBeUndefined();
 	});
 });
 

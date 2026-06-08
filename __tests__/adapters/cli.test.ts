@@ -1,3 +1,4 @@
+import { PassThrough } from "node:stream";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { z } from "zod";
 import { buildProgram, zodToCommanderOptions } from "../../src/adapters/cli.js";
@@ -265,5 +266,130 @@ describe("buildProgram output formatting", () => {
 		const parsed = JSON.parse(out);
 		expect(parsed.items[0]).toHaveProperty("id");
 		expect(parsed.items[0]).not.toHaveProperty("name");
+	});
+});
+
+// ---------------------------------------------------------------------------
+// buildProgram — stdin "-" substitution
+// ---------------------------------------------------------------------------
+
+const sendCmd: ElnoraCommand = {
+	name: "demo.send",
+	group: "demo",
+	description: "Send a demo message",
+	stdinField: "message",
+	inputSchema: z.object({ message: z.string().min(1) }),
+	outputSchema: z.any(),
+	async execute(input: unknown) {
+		return { received: (input as { message: string }).message };
+	},
+	formatOutput(output: unknown) {
+		return JSON.stringify(output);
+	},
+};
+
+describe("buildProgram stdin '-' substitution", () => {
+	const realStdin = process.stdin;
+	let origExit: number | string | undefined;
+
+	beforeEach(() => {
+		origExit = process.exitCode;
+		Object.defineProperty(process.stdout, "isTTY", { value: false, configurable: true });
+		Object.defineProperty(process.stderr, "isTTY", { value: false, configurable: true });
+	});
+	afterEach(() => {
+		vi.restoreAllMocks();
+		Object.defineProperty(process, "stdin", { value: realStdin, configurable: true });
+		process.exitCode = origExit;
+	});
+
+	function fakeStdin(content: string | null, isTTY: boolean) {
+		const fake = new PassThrough() as PassThrough & { isTTY?: boolean };
+		fake.isTTY = isTTY;
+		if (content !== null) {
+			fake.write(content);
+			fake.end();
+		}
+		Object.defineProperty(process, "stdin", { value: fake, configurable: true });
+	}
+
+	async function runSend(cmd: ElnoraCommand, args: string[]) {
+		const program = buildProgram(makeRegistry(cmd));
+		await program.parseAsync(["node", "elnora", "demo", "send", ...args]);
+	}
+
+	test("reads the field from piped stdin when value is '-'", async () => {
+		fakeStdin("hello world\n", false);
+		const cap = spyStreams();
+		await runSend(sendCmd, ["--message", "-"]);
+		const out = cap.out();
+		cap.restore();
+		expect(JSON.parse(out).received).toBe("hello world");
+	});
+
+	test("keeps internal newlines, strips one trailing newline", async () => {
+		fakeStdin("line1\nline2\n", false);
+		const cap = spyStreams();
+		await runSend(sendCmd, ["--message", "-"]);
+		const out = cap.out();
+		cap.restore();
+		expect(JSON.parse(out).received).toBe("line1\nline2");
+	});
+
+	test("'-' with stdin a TTY → ValidationError, exit 2 (no hang)", async () => {
+		fakeStdin(null, true);
+		const cap = spyStreams();
+		await runSend(sendCmd, ["--message", "-"]);
+		const err = cap.err();
+		cap.restore();
+		expect(JSON.parse(err).code).toBe("VALIDATION_ERROR");
+		expect(process.exitCode).toBe(2);
+	});
+
+	test("empty pipe → Zod min(1) ValidationError", async () => {
+		fakeStdin("", false);
+		const cap = spyStreams();
+		await runSend(sendCmd, ["--message", "-"]);
+		const err = cap.err();
+		cap.restore();
+		expect(JSON.parse(err).code).toBe("VALIDATION_ERROR");
+	});
+
+	test("a non-'-' value is used verbatim (stdin not read)", async () => {
+		fakeStdin("SHOULD NOT BE READ", false);
+		const cap = spyStreams();
+		await runSend(sendCmd, ["--message", "literal"]);
+		const out = cap.out();
+		cap.restore();
+		expect(JSON.parse(out).received).toBe("literal");
+	});
+
+	test("a command WITHOUT stdinField treats '-' as a literal value", async () => {
+		const noStdin: ElnoraCommand = { ...sendCmd, stdinField: undefined };
+		fakeStdin("SHOULD NOT BE READ", false);
+		const cap = spyStreams();
+		await runSend(noStdin, ["--message", "-"]);
+		const out = cap.out();
+		cap.restore();
+		expect(JSON.parse(out).received).toBe("-");
+	});
+});
+
+// Every declared stdinField must reference a real field in its command's schema.
+describe("stdinField validity", () => {
+	test("each command's stdinField exists in its input schema", async () => {
+		const { buildRegistry } = await import("../../src/core/build-registry.js");
+		const registry = buildRegistry();
+		for (const cmd of registry.all()) {
+			if (!cmd.stdinField) continue;
+			const fields = zodToCommanderOptions(cmd.inputSchema).map((o) => {
+				const token = o.flags.trim().split(/\s+/)[0];
+				return token
+					.replace(/^--/, "")
+					.replace(/[<>[\]]/g, "")
+					.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+			});
+			expect(fields).toContain(cmd.stdinField);
+		}
 	});
 });

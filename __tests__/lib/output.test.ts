@@ -1,4 +1,4 @@
-import { describe, expect, test } from "vitest";
+import { afterEach, beforeEach, describe, expect, test } from "vitest";
 import { filterFields, formatOutput } from "../../src/lib/output.js";
 
 describe("filterFields", () => {
@@ -188,5 +188,42 @@ describe("markdown format", () => {
 
 	test("empty list → italic No results", () => {
 		expect(formatOutput([], { format: "markdown" })).toBe("_No results._");
+	});
+});
+
+describe("table hyperlinks (single-object view)", () => {
+	const saved: Record<string, string | undefined> = {};
+	beforeEach(() => {
+		saved.NO_COLOR = process.env.NO_COLOR;
+		saved.FORCE_COLOR = process.env.FORCE_COLOR;
+		delete process.env.NO_COLOR;
+		process.env.FORCE_COLOR = "1"; // force color so OSC 8 is emitted
+	});
+	afterEach(() => {
+		if (saved.NO_COLOR === undefined) delete process.env.NO_COLOR;
+		else process.env.NO_COLOR = saved.NO_COLOR;
+		if (saved.FORCE_COLOR === undefined) delete process.env.FORCE_COLOR;
+		else process.env.FORCE_COLOR = saved.FORCE_COLOR;
+	});
+
+	test("wraps a URL value in an OSC 8 link", () => {
+		const result = formatOutput({ url: "https://elnora.ai/x" }, { format: "table" });
+		expect(result).toContain("\x1b]8;;https://elnora.ai/x\x07");
+	});
+
+	test("leaves non-URL values plain", () => {
+		const result = formatOutput({ name: "Alpha" }, { format: "table" });
+		expect(result).not.toContain("\x1b]8;;");
+	});
+
+	test("does not hyperlink inside columnar list tables (would break alignment)", () => {
+		const result = formatOutput([{ url: "https://elnora.ai/x" }], { format: "table" });
+		expect(result).not.toContain("\x1b]8;;");
+	});
+
+	test("does not wrap a URL value containing control chars in an OSC 8 link", () => {
+		const evil = `https://a${String.fromCharCode(0x1b)}b`;
+		const result = formatOutput({ url: evil }, { format: "table" });
+		expect(result).not.toContain("\x1b]8;;");
 	});
 });

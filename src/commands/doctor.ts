@@ -5,6 +5,7 @@ import type { Command } from "commander";
 import pc from "picocolors";
 import { ElnoraApiClient } from "../lib/client.js";
 import { AI_SERVER_URL, MCP_URL, VERSION } from "../lib/config.js";
+import { detectAllInstalls, uninstallCommandFor } from "../lib/install-discovery.js";
 import { PROFILES_FILE, resolveApiKey } from "../lib/profiles.js";
 import { CLAUDE_DIR, CLAUDE_SETTINGS_FILE, MARKETPLACE_NAME, PLUGIN_ID } from "../lib/setup/common.js";
 import { isColorEnabled } from "../lib/tty.js";
@@ -116,6 +117,31 @@ function checkPathConfigured(): CheckResult {
 	return {
 		status: "warn",
 		msg: "PATH configured       standard install dirs not in PATH (OK if installed via npm/brew)",
+	};
+}
+
+function checkShadowInstalls(): CheckResult {
+	const installs = detectAllInstalls();
+	const active = installs.find((i) => i.active);
+	// If we can't identify the active install on PATH (e.g. running from a dev
+	// build / non-PATH location), we can't reliably call others "shadows" — skip
+	// rather than emit a misleading warning.
+	if (!active) {
+		return { status: "skip", msg: "Shadow installs        (running from a non-PATH/dev build)" };
+	}
+	const shadows = installs.filter((i) => !i.active && i.source !== "dev");
+	if (shadows.length === 0) {
+		return { status: "pass", msg: `No shadow installs     ${active.path} (${active.source})` };
+	}
+	// Shadow installs make `elnora` ambiguous and cause stale-version confusion,
+	// but the CLI still runs — warn (non-fatal), don't fail.
+	const lines = shadows.map((s) => {
+		const cmd = uninstallCommandFor(s);
+		return `      shadow: ${s.path} (${s.source})${cmd ? ` — ${cmd}` : " — remove manually"}`;
+	});
+	return {
+		status: "warn",
+		msg: `Shadow installs        ${shadows.length} other elnora on PATH (active: ${active.path} [${active.source}])\n${lines.join("\n")}`,
 	};
 }
 
@@ -374,6 +400,7 @@ export function addDoctorCommand(program: Command): void {
 				await runCheck(() => checkConfigPermissions()),
 				await runCheck(() => checkAiServerReachable()),
 				await runCheck(() => checkPathConfigured()),
+				await runCheck(() => checkShadowInstalls()),
 			];
 			for (const r of cliChecks) {
 				console.error(render(r));

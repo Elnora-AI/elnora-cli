@@ -32,3 +32,36 @@ export function isColorEnabled(): boolean {
 export function resolveDefaultFormat(): OutputFormat {
 	return isTTY() ? "table" : "json";
 }
+
+/** True if the string contains a C0 control char (0x00–0x1F) or DEL (0x7F). */
+export function hasControlChar(s: string): boolean {
+	for (let i = 0; i < s.length; i++) {
+		const c = s.charCodeAt(i);
+		if (c < 0x20 || c === 0x7f) return true;
+	}
+	return false;
+}
+
+/** Remove C0 control chars and DEL from a string. */
+function stripControlChars(s: string): string {
+	let out = "";
+	for (let i = 0; i < s.length; i++) {
+		const c = s.charCodeAt(i);
+		if (c >= 0x20 && c !== 0x7f) out += s[i];
+	}
+	return out;
+}
+
+/**
+ * Wrap text in an OSC 8 hyperlink (clickable in modern terminals). Returns the
+ * bare text when color/links are disabled (NO_COLOR, non-TTY, etc.) or the URL
+ * is empty — so escape sequences never leak into piped or machine output. The
+ * URL is stripped of control bytes (notably BEL/ESC) so a server-supplied value
+ * can't break out of the OSC 8 sequence and inject terminal escape codes.
+ */
+export function hyperlink(url: string, text: string): string {
+	if (!url || !isColorEnabled()) return text;
+	const safeUrl = stripControlChars(url);
+	if (!safeUrl) return text;
+	return `\x1b]8;;${safeUrl}\x07${text}\x1b]8;;\x07`;
+}

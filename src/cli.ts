@@ -16,6 +16,7 @@ import { addSetupCommand } from "./commands/setup.js";
 import { addUpdateCommand } from "./commands/update.js";
 import { addWhoamiCommand } from "./commands/whoami.js";
 import { buildRegistry } from "./core/build-registry.js";
+import { maybePrintBanner } from "./lib/banner.js";
 import { formatErrorForHuman, formatErrorPayload, getExitCode } from "./lib/errors.js";
 import { registerUpdateCheck } from "./lib/update-check.js";
 
@@ -55,6 +56,10 @@ if (process.argv.includes("--no-color") && !process.env.NO_COLOR) {
 	process.env.NO_COLOR = "1";
 }
 const quiet = process.argv.includes("--quiet");
+
+// Branded banner on bare `elnora` / top-level --help (TTY only; never piped, in
+// CI, with --quiet, or before a subcommand). Goes to stderr so stdout stays clean.
+maybePrintBanner(process.argv);
 
 // ---------------------------------------------------------------------------
 // Build program and add standalone commands

@@ -5,6 +5,7 @@
  */
 
 import { scrubData } from "./errors.js";
+import { hasControlChar, hyperlink } from "./tty.js";
 
 export type OutputFormat = "json" | "csv" | "compact" | "table" | "markdown";
 
@@ -99,6 +100,23 @@ function clipCell(value: unknown, max = MAX_CELL_WIDTH): string {
 	return oneLine.length > max ? `${oneLine.slice(0, max - 1)}…` : oneLine;
 }
 
+const URL_RE = /^https?:\/\/\S+$/;
+
+/**
+ * Make a URL value clickable in the key/value table view only. NOT for the
+ * columnar list view: the OSC 8 escapes have zero display width but real string
+ * length, which would break the padEnd column math. hyperlink() self-gates on
+ * color/TTY, so piped output stays plain. Reject control bytes so a malicious URL
+ * value can't sneak an escape sequence past hyperlink()'s sanitizer.
+ */
+function linkifyCell(value: unknown): string {
+	const text = clipCell(value);
+	if (typeof value === "string" && URL_RE.test(value) && !hasControlChar(value)) {
+		return hyperlink(value, text);
+	}
+	return text;
+}
+
 /** True when the data is a collection (array, or an object with an `items` array). */
 function isListShape(data: unknown): boolean {
 	if (Array.isArray(data)) return true;
@@ -151,7 +169,8 @@ function toTable(data: unknown): string {
 		const entries = Object.entries(data as Record<string, unknown>);
 		if (entries.length === 0) return "(empty)";
 		const keyWidth = Math.max(...entries.map(([k]) => k.length));
-		return entries.map(([k, v]) => `${k.padEnd(keyWidth)}  ${clipCell(v)}`).join("\n");
+		// Only the key is padded; the value may carry zero-width link escapes safely.
+		return entries.map(([k, v]) => `${k.padEnd(keyWidth)}  ${linkifyCell(v)}`).join("\n");
 	}
 
 	const rows = normalizedRows(data);

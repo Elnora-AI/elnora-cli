@@ -26,6 +26,7 @@ import {
 	ValidationError,
 } from "../lib/errors.js";
 import { formatOutput, type OutputFormat } from "../lib/output.js";
+import { readStdin } from "../lib/stdin.js";
 import { resolveDefaultFormat } from "../lib/tty.js";
 
 /** Output formats accepted by --output / --json / --md. */
@@ -197,18 +198,29 @@ export function buildProgram(registry: CommandRegistry): Command {
 
 			const opts = zodToCommanderOptions(cmd.inputSchema);
 
+			// Append a stdin hint to the field that accepts "-" (CLI help only; the
+			// Zod description stays clean for the MCP JSON schema).
+			const fieldForFlags = (flags: string): string => {
+				const token = flags.trim().split(/\s+/)[0];
+				return kebabToCamel(token.replace(/^--/, "").replace(/[<>[\]]/g, ""));
+			};
+			const describeOpt = (opt: CommanderOption): string =>
+				cmd.stdinField && fieldForFlags(opt.flags) === cmd.stdinField
+					? `${opt.description} (use '-' to read from stdin)`
+					: opt.description;
+
 			// Add positional arguments first, then options
 			for (const opt of opts) {
 				if (opt.isArgument) {
-					sub.argument(opt.flags, opt.description);
+					sub.argument(opt.flags, describeOpt(opt));
 				}
 			}
 			for (const opt of opts) {
 				if (opt.isArgument) continue;
 				if (opt.choices) {
-					sub.option(opt.flags, opt.description, opt.defaultValue as string);
+					sub.option(opt.flags, describeOpt(opt), opt.defaultValue as string);
 				} else {
-					sub.option(opt.flags, opt.description, opt.defaultValue as string | boolean | undefined);
+					sub.option(opt.flags, describeOpt(opt), opt.defaultValue as string | boolean | undefined);
 				}
 			}
 
@@ -291,6 +303,21 @@ export function buildProgram(registry: CommandRegistry): Command {
 							quiet: Boolean(parentOpts.quiet),
 						},
 					};
+
+					// Opt-in stdin: a value of "-" on the command's declared stdinField
+					// means "read it from stdin", so secrets/large bodies need not sit on
+					// the command line. CLI-only (the MCP adapter never enters here).
+					if (cmd.stdinField && input[cmd.stdinField] === "-") {
+						if (process.stdin.isTTY) {
+							throw new ValidationError(
+								`'-' reads ${camelToKebab(cmd.stdinField)} from stdin, but stdin is a terminal.`,
+								"Pipe data in, e.g.:  cat file.txt | elnora ... -",
+							);
+						}
+						// Strip a single trailing newline (the usual shell/echo artifact);
+						// keep internal newlines and leading whitespace for multi-line bodies.
+						input[cmd.stdinField] = (await readStdin()).replace(/\r?\n$/, "");
+					}
 
 					// Validate and parse input through Zod — convert a parse failure into
 					// a clean one-line ValidationError instead of dumping serialized JSON.

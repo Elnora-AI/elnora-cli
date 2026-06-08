@@ -20,6 +20,7 @@ export const tasksCreate: ElnoraCommand<Input> = {
 	name: "tasks.create",
 	group: "tasks",
 	description: "Create a new task in a project",
+	stdinField: "message",
 	inputSchema,
 	outputSchema: z.any(),
 

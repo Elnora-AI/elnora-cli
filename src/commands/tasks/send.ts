@@ -22,6 +22,7 @@ export const tasksSend: ElnoraCommand<Input> = {
 	name: "tasks.send",
 	group: "tasks",
 	description: "Send a message to a task",
+	stdinField: "message",
 	inputSchema,
 	outputSchema: z.any(),
 

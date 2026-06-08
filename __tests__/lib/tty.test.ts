@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
-import { isColorEnabled, resolveDefaultFormat } from "../../src/lib/tty.js";
+import { hyperlink, isColorEnabled, resolveDefaultFormat } from "../../src/lib/tty.js";
 
 const ENV_KEYS = ["NO_COLOR", "FORCE_COLOR", "TERM"] as const;
 
@@ -76,5 +76,50 @@ describe("isColorEnabled", () => {
 		expect(isColorEnabled()).toBe(true);
 		setTTY(false);
 		expect(isColorEnabled()).toBe(false);
+	});
+});
+
+describe("hyperlink", () => {
+	const origTTY = process.stdout.isTTY;
+	const saved: Record<string, string | undefined> = {};
+	beforeEach(() => {
+		for (const k of ENV_KEYS) {
+			saved[k] = process.env[k];
+			delete process.env[k];
+		}
+	});
+	afterEach(() => {
+		for (const k of ENV_KEYS) {
+			if (saved[k] === undefined) delete process.env[k];
+			else process.env[k] = saved[k];
+		}
+		Object.defineProperty(process.stdout, "isTTY", { value: origTTY, configurable: true });
+	});
+
+	test("wraps text in an OSC 8 sequence when color is enabled", () => {
+		process.env.FORCE_COLOR = "1";
+		expect(hyperlink("https://x.test/a", "click")).toBe("\x1b]8;;https://x.test/a\x07click\x1b]8;;\x07");
+	});
+
+	test("returns bare text when color is disabled", () => {
+		process.env.NO_COLOR = "1";
+		expect(hyperlink("https://x.test/a", "click")).toBe("click");
+	});
+
+	test("returns bare text for an empty url", () => {
+		process.env.FORCE_COLOR = "1";
+		expect(hyperlink("", "click")).toBe("click");
+	});
+
+	test("strips control bytes from the URL so it can't inject terminal escapes", () => {
+		process.env.FORCE_COLOR = "1";
+		const ESC = String.fromCharCode(0x1b);
+		const BEL = String.fromCharCode(0x07);
+		const evil = `https://a${ESC}]0;pwned${BEL}b`;
+		const out = hyperlink(evil, "click");
+		// A clean OSC 8 sequence has exactly two ESC and two BEL (the markers); an
+		// unsanitized URL would add a third of each.
+		expect([...out].filter((c) => c === ESC)).toHaveLength(2);
+		expect([...out].filter((c) => c === BEL)).toHaveLength(2);
 	});
 });

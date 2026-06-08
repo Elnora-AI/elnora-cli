@@ -75,7 +75,7 @@ export const tasksSend: ElnoraCommand<Input> = {
 		if (input.stream) {
 			try {
 				const apiKey = resolveApiKey(ctx.profileName);
-				const renderer = new StreamRenderer();
+				const renderer = new StreamRenderer({ quiet: ctx.output.quiet });
 				for await (const event of streamTask(input.taskId, apiKey)) {
 					renderer.renderEvent(event);
 				}

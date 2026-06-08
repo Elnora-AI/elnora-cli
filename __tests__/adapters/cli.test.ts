@@ -1,6 +1,16 @@
-import { describe, expect, test } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { z } from "zod";
-import { zodToCommanderOptions } from "../../src/adapters/cli.js";
+import { buildProgram, zodToCommanderOptions } from "../../src/adapters/cli.js";
+import type { ElnoraCommand } from "../../src/core/command.js";
+import type { CommandRegistry } from "../../src/core/registry.js";
+
+// The adapter builds a client via ElnoraApiClient.fromEnv for non-auth commands;
+// stub it so these tests don't need a real profile/network.
+vi.mock("../../src/lib/client.js", () => {
+	const Client = vi.fn();
+	(Client as unknown as { fromEnv: () => unknown }).fromEnv = vi.fn(() => ({}));
+	return { ElnoraApiClient: Client };
+});
 
 describe("zodToCommanderOptions", () => {
 	test("converts required string to --flag <value>", () => {
@@ -91,5 +101,169 @@ describe("zodToCommanderOptions", () => {
 		expect(options[1].flags).toContain("--name");
 		expect(options[2].flags).toContain("--description");
 		expect(options[3].flags).toContain("--page");
+	});
+});
+
+// ---------------------------------------------------------------------------
+// buildProgram — output format resolution (TTY-aware default, --json/--md/etc.)
+// ---------------------------------------------------------------------------
+
+const demoCmd: ElnoraCommand = {
+	name: "demo.list",
+	group: "demo",
+	description: "List demo records",
+	inputSchema: z.object({}),
+	outputSchema: z.any(),
+	async execute() {
+		return { items: [{ id: "1", name: "Alpha" }], totalCount: 1 };
+	},
+	formatOutput(output: unknown) {
+		return JSON.stringify(output, null, 2);
+	},
+};
+
+function makeRegistry(cmd: ElnoraCommand): CommandRegistry {
+	return {
+		groups: () => [cmd.group],
+		byGroup: () => [cmd],
+		all: () => [cmd],
+	} as unknown as CommandRegistry;
+}
+
+function spyStreams() {
+	const out: string[] = [];
+	const err: string[] = [];
+	const o = vi.spyOn(process.stdout, "write").mockImplementation((c: unknown) => {
+		out.push(String(c));
+		return true;
+	});
+	const e = vi.spyOn(process.stderr, "write").mockImplementation((c: unknown) => {
+		err.push(String(c));
+		return true;
+	});
+	return {
+		out: () => out.join(""),
+		err: () => err.join(""),
+		restore: () => {
+			o.mockRestore();
+			e.mockRestore();
+		},
+	};
+}
+
+function setTTY(stdout: boolean, stderr = stdout) {
+	Object.defineProperty(process.stdout, "isTTY", { value: stdout, configurable: true });
+	Object.defineProperty(process.stderr, "isTTY", { value: stderr, configurable: true });
+}
+
+describe("buildProgram output formatting", () => {
+	let origOutTTY: boolean | undefined;
+	let origErrTTY: boolean | undefined;
+	let origExit: number | string | undefined;
+
+	beforeEach(() => {
+		origOutTTY = process.stdout.isTTY;
+		origErrTTY = process.stderr.isTTY;
+		origExit = process.exitCode;
+	});
+
+	afterEach(() => {
+		vi.restoreAllMocks();
+		Object.defineProperty(process.stdout, "isTTY", { value: origOutTTY, configurable: true });
+		Object.defineProperty(process.stderr, "isTTY", { value: origErrTTY, configurable: true });
+		process.exitCode = origExit;
+	});
+
+	async function run(args: string[]) {
+		const program = buildProgram(makeRegistry(demoCmd));
+		await program.parseAsync(["node", "elnora", ...args]);
+	}
+
+	test("non-TTY default → JSON (pipes and agents unaffected)", async () => {
+		setTTY(false);
+		const cap = spyStreams();
+		await run(["demo", "list"]);
+		const out = cap.out();
+		cap.restore();
+		expect(JSON.parse(out).items[0].name).toBe("Alpha");
+	});
+
+	test("TTY default → human table, not JSON", async () => {
+		setTTY(true);
+		const cap = spyStreams();
+		await run(["demo", "list"]);
+		const out = cap.out();
+		cap.restore();
+		expect(out).toContain("id");
+		expect(out).toContain("Alpha");
+		expect(() => JSON.parse(out.trim())).toThrow();
+	});
+
+	test("--json forces JSON even on a TTY", async () => {
+		setTTY(true);
+		const cap = spyStreams();
+		await run(["--json", "demo", "list"]);
+		const out = cap.out();
+		cap.restore();
+		expect(JSON.parse(out).totalCount).toBe(1);
+	});
+
+	test("--compact → single-line JSON", async () => {
+		setTTY(true);
+		const cap = spyStreams();
+		await run(["--compact", "demo", "list"]);
+		const out = cap.out().trim();
+		cap.restore();
+		expect(out).not.toContain("\n");
+		expect(JSON.parse(out).totalCount).toBe(1);
+	});
+
+	test("--md → markdown table even when piped", async () => {
+		setTTY(false);
+		const cap = spyStreams();
+		await run(["--md", "demo", "list"]);
+		const out = cap.out();
+		cap.restore();
+		expect(out).toContain("| id | name |");
+	});
+
+	test("--output markdown → markdown table", async () => {
+		setTTY(false);
+		const cap = spyStreams();
+		await run(["--output", "markdown", "demo", "list"]);
+		const out = cap.out();
+		cap.restore();
+		expect(out).toContain("| id | name |");
+	});
+
+	test("unknown --output value → ValidationError, exit 2", async () => {
+		setTTY(false);
+		const cap = spyStreams();
+		await run(["--output", "yaml", "demo", "list"]);
+		const err = cap.err();
+		cap.restore();
+		expect(JSON.parse(err).code).toBe("VALIDATION_ERROR");
+		expect(process.exitCode).toBe(2);
+	});
+
+	test("--output csv routes through the generic renderer", async () => {
+		setTTY(true);
+		const cap = spyStreams();
+		await run(["--output", "csv", "demo", "list"]);
+		const out = cap.out();
+		cap.restore();
+		expect(out).toContain("id,name");
+		expect(out).toContain("1,Alpha");
+	});
+
+	test("--fields filters columns through the adapter", async () => {
+		setTTY(false);
+		const cap = spyStreams();
+		await run(["--fields", "id", "demo", "list"]);
+		const out = cap.out();
+		cap.restore();
+		const parsed = JSON.parse(out);
+		expect(parsed.items[0]).toHaveProperty("id");
+		expect(parsed.items[0]).not.toHaveProperty("name");
 	});
 });

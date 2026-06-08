@@ -30,6 +30,16 @@ describe("StreamRenderer", () => {
 		expect(stderrWrite).toHaveBeenCalled();
 	});
 
+	test("quiet:true suppresses spinner/status chrome but still emits tokens", () => {
+		const renderer = new StreamRenderer({ quiet: true });
+		renderer.renderEvent({ type: "think", content: "Planning approach..." });
+		renderer.renderEvent({ type: "tool_start", tool: "pubmed_search" });
+		renderer.renderEvent({ type: "progress", content: "Found 8 papers" });
+		expect(stderrWrite).not.toHaveBeenCalled();
+		renderer.renderEvent({ type: "token", content: "result" });
+		expect(stdoutWrite).toHaveBeenCalledWith("result");
+	});
+
 	test("writes tool_start event to stderr", () => {
 		const renderer = new StreamRenderer();
 		renderer.renderEvent({ type: "tool_start", tool: "pubmed_search" });

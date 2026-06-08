@@ -28,6 +28,8 @@ export interface CommandContext {
 		format: OutputFormat;
 		compact: boolean;
 		fields?: string[];
+		/** Suppress non-essential chrome (spinners, progress) on stderr. */
+		quiet?: boolean;
 	};
 }
 

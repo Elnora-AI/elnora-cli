@@ -8,6 +8,7 @@
 
 import { buildProgram } from "./adapters/cli.js";
 import { addCompletionCommand } from "./commands/completion.js";
+import { addConfigCommand } from "./commands/config.js";
 import { addDoctorCommand } from "./commands/doctor.js";
 import { addMcpCommands } from "./commands/mcp/serve.js";
 import { addOpenCommand } from "./commands/open.js";
@@ -47,6 +48,14 @@ process.on("unhandledRejection", (reason) => {
 
 const registry = buildRegistry();
 
+// Honor cross-cutting global flags before Commander parses, so they also apply
+// to the background update notice (registered below) and any color resolution.
+// --no-color maps to the NO_COLOR convention; --quiet silences the update nag.
+if (process.argv.includes("--no-color") && !process.env.NO_COLOR) {
+	process.env.NO_COLOR = "1";
+}
+const quiet = process.argv.includes("--quiet");
+
 // ---------------------------------------------------------------------------
 // Build program and add standalone commands
 // ---------------------------------------------------------------------------
@@ -57,12 +66,13 @@ const program = buildProgram(registry);
 addMcpCommands(program, registry);
 addDoctorCommand(program);
 addWhoamiCommand(program);
+addConfigCommand(program);
 addOpenCommand(program);
 addSetupCommand(program);
 addUpdateCommand(program);
 addCompletionCommand(program);
 
-// Background update check (non-blocking, 24h cache)
-registerUpdateCheck();
+// Background update check (non-blocking, 24h cache). Suppressed by --quiet.
+registerUpdateCheck(quiet);
 
 program.parseAsync(process.argv);

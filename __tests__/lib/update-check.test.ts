@@ -12,7 +12,21 @@ vi.mock("../../src/lib/install-method.js", () => ({
 	),
 }));
 
-const { showUpdateNotice } = await import("../../src/lib/update-check.js");
+const { showUpdateNotice, sanitizeVersion } = await import("../../src/lib/update-check.js");
+
+describe("sanitizeVersion", () => {
+	test("accepts and canonicalizes a plain release version", () => {
+		expect(sanitizeVersion("2.0.5")).toBe("2.0.5");
+		expect(sanitizeVersion("2.01.5")).toBe("2.1.5");
+	});
+
+	test("rejects prereleases, junk, and traversal-looking input", () => {
+		expect(sanitizeVersion("2.0.5-beta.1")).toBeNull();
+		expect(sanitizeVersion("not-a-version")).toBeNull();
+		expect(sanitizeVersion("../../etc/passwd")).toBeNull();
+		expect(sanitizeVersion("")).toBeNull();
+	});
+});
 
 describe("showUpdateNotice", () => {
 	let writes: string[];

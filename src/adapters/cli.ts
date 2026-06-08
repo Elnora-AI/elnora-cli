@@ -18,8 +18,18 @@ import type { CommandContext } from "../core/command.js";
 import type { CommandRegistry } from "../core/registry.js";
 import { ElnoraApiClient } from "../lib/client.js";
 import { VERSION } from "../lib/config.js";
-import { formatErrorForHuman, formatErrorPayload, getExitCode } from "../lib/errors.js";
+import {
+	formatErrorForHuman,
+	formatErrorPayload,
+	getExitCode,
+	toValidationError,
+	ValidationError,
+} from "../lib/errors.js";
 import { formatOutput, type OutputFormat } from "../lib/output.js";
+import { resolveDefaultFormat } from "../lib/tty.js";
+
+/** Output formats accepted by --output / --json / --md. */
+const ALLOWED_FORMATS: ReadonlySet<string> = new Set(["json", "csv", "table", "markdown"]);
 
 // ---------------------------------------------------------------------------
 // Zod schema introspection
@@ -166,10 +176,16 @@ export function buildProgram(registry: CommandRegistry): Command {
 		.description("Elnora AI Platform CLI")
 		.version(VERSION)
 		.option("--compact", "Token-efficient minimal output", false)
-		.option("--output <format>", "Output format (json, csv)", "json")
+		.option(
+			"--output <format>",
+			"Output format: json, csv, table, markdown (default: table on a terminal, json when piped)",
+		)
+		.option("--md", "Markdown output (shorthand for --output markdown)", false)
 		.option("--fields <fields>", "Comma-separated fields to include")
 		.option("--profile <name>", "Named profile to use")
-		.option("--json", "Force JSON output", false);
+		.option("--json", "Force JSON output (even on a terminal)", false)
+		.option("--quiet", "Suppress non-essential output (spinners, update notices)", false)
+		.option("--no-color", "Disable colored output");
 
 	for (const group of registry.groups()) {
 		const groupCmd = new Command(group).description(`Manage ${group}`);
@@ -241,21 +257,49 @@ export function buildProgram(registry: CommandRegistry): Command {
 						? (new ElnoraApiClient("placeholder") as unknown as CommandContext["client"])
 						: ElnoraApiClient.fromEnv(profileName);
 
+					// Resolve output format. Precedence: --json > --md > --output <fmt> >
+					// --compact (implies json) > (terminal ? table : json). Non-TTY
+					// defaults to json so pipes and agents are unaffected by the
+					// interactive table default.
+					const compact = Boolean(parentOpts.compact);
+					const explicitFormat = parentOpts.json
+						? "json"
+						: parentOpts.md
+							? "markdown"
+							: (parentOpts.output as string | undefined);
+					if (explicitFormat && !ALLOWED_FORMATS.has(explicitFormat)) {
+						throw new ValidationError(
+							`Unknown output format: ${explicitFormat}`,
+							`Valid formats: ${[...ALLOWED_FORMATS].join(", ")}.`,
+						);
+					}
+					// --compact is a JSON modifier, not a format. With no explicit format
+					// it forces json (a "compact table" is meaningless); with an explicit
+					// non-json format it is simply ignored.
+					const resolvedFormat = (explicitFormat ?? (compact ? "json" : resolveDefaultFormat())) as OutputFormat;
+
 					const ctx: CommandContext = {
 						client,
 						profileName,
 						mode: "cli",
 						output: {
-							format: ((parentOpts.json ? "json" : parentOpts.output) ?? "json") as OutputFormat,
-							compact: (parentOpts.compact as boolean) ?? false,
+							format: resolvedFormat,
+							compact,
 							fields: parentOpts.fields
 								? (parentOpts.fields as string).split(",").map((f: string) => f.trim())
 								: undefined,
+							quiet: Boolean(parentOpts.quiet),
 						},
 					};
 
-					// Validate and parse input through Zod
-					const parsed = cmd.inputSchema.parse(input);
+					// Validate and parse input through Zod — convert a parse failure into
+					// a clean one-line ValidationError instead of dumping serialized JSON.
+					let parsed: unknown;
+					try {
+						parsed = cmd.inputSchema.parse(input);
+					} catch (e) {
+						throw toValidationError(e);
+					}
 					const result = await cmd.execute(parsed, ctx);
 
 					// Output (skip if result is null or command already handled output)
@@ -263,9 +307,18 @@ export function buildProgram(registry: CommandRegistry): Command {
 						// Skip stdout for streamed results (content already rendered via SSE)
 						const isStreamed = typeof result === "object" && (result as Record<string, unknown>).streamed === true;
 						if (!isStreamed) {
-							const hasGlobalFlags = ctx.output.compact || ctx.output.format !== "json" || ctx.output.fields;
+							// A command's bespoke formatOutput owns plain JSON (explicit --json,
+							// or the non-TTY default). Everything else — table/markdown/csv, or
+							// --fields/--compact projections — goes through the shared generic
+							// renderer so behavior is uniform across all commands.
+							const useGeneric =
+								Boolean(ctx.output.fields) ||
+								ctx.output.compact ||
+								ctx.output.format === "csv" ||
+								ctx.output.format === "table" ||
+								ctx.output.format === "markdown";
 							let formatted: string;
-							if (cmd.formatOutput && !hasGlobalFlags) {
+							if (cmd.formatOutput && !useGeneric) {
 								formatted = cmd.formatOutput(result, ctx.output.format);
 							} else {
 								formatted = formatOutput(result, {

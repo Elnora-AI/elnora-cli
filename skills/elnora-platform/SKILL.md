@@ -33,6 +33,10 @@ Look for tools prefixed `mcp__elnora__` in your available tools. Each domain-spe
 
 **Never fabricate tool names.** This skill routes to sub-skills; each sub-skill lists its valid commands and their MCP equivalents.
 
+## Troubleshooting
+
+If anything looks wrong — auth errors, unexpected hosts, or connectivity failures — run `elnora doctor` first. It reports the actual API / AI-server / MCP hosts, auth state, version, and connectivity. Run `elnora config show` to print the resolved endpoints and active profile. Do not guess hostnames or URLs.
+
 ## Invocation
 
 ```bash

@@ -13,6 +13,7 @@ export const feedbackSubmit: ElnoraCommand<Input> = {
 	name: "feedback.submit",
 	group: "feedback",
 	description: "Submit feedback",
+	stdinField: "description",
 	inputSchema,
 	outputSchema: z.any(),
 

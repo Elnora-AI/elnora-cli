@@ -180,13 +180,25 @@ API keys are stored in `~/.elnora/profiles.toml` with secure file permissions (0
 
 ## Output Formats
 
+By default the CLI prints a **human-readable table** in an interactive terminal and
+**JSON when the output is piped or redirected** — so `elnora ... | jq` and scripts/agents
+keep getting JSON automatically, with no flag required.
+
 ```bash
-elnora projects list                    # JSON (default)
-elnora projects list --compact          # Compact JSON
+elnora projects list                    # table in a terminal, JSON when piped
+elnora projects list | jq               # JSON (piped → machine format)
+elnora projects list --json             # force JSON, even in a terminal
+elnora projects list --output table     # force the human table
+elnora projects list --md               # Markdown (great for agents/chat/docs)
 elnora projects list --output csv       # CSV
-elnora projects list --fields id,name   # Field filtering
-elnora projects list --json             # Force JSON (even in TTY)
+elnora projects list --compact          # compact (single-line) JSON
+elnora projects list --fields id,name   # field filtering (works with any format)
 ```
+
+Other global flags: `--quiet` (suppress spinners and update notices), `--no-color`
+(disable colored output; `NO_COLOR` is also honored).
+
+Run `elnora config show` to print the resolved endpoints and active profile.
 
 ## Documentation
 

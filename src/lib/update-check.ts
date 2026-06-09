@@ -19,11 +19,22 @@ const CACHE_DIR = join(homedir(), ".elnora");
 const CACHE_FILE = join(CACHE_DIR, ".update-check");
 const CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000; // 24 hours
 const FETCH_TIMEOUT_MS = 3000;
-const SEMVER_RE = /^\d+\.\d+\.\d+(?:-[\w.]+)?(?:\+[\w.]+)?$/;
 
 interface CacheEntry {
 	checkedAt: string;
 	latest: string;
+}
+
+/**
+ * Validate and canonicalize a version string from the npm registry. Returns a
+ * clean MAJOR.MINOR.PATCH rebuilt from numeric parts via Number() — so untrusted
+ * network data is never written verbatim to the cache file — or null if the value
+ * isn't a plain release version. Exported for testing.
+ */
+export function sanitizeVersion(raw: string): string | null {
+	const m = /^(\d{1,9})\.(\d{1,9})\.(\d{1,9})$/.exec(raw);
+	if (!m) return null;
+	return `${Number(m[1])}.${Number(m[2])}.${Number(m[3])}`;
 }
 
 function shouldSkipEntirely(): boolean {
@@ -83,7 +94,7 @@ export function isNewerVersion(a: string, b: string): boolean {
  * Register update check to run at process exit.
  * Cache refresh runs even in non-TTY; notification only in TTY.
  */
-export function registerUpdateCheck(): void {
+export function registerUpdateCheck(quiet = false): void {
 	if (shouldSkipEntirely()) return;
 
 	// Check cache first
@@ -91,8 +102,8 @@ export function registerUpdateCheck(): void {
 	if (cached) {
 		const elapsed = Date.now() - new Date(cached.checkedAt).getTime();
 		if (elapsed < CHECK_INTERVAL_MS) {
-			// Cache is fresh — show notice if update available
-			if (cached.latest && cached.latest !== VERSION && cached.latest !== "unknown") {
+			// Cache is fresh — show notice if update available (unless --quiet)
+			if (!quiet && cached.latest && cached.latest !== VERSION && cached.latest !== "unknown") {
 				if (isNewerVersion(cached.latest, VERSION)) {
 					showUpdateNotice(cached.latest);
 				}
@@ -113,13 +124,14 @@ export function registerUpdateCheck(): void {
 			});
 			if (!response.ok) return;
 			const data = (await response.json()) as { version?: string };
-			const latest = data.version ?? "unknown";
-
-			if (latest !== "unknown" && !SEMVER_RE.test(latest)) return;
+			// Sanitize the registry value before it touches disk: rebuild from numeric
+			// parts so untrusted network data is never written verbatim to the cache file.
+			const latest = data.version ? sanitizeVersion(data.version) : null;
+			if (!latest) return;
 
 			writeCache({ checkedAt: new Date().toISOString(), latest });
 
-			if (latest !== VERSION && latest !== "unknown" && isNewerVersion(latest, VERSION)) {
+			if (!quiet && latest !== VERSION && isNewerVersion(latest, VERSION)) {
 				showUpdateNotice(latest);
 			}
 		} catch {

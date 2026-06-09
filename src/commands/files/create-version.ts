@@ -13,6 +13,7 @@ export const filesCreateVersion: ElnoraCommand<Input> = {
 	name: "files.createVersion",
 	group: "files",
 	description: "Create a new version of a file",
+	stdinField: "content",
 	inputSchema,
 	outputSchema: z.any(),
 

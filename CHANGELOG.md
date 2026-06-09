@@ -5,6 +5,13 @@ All notable changes to the Elnora CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.1.0](https://github.com/Elnora-AI/elnora-cli/compare/v2.0.5...v2.1.0) (2026-06-09)
+
+
+### Features
+
+* **cli:** TTY-aware output, config show, secure/stdin input, doctor & banner DX ([#164](https://github.com/Elnora-AI/elnora-cli/issues/164)) ([66acc0f](https://github.com/Elnora-AI/elnora-cli/commit/66acc0fa7e5044883eb4c0d1730a54960dc30b5c))
+
 ## [2.0.5](https://github.com/Elnora-AI/elnora-cli/compare/v2.0.4...v2.0.5) (2026-06-05)
 
 

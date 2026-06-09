@@ -28,6 +28,8 @@ export interface CommandContext {
 		format: OutputFormat;
 		compact: boolean;
 		fields?: string[];
+		/** Suppress non-essential chrome (spinners, progress) on stderr. */
+		quiet?: boolean;
 	};
 }
 
@@ -46,6 +48,12 @@ export interface ElnoraCommand<I = unknown, O = unknown> {
 
 	/** Zod schema for output — used for type safety + output formatting */
 	outputSchema: ZodType<O>;
+
+	/**
+	 * Optional: the input field whose value of "-" means "read this from stdin"
+	 * (CLI only). Enables e.g. `cat protocol.md | elnora tasks send <id> --message -`.
+	 */
+	stdinField?: string;
 
 	/** Execute the command */
 	execute(input: I, ctx: CommandContext): Promise<O>;

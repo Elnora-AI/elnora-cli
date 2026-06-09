@@ -17,9 +17,11 @@ export class StreamRenderer {
 	private spinnerFrame = 0;
 	private currentLabel = "";
 	private useColor: boolean;
+	private quiet: boolean;
 
-	constructor() {
+	constructor(opts?: { quiet?: boolean }) {
 		this.useColor = isColorEnabled();
+		this.quiet = opts?.quiet ?? false;
 	}
 
 	renderEvent(event: StreamEvent): void {
@@ -65,6 +67,9 @@ export class StreamRenderer {
 	}
 
 	private startSpinner(label: string): void {
+		// --quiet suppresses progress chrome; tokens (stdout) and errors still show.
+		if (this.quiet) return;
+
 		this.stopSpinner();
 		this.currentLabel = label;
 		this.spinnerFrame = 0;

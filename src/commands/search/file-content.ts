@@ -15,6 +15,7 @@ export const searchFileContent: ElnoraCommand<Input> = {
 	name: "search.fileContent",
 	group: "search",
 	description: "Search within file contents",
+	stdinField: "query",
 	inputSchema,
 	outputSchema: z.any(),
 	annotations: { readOnlyHint: true },

@@ -9,6 +9,8 @@
  *   Warning: JSON to stderr, exit 0
  */
 
+import { z } from "zod";
+
 // ---------------------------------------------------------------------------
 // Error hierarchy
 // ---------------------------------------------------------------------------
@@ -198,4 +200,28 @@ export function formatErrorForHuman(err: Error): string {
 	}
 
 	return lines.join("\n");
+}
+
+// ---------------------------------------------------------------------------
+// Zod → ValidationError
+// ---------------------------------------------------------------------------
+
+/**
+ * Convert a thrown error into a clean ValidationError when it is a Zod parse
+ * failure, so a mistyped argument surfaces as e.g. "projectId: Invalid UUID"
+ * (exit code 2) instead of a wall of serialized ZodError JSON. Non-Zod errors
+ * are returned unchanged.
+ */
+export function toValidationError(err: unknown): Error {
+	if (err instanceof z.ZodError) {
+		const first = err.issues[0];
+		const field = first?.path.length ? first.path.join(".") : "input";
+		const message = first?.message ?? "Invalid input";
+		const more = err.issues.length > 1 ? ` (+${err.issues.length - 1} more)` : "";
+		return new ValidationError(
+			`${field}: ${message}${more}`,
+			"Run the command with --help to see the expected inputs.",
+		);
+	}
+	return err instanceof Error ? err : new Error(String(err));
 }

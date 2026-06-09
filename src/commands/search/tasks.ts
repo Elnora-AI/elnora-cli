@@ -14,6 +14,7 @@ export const searchTasks: ElnoraCommand<Input> = {
 	name: "search.tasks",
 	group: "search",
 	description: "Search tasks by query",
+	stdinField: "query",
 	inputSchema,
 	outputSchema: z.any(),
 	annotations: { readOnlyHint: true },

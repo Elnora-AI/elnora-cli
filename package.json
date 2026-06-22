@@ -60,7 +60,7 @@
 	"devDependencies": {
 		"@biomejs/biome": "^2.5.0",
 		"@types/express": "^5.0.6",
-		"@types/node": "^25.9.3",
+		"@types/node": "^26.0.0",
 		"@yao-pkg/pkg": "^6.20.0",
 		"esbuild": "^0.28.1",
 		"tsx": "^4.22.4",

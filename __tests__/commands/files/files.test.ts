@@ -222,7 +222,9 @@ describe("files.uploadBatch", () => {
 		expect(filesUploadBatch.inputSchema.parse({ filePaths: "/tmp/a.txt" })).toMatchObject({
 			filePaths: "/tmp/a.txt",
 		});
-		expect(filesUploadBatch.inputSchema.parse({ project: PROJECT_ID, filePaths: "/tmp/a.txt,/tmp/b.txt" })).toMatchObject({
+		expect(
+			filesUploadBatch.inputSchema.parse({ project: PROJECT_ID, filePaths: "/tmp/a.txt,/tmp/b.txt" }),
+		).toMatchObject({
 			project: PROJECT_ID,
 			filePaths: "/tmp/a.txt,/tmp/b.txt",
 		});

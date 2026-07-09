@@ -15,7 +15,7 @@ export const accountUsers: ElnoraCommand<Input> = {
 	description: "List all users (admin)",
 	inputSchema,
 	outputSchema: z.any(),
-	annotations: { readOnlyHint: true },
+	annotations: { readOnlyHint: true, internal: true },
 
 	async execute(input, ctx) {
 		const queryParams: Record<string, string | number> = {};

@@ -193,10 +193,13 @@ describe("files.upload", () => {
 		expect(filesUpload.group).toBe("files");
 	});
 
-	test("requires project and filePath", () => {
-		expect(() => filesUpload.inputSchema.parse({})).toThrow();
-		expect(() => filesUpload.inputSchema.parse({ project: PROJECT_ID })).toThrow();
-		expect(filesUpload.inputSchema.parse({ project: PROJECT_ID, filePath: "/tmp/file.txt" })).toEqual({
+	test("filePath is required; project is optional (ELN-880)", () => {
+		expect(() => filesUpload.inputSchema.parse({})).toThrow(); // missing filePath
+		// project omitted → still valid (backend uploads into the caller's default workspace)
+		expect(filesUpload.inputSchema.parse({ filePath: "/tmp/file.txt" })).toMatchObject({
+			filePath: "/tmp/file.txt",
+		});
+		expect(filesUpload.inputSchema.parse({ project: PROJECT_ID, filePath: "/tmp/file.txt" })).toMatchObject({
 			project: PROJECT_ID,
 			filePath: "/tmp/file.txt",
 		});
@@ -213,9 +216,13 @@ describe("files.uploadBatch", () => {
 		expect(filesUploadBatch.group).toBe("files");
 	});
 
-	test("requires project and filePaths", () => {
-		expect(() => filesUploadBatch.inputSchema.parse({})).toThrow();
-		expect(filesUploadBatch.inputSchema.parse({ project: PROJECT_ID, filePaths: "/tmp/a.txt,/tmp/b.txt" })).toEqual({
+	test("filePaths is required; project is optional (ELN-880)", () => {
+		expect(() => filesUploadBatch.inputSchema.parse({})).toThrow(); // missing filePaths
+		// project omitted → still valid (backend uploads into the caller's default workspace)
+		expect(filesUploadBatch.inputSchema.parse({ filePaths: "/tmp/a.txt" })).toMatchObject({
+			filePaths: "/tmp/a.txt",
+		});
+		expect(filesUploadBatch.inputSchema.parse({ project: PROJECT_ID, filePaths: "/tmp/a.txt,/tmp/b.txt" })).toMatchObject({
 			project: PROJECT_ID,
 			filePaths: "/tmp/a.txt,/tmp/b.txt",
 		});

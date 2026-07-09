@@ -19,7 +19,8 @@ type Input = z.infer<typeof inputSchema>;
 export const tasksCreate: ElnoraCommand<Input> = {
 	name: "tasks.create",
 	group: "tasks",
-	description: "Create a new task in a project",
+	description:
+		"Create a new task in a project. If a message is provided it is queued, but the AI response is NOT returned — the agent processes asynchronously. Poll elnora_tasks_messages every 5-10s until the last message has role 'assistant' with metadata.status 'completed'. Timeout after 5 min.",
 	stdinField: "message",
 	inputSchema,
 	outputSchema: z.any(),

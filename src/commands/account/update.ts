@@ -25,7 +25,8 @@ export const accountUpdate: ElnoraCommand<Input> = {
 		if (Object.keys(body).length === 0) {
 			throw new ValidationError("At least one of --firstName or --lastName is required");
 		}
-		return ctx.client.patch("account_user", body, {
+		// Backend exposes PUT /account/user/{id} (no PATCH) — using PATCH here 405'd.
+		return ctx.client.put("account_user", body, {
 			pathParams: { id: input.userId },
 		});
 	},

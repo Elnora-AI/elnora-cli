@@ -18,7 +18,8 @@ type Input = z.infer<typeof inputSchema>;
 export const protocolsGenerate: ElnoraCommand<Input> = {
 	name: "protocols.generate",
 	group: "protocols",
-	description: "Generate a bioprotocol — creates a task and sends the description in one call",
+	description:
+		"Generate a bioprotocol — creates a task and sends the description in one call. Returns the task and the queued user message, NOT the AI response; the agent processes asynchronously. To get the generated protocol, poll elnora_tasks_messages with the returned task id every 5-10s until the last message has role 'assistant' with metadata.status 'completed'. Timeout after 5 min.",
 	stdinField: "description",
 	inputSchema,
 	outputSchema: z.any(),

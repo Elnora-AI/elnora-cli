@@ -17,6 +17,7 @@ export const accountUpdateLegalDoc: ElnoraCommand<Input> = {
 	description: "Update a legal document version (SystemAdmin only)",
 	inputSchema,
 	outputSchema: z.any(),
+	annotations: { internal: true },
 
 	async execute(input, ctx) {
 		const body: Record<string, string> = {};

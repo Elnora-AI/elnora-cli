@@ -12,7 +12,7 @@ export const orgsListAll: ElnoraCommand<Input> = {
 	description: "List all organizations (admin)",
 	inputSchema,
 	outputSchema: z.any(),
-	annotations: { readOnlyHint: true },
+	annotations: { readOnlyHint: true, internal: true },
 
 	async execute(_input, ctx) {
 		return ctx.client.get("organizations_all");

@@ -143,15 +143,6 @@ function badges(cmd: ElnoraCommand): string {
 	return tags.length ? `*${tags.join(" · ")}*\n\n` : "";
 }
 
-function mcpLine(cmd: ElnoraCommand): string {
-	if (cmd.annotations?.exposeInMcp === false) return "";
-	const toolName = `elnora_${cmd.name.replace(/\./g, "_")}`;
-	const scopes = cmd.annotations?.mcpScopes;
-	const scopeStr =
-		scopes && scopes.length ? ` — scopes: ${scopes.map((s) => `\`${s}\``).join(", ")}` : "";
-	return `MCP tool: \`${toolName}\`${scopeStr}\n\n`;
-}
-
 function renderCommand(cmd: ElnoraCommand): string {
 	const invocation = `elnora ${cmd.name.replace(/\./g, " ")}`;
 	const rows = paramRows(cmd);
@@ -159,7 +150,6 @@ function renderCommand(cmd: ElnoraCommand): string {
 	let out = `## ${invocation}\n\n`;
 	if (cmd.description) out += `${inlineText(cmd.description)}\n\n`;
 	out += badges(cmd);
-	out += mcpLine(cmd);
 	out += "```bash\n";
 	out += `${invocation}${rows.some((r) => r.required) ? " [required options]" : ""}${
 		rows.length ? " [options]" : ""
@@ -188,6 +178,7 @@ const GROUP_BLURB: Record<string, string> = {
 	files: "Upload, manage, and organize workspace files.",
 	flags: "Read feature flags.",
 	folders: "Create and manage folders.",
+	health: "Check platform and service health.",
 	library: "Manage your organization's shared library.",
 	orgs: "Manage organizations, members, and invitations.",
 	projects: "Create and manage projects and their members.",
@@ -200,8 +191,12 @@ const GROUP_BLURB: Record<string, string> = {
 // generate
 // ---------------------------------------------------------------------------
 const registry = buildRegistry();
-const groups = registry.groups();
-const allCommands = registry.all();
+// Public developer surface only. Commands flagged `annotations.internal` are
+// staff/SystemAdmin-only and MUST NOT appear on the public portal (docs.elnora.ai).
+const isPublic = (c: ElnoraCommand) => !c.annotations?.internal;
+const allGroups = registry.groups();
+const allCommands = registry.all().filter(isPublic);
+const renderedGroups: string[] = [];
 
 mkdirSync(outDir, { recursive: true });
 // Clean previously-generated group pages so removed commands don't linger.
@@ -211,8 +206,10 @@ for (const f of readdirSync(outDir)) {
 
 const groupTitle = (g: string) => g.replace(/(^|-)([a-z])/g, (_, p, c) => (p ? " " : "") + c.toUpperCase());
 
-for (const group of groups) {
-	const cmds = registry.byGroup(group).sort((a, b) => a.name.localeCompare(b.name));
+for (const group of allGroups) {
+	const cmds = registry.byGroup(group).filter(isPublic).sort((a, b) => a.name.localeCompare(b.name));
+	if (cmds.length === 0) continue; // group is entirely internal — no public page
+	renderedGroups.push(group);
 	const blurb = GROUP_BLURB[group] ?? `${cmds.length} \`${group}\` commands.`;
 	let body = `---\ntitle: ${frontmatterValue(groupTitle(group))}\ndescription: ${frontmatterValue(
 		blurb,
@@ -223,14 +220,13 @@ for (const group of groups) {
 }
 
 // index page
-const mcpCount = allCommands.filter((c) => c.annotations?.exposeInMcp !== false).length;
 const indexBody = `---
 title: "CLI reference"
 description: "Install the elnora CLI, authenticate, and explore every command — generated from the CLI's own command registry."
 ---
 
 The \`elnora\` CLI gives you scriptable access to the Elnora platform. It ships
-**${allCommands.length} commands** across **${groups.length} groups** (plus standalone
+**${allCommands.length} commands** across **${renderedGroups.length} groups** (plus standalone
 utilities below). Every page here is generated directly from the CLI's command
 registry, so it always matches the installed version.
 
@@ -273,21 +269,21 @@ These apply to every command:
 
 ## Command groups
 
-${groups
-	.map((g) => `- [\`${g}\`](/docs/cli/${g}) — ${GROUP_BLURB[g] ?? `${registry.byGroup(g).length} commands`}`)
+${renderedGroups
+	.map((g) => `- [\`${g}\`](/docs/cli/${g}) — ${GROUP_BLURB[g] ?? `${registry.byGroup(g).filter(isPublic).length} commands`}`)
 	.join("\n")}
 
-> ${mcpCount} of these commands are also exposed as MCP tools (\`elnora_<group>_<action>\`). See **MCP & integrations**.
+> Most of these operations are also available over the hosted MCP server. See **MCP & integrations** for the tool catalog and connection steps.
 `;
 writeFileSync(join(outDir, "index.mdx"), indexBody, "utf-8");
 
 // meta.json controls sidebar order
 const meta = {
 	title: "CLI",
-	pages: ["index", ...groups],
+	pages: ["index", ...renderedGroups],
 };
 writeFileSync(join(outDir, "meta.json"), `${JSON.stringify(meta, null, 2)}\n`, "utf-8");
 
 console.log(
-	`Generated CLI reference: ${allCommands.length} commands / ${groups.length} groups -> ${outDir}`,
+	`Generated CLI reference: ${allCommands.length} public commands / ${renderedGroups.length} groups -> ${outDir}`,
 );

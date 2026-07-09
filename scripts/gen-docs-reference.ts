@@ -36,12 +36,15 @@ const outDir = resolve(process.cwd(), outArg);
 // ---------------------------------------------------------------------------
 function inlineText(s: string | undefined): string {
 	// Safe for prose / table cells: neutralise MDX-significant chars and pipes.
+	// Escape & first so existing entities aren't double-encoded; encode the pipe
+	// as an HTML entity (no backslash escaping) so table cells stay valid.
 	return (s ?? "")
 		.replace(/\r?\n+/g, " ")
+		.replace(/&/g, "&amp;")
+		.replace(/</g, "&lt;")
 		.replace(/\{/g, "&#123;")
 		.replace(/\}/g, "&#125;")
-		.replace(/</g, "&lt;")
-		.replace(/\|/g, "\\|")
+		.replace(/\|/g, "&#124;")
 		.trim();
 }
 

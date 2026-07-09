@@ -70,5 +70,10 @@ export interface ElnoraCommand<I = unknown, O = unknown> {
 		exposeInMcp?: boolean;
 		/** Required OAuth scopes when this command is invoked via MCP. Empty array = public. */
 		mcpScopes?: string[];
+		/**
+		 * Staff / SystemAdmin-only command. Excluded from the public developer
+		 * portal (docs.elnora.ai) by the docs generator. Default: false.
+		 */
+		internal?: boolean;
 	};
 }

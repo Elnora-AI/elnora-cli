@@ -7,7 +7,7 @@ import { collectStreamResponse, streamTask } from "../../lib/stream.js";
 import { StreamRenderer } from "../../lib/stream-renderer.js";
 
 const inputSchema = z.object({
-	project: z.string().uuid().describe("Project ID"),
+	project: z.string().uuid().optional().describe("Project ID (optional; defaults to your workspace)"),
 	title: z.string().optional().describe("Task title"),
 	message: z.string().optional().describe("Initial message"),
 	wait: z.boolean().default(false).describe("Wait for agent response (polling)"),
@@ -26,7 +26,9 @@ export const tasksCreate: ElnoraCommand<Input> = {
 
 	async execute(input, ctx) {
 		const result = (await ctx.client.post("tasks", {
-			projectId: input.project,
+			// projectId is optional (ELN-880 Phase C): when omitted the backend creates the
+			// task in the caller's default workspace. Only sent when explicitly supplied.
+			...(input.project ? { projectId: input.project } : {}),
 			title: input.title,
 			initialMessage: input.message,
 		})) as { id: string; [key: string]: unknown };

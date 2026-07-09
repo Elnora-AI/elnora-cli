@@ -4,7 +4,7 @@ import type { OutputFormat } from "../../lib/output.js";
 import { paginationInput } from "../_shared/pagination.js";
 
 const inputSchema = z.object({
-	project: z.string().uuid().describe("Project ID"),
+	project: z.string().uuid().optional().describe("Project ID (optional; defaults to your workspace)"),
 	...paginationInput,
 });
 
@@ -19,10 +19,16 @@ export const filesList: ElnoraCommand<Input> = {
 	annotations: { readOnlyHint: true },
 
 	async execute(input, ctx) {
-		return ctx.client.get("project_files", {
-			pathParams: { id: input.project },
-			queryParams: { page: input.page, pageSize: input.pageSize },
-		});
+		// projectId optional (ELN-880 Phase C): with a project we keep the legacy project-scoped
+		// listing; without one we list every file accessible in the caller's workspace. GET
+		// /folders/files is a flat, org-wide list (capped at 200) and takes no pagination.
+		if (input.project) {
+			return ctx.client.get("project_files", {
+				pathParams: { id: input.project },
+				queryParams: { page: input.page, pageSize: input.pageSize },
+			});
+		}
+		return ctx.client.get("folders_files");
 	},
 
 	formatOutput(output: unknown, format: OutputFormat): string {

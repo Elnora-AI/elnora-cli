@@ -14,6 +14,7 @@ export const searchAll: ElnoraCommand<Input> = {
 	name: "search.all",
 	group: "search",
 	description: "Search across all entities",
+	stdinField: "query",
 	inputSchema,
 	outputSchema: z.any(),
 	annotations: { readOnlyHint: true },

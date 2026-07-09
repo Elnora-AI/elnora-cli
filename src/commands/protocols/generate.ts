@@ -19,6 +19,7 @@ export const protocolsGenerate: ElnoraCommand<Input> = {
 	name: "protocols.generate",
 	group: "protocols",
 	description: "Generate a bioprotocol — creates a task and sends the description in one call",
+	stdinField: "description",
 	inputSchema,
 	outputSchema: z.any(),
 	annotations: { mcpScopes: ["tasks:write", "messages:write"] },

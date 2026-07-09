@@ -1,15 +1,18 @@
 import { describe, expect, test } from "vitest";
+import { z } from "zod";
 import {
 	AuthError,
 	ElnoraError,
 	EXIT_CODES,
 	formatErrorPayload,
 	getExitCode,
+	NetworkError,
 	NotFoundError,
 	RateLimitError,
 	ServerError,
 	scrub,
 	scrubData,
+	toValidationError,
 	ValidationError,
 } from "../../src/lib/errors.js";
 
@@ -66,6 +69,23 @@ describe("Error hierarchy", () => {
 		expect(err.code).toBe("SERVER_ERROR");
 		expect(EXIT_CODES.get(ServerError)).toBe(6);
 	});
+
+	test("NetworkError includes host, cause, and a doctor pointer", () => {
+		const err = new NetworkError("platform.elnora.ai", "ENOTFOUND");
+		expect(err.code).toBe("NETWORK_ERROR");
+		expect(err.message).toContain("platform.elnora.ai");
+		expect(err.message).toContain("ENOTFOUND");
+		expect(err.suggestion).toContain("elnora doctor");
+		expect(err.suggestion).toContain("platform.elnora.ai");
+		expect(err.host).toBe("platform.elnora.ai");
+	});
+
+	test("NetworkError without a host still points at doctor", () => {
+		const err = new NetworkError();
+		expect(err.code).toBe("NETWORK_ERROR");
+		expect(err.suggestion).toContain("elnora doctor");
+		expect(err.host).toBeUndefined();
+	});
 });
 
 describe("getExitCode", () => {
@@ -80,6 +100,48 @@ describe("getExitCode", () => {
 	test("returns 1 for unknown errors", () => {
 		expect(getExitCode(new Error("generic"))).toBe(1);
 		expect(getExitCode(new ElnoraError("base"))).toBe(1);
+	});
+});
+
+describe("toValidationError", () => {
+	test("turns a ZodError into a one-line ValidationError (field: message), exit 2", () => {
+		const schema = z.object({ pageSize: z.number().max(100) });
+		let caught: unknown;
+		try {
+			schema.parse({ pageSize: 999 });
+		} catch (e) {
+			caught = e;
+		}
+		const err = toValidationError(caught);
+		expect(err).toBeInstanceOf(ValidationError);
+		expect(err.message).toContain("pageSize");
+		expect(getExitCode(err)).toBe(2);
+		// Must NOT be raw serialized ZodError JSON.
+		expect(err.message).not.toContain("invalid_format");
+		expect(err.message).not.toMatch(/^\[/);
+	});
+
+	test("summarizes multiple issues with a count", () => {
+		const schema = z.object({ a: z.string(), b: z.string() });
+		let caught: unknown;
+		try {
+			schema.parse({});
+		} catch (e) {
+			caught = e;
+		}
+		const err = toValidationError(caught);
+		expect(err.message).toMatch(/\+\d+ more/);
+	});
+
+	test("passes non-Zod errors through unchanged", () => {
+		const original = new AuthError("nope");
+		expect(toValidationError(original)).toBe(original);
+	});
+
+	test("wraps non-Error values", () => {
+		const err = toValidationError("boom");
+		expect(err).toBeInstanceOf(Error);
+		expect(err.message).toBe("boom");
 	});
 });
 

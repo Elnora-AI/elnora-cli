@@ -1,6 +1,17 @@
-import { describe, expect, test } from "vitest";
+import { PassThrough } from "node:stream";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { z } from "zod";
-import { zodToCommanderOptions } from "../../src/adapters/cli.js";
+import { buildProgram, zodToCommanderOptions } from "../../src/adapters/cli.js";
+import type { ElnoraCommand } from "../../src/core/command.js";
+import type { CommandRegistry } from "../../src/core/registry.js";
+
+// The adapter builds a client via ElnoraApiClient.fromEnv for non-auth commands;
+// stub it so these tests don't need a real profile/network.
+vi.mock("../../src/lib/client.js", () => {
+	const Client = vi.fn();
+	(Client as unknown as { fromEnv: () => unknown }).fromEnv = vi.fn(() => ({}));
+	return { ElnoraApiClient: Client };
+});
 
 describe("zodToCommanderOptions", () => {
 	test("converts required string to --flag <value>", () => {
@@ -91,5 +102,294 @@ describe("zodToCommanderOptions", () => {
 		expect(options[1].flags).toContain("--name");
 		expect(options[2].flags).toContain("--description");
 		expect(options[3].flags).toContain("--page");
+	});
+});
+
+// ---------------------------------------------------------------------------
+// buildProgram — output format resolution (TTY-aware default, --json/--md/etc.)
+// ---------------------------------------------------------------------------
+
+const demoCmd: ElnoraCommand = {
+	name: "demo.list",
+	group: "demo",
+	description: "List demo records",
+	inputSchema: z.object({}),
+	outputSchema: z.any(),
+	async execute() {
+		return { items: [{ id: "1", name: "Alpha" }], totalCount: 1 };
+	},
+	formatOutput(output: unknown) {
+		return JSON.stringify(output, null, 2);
+	},
+};
+
+function makeRegistry(cmd: ElnoraCommand): CommandRegistry {
+	return {
+		groups: () => [cmd.group],
+		byGroup: () => [cmd],
+		all: () => [cmd],
+	} as unknown as CommandRegistry;
+}
+
+function spyStreams() {
+	const out: string[] = [];
+	const err: string[] = [];
+	const o = vi.spyOn(process.stdout, "write").mockImplementation((c: unknown) => {
+		out.push(String(c));
+		return true;
+	});
+	const e = vi.spyOn(process.stderr, "write").mockImplementation((c: unknown) => {
+		err.push(String(c));
+		return true;
+	});
+	return {
+		out: () => out.join(""),
+		err: () => err.join(""),
+		restore: () => {
+			o.mockRestore();
+			e.mockRestore();
+		},
+	};
+}
+
+function setTTY(stdout: boolean, stderr = stdout) {
+	Object.defineProperty(process.stdout, "isTTY", { value: stdout, configurable: true });
+	Object.defineProperty(process.stderr, "isTTY", { value: stderr, configurable: true });
+}
+
+describe("buildProgram output formatting", () => {
+	let origOutTTY: boolean | undefined;
+	let origErrTTY: boolean | undefined;
+	let origExit: number | string | undefined;
+
+	beforeEach(() => {
+		origOutTTY = process.stdout.isTTY;
+		origErrTTY = process.stderr.isTTY;
+		origExit = process.exitCode;
+	});
+
+	afterEach(() => {
+		vi.restoreAllMocks();
+		Object.defineProperty(process.stdout, "isTTY", { value: origOutTTY, configurable: true });
+		Object.defineProperty(process.stderr, "isTTY", { value: origErrTTY, configurable: true });
+		process.exitCode = origExit;
+	});
+
+	async function run(args: string[]) {
+		const program = buildProgram(makeRegistry(demoCmd));
+		await program.parseAsync(["node", "elnora", ...args]);
+	}
+
+	test("non-TTY default → JSON (pipes and agents unaffected)", async () => {
+		setTTY(false);
+		const cap = spyStreams();
+		await run(["demo", "list"]);
+		const out = cap.out();
+		cap.restore();
+		expect(JSON.parse(out).items[0].name).toBe("Alpha");
+	});
+
+	test("TTY default → human table, not JSON", async () => {
+		setTTY(true);
+		const cap = spyStreams();
+		await run(["demo", "list"]);
+		const out = cap.out();
+		cap.restore();
+		expect(out).toContain("id");
+		expect(out).toContain("Alpha");
+		expect(() => JSON.parse(out.trim())).toThrow();
+	});
+
+	test("--json forces JSON even on a TTY", async () => {
+		setTTY(true);
+		const cap = spyStreams();
+		await run(["--json", "demo", "list"]);
+		const out = cap.out();
+		cap.restore();
+		expect(JSON.parse(out).totalCount).toBe(1);
+	});
+
+	test("--compact → single-line JSON", async () => {
+		setTTY(true);
+		const cap = spyStreams();
+		await run(["--compact", "demo", "list"]);
+		const out = cap.out().trim();
+		cap.restore();
+		expect(out).not.toContain("\n");
+		expect(JSON.parse(out).totalCount).toBe(1);
+	});
+
+	test("--md → markdown table even when piped", async () => {
+		setTTY(false);
+		const cap = spyStreams();
+		await run(["--md", "demo", "list"]);
+		const out = cap.out();
+		cap.restore();
+		expect(out).toContain("| id | name |");
+	});
+
+	test("--output markdown → markdown table", async () => {
+		setTTY(false);
+		const cap = spyStreams();
+		await run(["--output", "markdown", "demo", "list"]);
+		const out = cap.out();
+		cap.restore();
+		expect(out).toContain("| id | name |");
+	});
+
+	test("unknown --output value → ValidationError, exit 2", async () => {
+		setTTY(false);
+		const cap = spyStreams();
+		await run(["--output", "yaml", "demo", "list"]);
+		const err = cap.err();
+		cap.restore();
+		expect(JSON.parse(err).code).toBe("VALIDATION_ERROR");
+		expect(process.exitCode).toBe(2);
+	});
+
+	test("--output csv routes through the generic renderer", async () => {
+		setTTY(true);
+		const cap = spyStreams();
+		await run(["--output", "csv", "demo", "list"]);
+		const out = cap.out();
+		cap.restore();
+		expect(out).toContain("id,name");
+		expect(out).toContain("1,Alpha");
+	});
+
+	test("--fields filters columns through the adapter", async () => {
+		setTTY(false);
+		const cap = spyStreams();
+		await run(["--fields", "id", "demo", "list"]);
+		const out = cap.out();
+		cap.restore();
+		const parsed = JSON.parse(out);
+		expect(parsed.items[0]).toHaveProperty("id");
+		expect(parsed.items[0]).not.toHaveProperty("name");
+	});
+});
+
+// ---------------------------------------------------------------------------
+// buildProgram — stdin "-" substitution
+// ---------------------------------------------------------------------------
+
+const sendCmd: ElnoraCommand = {
+	name: "demo.send",
+	group: "demo",
+	description: "Send a demo message",
+	stdinField: "message",
+	inputSchema: z.object({ message: z.string().min(1) }),
+	outputSchema: z.any(),
+	async execute(input: unknown) {
+		return { received: (input as { message: string }).message };
+	},
+	formatOutput(output: unknown) {
+		return JSON.stringify(output);
+	},
+};
+
+describe("buildProgram stdin '-' substitution", () => {
+	const realStdin = process.stdin;
+	let origExit: number | string | undefined;
+
+	beforeEach(() => {
+		origExit = process.exitCode;
+		Object.defineProperty(process.stdout, "isTTY", { value: false, configurable: true });
+		Object.defineProperty(process.stderr, "isTTY", { value: false, configurable: true });
+	});
+	afterEach(() => {
+		vi.restoreAllMocks();
+		Object.defineProperty(process, "stdin", { value: realStdin, configurable: true });
+		process.exitCode = origExit;
+	});
+
+	function fakeStdin(content: string | null, isTTY: boolean) {
+		const fake = new PassThrough() as PassThrough & { isTTY?: boolean };
+		fake.isTTY = isTTY;
+		if (content !== null) {
+			fake.write(content);
+			fake.end();
+		}
+		Object.defineProperty(process, "stdin", { value: fake, configurable: true });
+	}
+
+	async function runSend(cmd: ElnoraCommand, args: string[]) {
+		const program = buildProgram(makeRegistry(cmd));
+		await program.parseAsync(["node", "elnora", "demo", "send", ...args]);
+	}
+
+	test("reads the field from piped stdin when value is '-'", async () => {
+		fakeStdin("hello world\n", false);
+		const cap = spyStreams();
+		await runSend(sendCmd, ["--message", "-"]);
+		const out = cap.out();
+		cap.restore();
+		expect(JSON.parse(out).received).toBe("hello world");
+	});
+
+	test("keeps internal newlines, strips one trailing newline", async () => {
+		fakeStdin("line1\nline2\n", false);
+		const cap = spyStreams();
+		await runSend(sendCmd, ["--message", "-"]);
+		const out = cap.out();
+		cap.restore();
+		expect(JSON.parse(out).received).toBe("line1\nline2");
+	});
+
+	test("'-' with stdin a TTY → ValidationError, exit 2 (no hang)", async () => {
+		fakeStdin(null, true);
+		const cap = spyStreams();
+		await runSend(sendCmd, ["--message", "-"]);
+		const err = cap.err();
+		cap.restore();
+		expect(JSON.parse(err).code).toBe("VALIDATION_ERROR");
+		expect(process.exitCode).toBe(2);
+	});
+
+	test("empty pipe → Zod min(1) ValidationError", async () => {
+		fakeStdin("", false);
+		const cap = spyStreams();
+		await runSend(sendCmd, ["--message", "-"]);
+		const err = cap.err();
+		cap.restore();
+		expect(JSON.parse(err).code).toBe("VALIDATION_ERROR");
+	});
+
+	test("a non-'-' value is used verbatim (stdin not read)", async () => {
+		fakeStdin("SHOULD NOT BE READ", false);
+		const cap = spyStreams();
+		await runSend(sendCmd, ["--message", "literal"]);
+		const out = cap.out();
+		cap.restore();
+		expect(JSON.parse(out).received).toBe("literal");
+	});
+
+	test("a command WITHOUT stdinField treats '-' as a literal value", async () => {
+		const noStdin: ElnoraCommand = { ...sendCmd, stdinField: undefined };
+		fakeStdin("SHOULD NOT BE READ", false);
+		const cap = spyStreams();
+		await runSend(noStdin, ["--message", "-"]);
+		const out = cap.out();
+		cap.restore();
+		expect(JSON.parse(out).received).toBe("-");
+	});
+});
+
+// Every declared stdinField must reference a real field in its command's schema.
+describe("stdinField validity", () => {
+	test("each command's stdinField exists in its input schema", async () => {
+		const { buildRegistry } = await import("../../src/core/build-registry.js");
+		const registry = buildRegistry();
+		for (const cmd of registry.all()) {
+			if (!cmd.stdinField) continue;
+			const fields = zodToCommanderOptions(cmd.inputSchema).map((o) => {
+				const token = o.flags.trim().split(/\s+/)[0];
+				return token
+					.replace(/^--/, "")
+					.replace(/[<>[\]]/g, "")
+					.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+			});
+			expect(fields).toContain(cmd.stdinField);
+		}
 	});
 });

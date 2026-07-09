@@ -5,6 +5,55 @@ All notable changes to the Elnora CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.1.2](https://github.com/Elnora-AI/elnora-cli/compare/v2.1.1...v2.1.2) (2026-06-17)
+
+
+### Bug Fixes
+
+* **deps:** bump hono from 4.12.23 to 4.12.25 ([#174](https://github.com/Elnora-AI/elnora-cli/issues/174)) ([407e85b](https://github.com/Elnora-AI/elnora-cli/commit/407e85b2458273ce08994b6611fc67e940f24b59))
+
+## [2.1.1](https://github.com/Elnora-AI/elnora-cli/compare/v2.1.0...v2.1.1) (2026-06-17)
+
+
+### Bug Fixes
+
+* **deps:** bump 3 dependencies ([#172](https://github.com/Elnora-AI/elnora-cli/issues/172)) ([6c7d52f](https://github.com/Elnora-AI/elnora-cli/commit/6c7d52f8e0d7a7a07ba621b5d003d5573ac42de5))
+
+## [2.1.0](https://github.com/Elnora-AI/elnora-cli/compare/v2.0.5...v2.1.0) (2026-06-09)
+
+
+### Features
+
+* **cli:** TTY-aware output, config show, secure/stdin input, doctor & banner DX ([#164](https://github.com/Elnora-AI/elnora-cli/issues/164)) ([66acc0f](https://github.com/Elnora-AI/elnora-cli/commit/66acc0fa7e5044883eb4c0d1730a54960dc30b5c))
+
+## [2.0.5](https://github.com/Elnora-AI/elnora-cli/compare/v2.0.4...v2.0.5) (2026-06-05)
+
+
+### Bug Fixes
+
+* **cli:** doctor accuracy, install-aware updater, actionable network errors ([#161](https://github.com/Elnora-AI/elnora-cli/issues/161)) ([cd2ee3a](https://github.com/Elnora-AI/elnora-cli/commit/cd2ee3a36b052c49d8302375e633ca455ac2fada))
+
+## [2.0.4](https://github.com/Elnora-AI/elnora-cli/compare/v2.0.3...v2.0.4) (2026-06-05)
+
+
+### Bug Fixes
+
+* **deps:** bump hono from 4.12.18 to 4.12.23 ([#158](https://github.com/Elnora-AI/elnora-cli/issues/158)) ([0a5ff07](https://github.com/Elnora-AI/elnora-cli/commit/0a5ff07a06b56905cdab345f27e5f187c505c441))
+
+## [2.0.3](https://github.com/Elnora-AI/elnora-cli/compare/v2.0.2...v2.0.3) (2026-05-25)
+
+
+### Bug Fixes
+
+* **deps:** bump qs from 6.15.0 to 6.15.2 ([#149](https://github.com/Elnora-AI/elnora-cli/issues/149)) ([dcb75dc](https://github.com/Elnora-AI/elnora-cli/commit/dcb75dcdfe2276b894ffde4c7c996149aacdd5ec))
+
+## [2.0.2](https://github.com/Elnora-AI/elnora-cli/compare/v2.0.1...v2.0.2) (2026-05-19)
+
+
+### Bug Fixes
+
+* **orgs:** use stripeCustomerId in set-stripe wire payload ([#146](https://github.com/Elnora-AI/elnora-cli/issues/146)) ([2fe3874](https://github.com/Elnora-AI/elnora-cli/commit/2fe3874d11bf7bb488f950db8a866e15d48af884))
+
 ## [2.0.1](https://github.com/Elnora-AI/elnora-cli/compare/v2.0.0...v2.0.1) (2026-05-15)
 
 

@@ -1,6 +1,15 @@
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { chmodSync, copyFileSync, createWriteStream, mkdirSync, readFileSync, rmSync } from "node:fs";
+import {
+	chmodSync,
+	copyFileSync,
+	createWriteStream,
+	mkdirSync,
+	readdirSync,
+	readFileSync,
+	renameSync,
+	rmSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Readable } from "node:stream";
@@ -41,6 +50,43 @@ async function downloadToFile(url: string, dest: string): Promise<void> {
 	if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`);
 	const nodeStream = Readable.fromWeb(res.body as import("stream/web").ReadableStream);
 	await pipeline(nodeStream, createWriteStream(dest));
+}
+
+/**
+ * Place a freshly-downloaded `elnora.exe` into `installDir` on Windows.
+ *
+ * Windows refuses to overwrite a running PE executable (the loader holds an
+ * exclusive lock), but it *does* allow renaming it. Since `elnora update
+ * --install` runs from inside the very binary it's replacing, we move the
+ * in-use binary aside first, then drop the new one into place — the canonical
+ * Windows self-update pattern. The renamed `.old-*` file is still locked while
+ * the current process runs; it (and any from earlier updates) is swept on a
+ * later invocation once the OS frees the lock.
+ *
+ * Exported for testing. Returns the destination path.
+ */
+export function installWindowsBinary(srcPath: string, installDir: string): string {
+	mkdirSync(installDir, { recursive: true });
+	const dest = join(installDir, "elnora.exe");
+	try {
+		renameSync(dest, `${dest}.old-${Date.now()}`);
+	} catch (e) {
+		// ENOENT just means there's nothing to move (first install / external
+		// removal). Anything else is a real failure worth surfacing.
+		if ((e as NodeJS.ErrnoException).code !== "ENOENT") throw e;
+	}
+	copyFileSync(srcPath, dest);
+	// Best-effort sweep of `.old-*` binaries left by previous updates.
+	for (const name of readdirSync(installDir)) {
+		if (name.startsWith("elnora.exe.old-")) {
+			try {
+				rmSync(join(installDir, name), { force: true });
+			} catch {
+				/* still locked / in use — will be swept on a later run */
+			}
+		}
+	}
+	return dest;
 }
 
 async function installBinaryUpdate(latest: string): Promise<void> {
@@ -98,8 +144,7 @@ async function installBinaryUpdate(latest: string): Promise<void> {
 				`Expand-Archive -Path '${archivePath}' -DestinationPath '${extractDir}' -Force`,
 			]);
 			const installDir = join(process.env.USERPROFILE ?? process.env.HOME ?? "", ".elnora", "bin");
-			mkdirSync(installDir, { recursive: true });
-			copyFileSync(join(extractDir, target), join(installDir, "elnora.exe"));
+			installWindowsBinary(join(extractDir, target), installDir);
 		} else {
 			execFileSync("tar", ["-xzf", archivePath, "-C", tmp]);
 			const installDir = process.env.ELNORA_INSTALL_DIR ?? join(process.env.HOME ?? "", ".local", "bin");
@@ -188,8 +233,13 @@ export function addUpdateCommand(program: Command): void {
 			// Binary self-replace
 			try {
 				await installBinaryUpdate(latest);
-			} catch {
-				console.error("Update failed. Try manually:");
+			} catch (err) {
+				// Bind the error — an empty catch turned every failure (network,
+				// checksum, file-locked) into the same opaque message, leaving users
+				// and bug reports with no idea what actually broke.
+				const reason = err instanceof Error ? err.message : String(err);
+				console.error(`Update failed: ${reason}`);
+				console.error("Try manually:");
 				console.error(
 					process.platform === "win32"
 						? "  irm https://cli.elnora.ai/install.ps1 | iex"

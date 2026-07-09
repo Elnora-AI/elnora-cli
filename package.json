@@ -1,6 +1,6 @@
 {
 	"name": "@elnora-ai/cli",
-	"version": "2.0.1",
+	"version": "2.1.2",
 	"description": "Elnora AI Platform CLI",
 	"type": "module",
 	"bin": {
@@ -54,28 +54,31 @@
 		"@modelcontextprotocol/sdk": "^1.29.0",
 		"commander": "^14.0.3",
 		"express": "^5.2.1",
-		"express-rate-limit": "^8.5.1",
+		"express-rate-limit": "^8.5.2",
 		"picocolors": "^1.1.1",
 		"zod": "^4.4.3"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "^2.4.15",
+		"@biomejs/biome": "2.5.1",
 		"@types/express": "^5.0.6",
-		"@types/node": "^25.6.2",
-		"@yao-pkg/pkg": "^6.19.0",
-		"esbuild": "^0.28.0",
-		"tsx": "^4.21.0",
+		"@types/node": "^25.9.3",
+		"@yao-pkg/pkg": "^6.20.0",
+		"esbuild": "^0.28.1",
+		"tsx": "^4.22.4",
 		"typescript": "^6.0.3",
-		"vitest": "^4.1.5"
+		"vitest": "^4.1.9"
 	},
 	"pnpm": {
 		"overrides": {
 			"@hono/node-server": ">=1.19.13",
+			"esbuild": ">=0.28.1",
 			"fast-uri": ">=3.1.2",
-			"hono": ">=4.12.18",
+			"hono": ">=4.12.25",
 			"ip-address": ">=10.1.1",
 			"postcss": ">=8.5.10",
-			"vite": "8.0.5"
+			"qs": ">=6.15.2",
+			"tar": ">=7.5.16",
+			"vite": "8.0.16"
 		}
 	}
 }

@@ -282,20 +282,20 @@ describe("orgs.setStripe", () => {
 	test("accepts non-UUID Stripe customer ID", () => {
 		const parsed = orgsSetStripe.inputSchema.parse({
 			orgId: ORG_ID,
-			customerId: "cus_abc123xyz",
+			stripeCustomerId: "cus_abc123xyz",
 		});
-		expect(parsed.customerId).toBe("cus_abc123xyz");
+		expect(parsed.stripeCustomerId).toBe("cus_abc123xyz");
 	});
 
-	test("calls PUT /organizations/{id}/stripe-customer", async () => {
-		const ctx = mockContext({ putResult: { customerId: "cus_abc" } });
-		const result = await orgsSetStripe.execute({ orgId: ORG_ID, customerId: "cus_abc" }, ctx);
+	test("calls PUT /organizations/{id}/stripe-customer with stripeCustomerId field", async () => {
+		const ctx = mockContext({ putResult: { id: ORG_ID, stripeCustomerId: "cus_abc" } });
+		const result = await orgsSetStripe.execute({ orgId: ORG_ID, stripeCustomerId: "cus_abc" }, ctx);
 		expect(ctx.client.put).toHaveBeenCalledWith(
 			"organization_stripe_customer",
-			{ customerId: "cus_abc" },
+			{ stripeCustomerId: "cus_abc" },
 			{ pathParams: { id: ORG_ID } },
 		);
-		expect(result).toEqual({ customerId: "cus_abc" });
+		expect(result).toEqual({ id: ORG_ID, stripeCustomerId: "cus_abc" });
 	});
 });
 

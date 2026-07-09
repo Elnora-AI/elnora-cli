@@ -16,6 +16,8 @@ export const VERSION: string =
 export const PRODUCTION_BASE_URL = "https://platform.elnora.ai/api/v1";
 export const BASE_URL = process.env.ELNORA_API_URL ?? PRODUCTION_BASE_URL;
 export const AI_SERVER_URL = process.env.ELNORA_AI_SERVER_URL ?? "https://platform.elnora.ai/ai-server";
+export const PRODUCTION_MCP_URL = "https://mcp.elnora.ai/mcp";
+export const MCP_URL = process.env.ELNORA_MCP_URL ?? PRODUCTION_MCP_URL;
 
 export const ENDPOINTS: Record<string, string> = {
 	// Projects

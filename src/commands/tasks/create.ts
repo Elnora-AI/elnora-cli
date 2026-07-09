@@ -20,6 +20,7 @@ export const tasksCreate: ElnoraCommand<Input> = {
 	name: "tasks.create",
 	group: "tasks",
 	description: "Create a new task in a project",
+	stdinField: "message",
 	inputSchema,
 	outputSchema: z.any(),
 
@@ -59,7 +60,7 @@ export const tasksCreate: ElnoraCommand<Input> = {
 		if (input.stream) {
 			try {
 				const apiKey = resolveApiKey(ctx.profileName);
-				const renderer = new StreamRenderer();
+				const renderer = new StreamRenderer({ quiet: ctx.output.quiet });
 				for await (const event of streamTask(taskId, apiKey)) {
 					renderer.renderEvent(event);
 				}

@@ -14,6 +14,7 @@ export const searchFiles: ElnoraCommand<Input> = {
 	name: "search.files",
 	group: "search",
 	description: "Search files by query",
+	stdinField: "query",
 	inputSchema,
 	outputSchema: z.any(),
 	annotations: { readOnlyHint: true },

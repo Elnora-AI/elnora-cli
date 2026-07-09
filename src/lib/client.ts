@@ -15,6 +15,7 @@ import { BASE_URL, buildUrl, DEFAULT_HEADERS, ENDPOINTS, PRODUCTION_BASE_URL, VE
 import {
 	AuthError,
 	ElnoraError,
+	NetworkError,
 	NotFoundError,
 	RateLimitError,
 	ServerError,
@@ -253,16 +254,25 @@ export class ElnoraApiClient {
 				});
 			} catch (err) {
 				if (err instanceof ElnoraError) throw err;
-				if (err instanceof DOMException && err.name === "TimeoutError") {
-					throw new ElnoraError("Request timed out", {
-						code: "TIMEOUT",
-						suggestion: "Check your internet connection and try again.",
-					});
+				// The actual host we failed to reach — ground truth for the error message.
+				let host: string | undefined;
+				try {
+					host = new URL(url).hostname;
+				} catch {
+					host = undefined;
 				}
-				throw new ElnoraError(`Network error: ${scrub(String(err))}`, {
-					code: "NETWORK_ERROR",
-					suggestion: "Check your internet connection and try again.",
-				});
+				if (err instanceof DOMException && err.name === "TimeoutError") {
+					throw new NetworkError(host, `timed out after ${this.timeout}ms`);
+				}
+				// Node wraps the underlying socket failure in `err.cause` with a `.code`
+				// such as ENOTFOUND (DNS), ECONNREFUSED (connection refused), ECONNRESET.
+				const causeCode =
+					err instanceof Error && err.cause && typeof err.cause === "object" && "code" in err.cause
+						? String((err.cause as { code?: unknown }).code)
+						: err instanceof Error
+							? err.message
+							: String(err);
+				throw new NetworkError(host, scrub(causeCode));
 			}
 		}
 

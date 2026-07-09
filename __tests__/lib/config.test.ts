@@ -1,9 +1,13 @@
-import { describe, expect, test } from "vitest";
-import { BASE_URL, buildUrl, DEFAULT_PAGE_SIZE, ENDPOINTS, MAX_PAGE_SIZE } from "../../src/lib/config.js";
+import { afterEach, describe, expect, test, vi } from "vitest";
+import { BASE_URL, buildUrl, DEFAULT_PAGE_SIZE, ENDPOINTS, MAX_PAGE_SIZE, MCP_URL } from "../../src/lib/config.js";
 
 describe("config constants", () => {
 	test("BASE_URL is platform.elnora.ai", () => {
 		expect(BASE_URL).toBe("https://platform.elnora.ai/api/v1");
+	});
+
+	test("MCP_URL defaults to the production MCP endpoint", () => {
+		expect(MCP_URL).toBe("https://mcp.elnora.ai/mcp");
 	});
 
 	test("ENDPOINTS has projects endpoint", () => {
@@ -46,5 +50,27 @@ describe("buildUrl", () => {
 
 	test("throws for unknown endpoint", () => {
 		expect(() => buildUrl("nonexistent")).toThrow("Unknown endpoint: nonexistent");
+	});
+});
+
+describe("env-var URL overrides", () => {
+	afterEach(() => {
+		vi.resetModules();
+		delete process.env.ELNORA_MCP_URL;
+		delete process.env.ELNORA_API_URL;
+	});
+
+	test("MCP_URL honors ELNORA_MCP_URL", async () => {
+		vi.resetModules();
+		process.env.ELNORA_MCP_URL = "https://staging-mcp.example/mcp";
+		const fresh = await import("../../src/lib/config.js");
+		expect(fresh.MCP_URL).toBe("https://staging-mcp.example/mcp");
+	});
+
+	test("BASE_URL honors ELNORA_API_URL", async () => {
+		vi.resetModules();
+		process.env.ELNORA_API_URL = "https://staging.example/api/v1";
+		const fresh = await import("../../src/lib/config.js");
+		expect(fresh.BASE_URL).toBe("https://staging.example/api/v1");
 	});
 });

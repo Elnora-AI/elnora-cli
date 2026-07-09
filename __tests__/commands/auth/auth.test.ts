@@ -1,4 +1,4 @@
-import { describe, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { registerAuthCommands } from "../../../src/commands/auth/index.js";
 import { authLogin } from "../../../src/commands/auth/login.js";
 import { authLogout } from "../../../src/commands/auth/logout.js";
@@ -36,6 +36,11 @@ vi.mock("../../../src/lib/client.js", () => {
 	return { ElnoraApiClient: MockClient };
 });
 
+const { readStdinMock } = vi.hoisted(() => ({
+	readStdinMock: vi.fn<() => Promise<string>>(() => Promise.resolve("")),
+}));
+vi.mock("../../../src/lib/stdin.js", () => ({ readStdin: readStdinMock }));
+
 function mockContext(overrides?: { getResult?: unknown; postResult?: unknown }): CommandContext {
 	return {
 		client: {
@@ -56,6 +61,30 @@ function mockContext(overrides?: { getResult?: unknown; postResult?: unknown }):
 // ---------------------------------------------------------------------------
 
 describe("auth.login", () => {
+	// Isolate from any real ELNORA_API_KEY in the environment, and default stdin
+	// to non-TTY so the --api-key-stdin path is exercisable.
+	let savedApi: string | undefined;
+	let savedMcp: string | undefined;
+	const origStdinTTY = process.stdin.isTTY;
+
+	beforeEach(() => {
+		savedApi = process.env.ELNORA_API_KEY;
+		savedMcp = process.env.ELNORA_MCP_API_KEY;
+		delete process.env.ELNORA_API_KEY;
+		delete process.env.ELNORA_MCP_API_KEY;
+		readStdinMock.mockReset();
+		readStdinMock.mockResolvedValue("");
+		Object.defineProperty(process.stdin, "isTTY", { value: false, configurable: true });
+	});
+
+	afterEach(() => {
+		if (savedApi === undefined) delete process.env.ELNORA_API_KEY;
+		else process.env.ELNORA_API_KEY = savedApi;
+		if (savedMcp === undefined) delete process.env.ELNORA_MCP_API_KEY;
+		else process.env.ELNORA_MCP_API_KEY = savedMcp;
+		Object.defineProperty(process.stdin, "isTTY", { value: origStdinTTY, configurable: true });
+	});
+
 	test("has correct name and group", () => {
 		expect(authLogin.name).toBe("auth.login");
 		expect(authLogin.group).toBe("auth");
@@ -64,6 +93,56 @@ describe("auth.login", () => {
 	test("throws ValidationError when no apiKey provided", async () => {
 		const ctx = mockContext();
 		await expect(authLogin.execute({}, ctx)).rejects.toThrow(ValidationError);
+	});
+
+	test("defaults apiKeyStdin to false", () => {
+		expect(authLogin.inputSchema.parse({}).apiKeyStdin).toBe(false);
+	});
+
+	test("--api-key-stdin reads the key from piped stdin and saves it", async () => {
+		const { saveProfile } = await import("../../../src/lib/profiles.js");
+		readStdinMock.mockResolvedValue("elnora_live_piped_key_1234567890\n");
+		const ctx = mockContext();
+		const result = await authLogin.execute(authLogin.inputSchema.parse({ apiKeyStdin: true }), ctx);
+		expect(readStdinMock).toHaveBeenCalled();
+		expect(saveProfile).toHaveBeenCalledWith("default", "elnora_live_piped_key_1234567890");
+		expect(result).toMatchObject({ verified: true });
+	});
+
+	test("--api-key and --api-key-stdin together → ValidationError (no stdin read)", async () => {
+		const ctx = mockContext();
+		await expect(
+			authLogin.execute(
+				authLogin.inputSchema.parse({ apiKey: "elnora_live_flag_key_1234567890", apiKeyStdin: true }),
+				ctx,
+			),
+		).rejects.toThrow(ValidationError);
+		expect(readStdinMock).not.toHaveBeenCalled();
+	});
+
+	test("--api-key-stdin with a TTY stdin errors instead of hanging", async () => {
+		Object.defineProperty(process.stdin, "isTTY", { value: true, configurable: true });
+		const ctx = mockContext();
+		await expect(authLogin.execute(authLogin.inputSchema.parse({ apiKeyStdin: true }), ctx)).rejects.toThrow(
+			ValidationError,
+		);
+	});
+
+	test("--api-key-stdin with empty input → ValidationError", async () => {
+		readStdinMock.mockResolvedValue("   \n");
+		const ctx = mockContext();
+		await expect(authLogin.execute(authLogin.inputSchema.parse({ apiKeyStdin: true }), ctx)).rejects.toThrow(
+			ValidationError,
+		);
+	});
+
+	test("honors ELNORA_API_KEY when no flag/stdin key is given", async () => {
+		const { saveProfile } = await import("../../../src/lib/profiles.js");
+		process.env.ELNORA_API_KEY = "elnora_live_env_key_1234567890";
+		const ctx = mockContext();
+		const result = await authLogin.execute(authLogin.inputSchema.parse({}), ctx);
+		expect(saveProfile).toHaveBeenCalledWith("default", "elnora_live_env_key_1234567890");
+		expect(result).toMatchObject({ verified: true });
 	});
 
 	test("throws AuthError when key does not start with elnora_live_", async () => {
@@ -103,12 +182,10 @@ describe("auth.login", () => {
 		expect(authLogin.formatOutput({ profile: "work", verified: true }, "compact")).toBe("work");
 	});
 
-	test("formatOutput json returns human-friendly next steps", () => {
+	test("formatOutput json returns machine-readable JSON (guidance is on stderr)", () => {
 		const output = { profile: "default", verified: true };
 		const result = authLogin.formatOutput(output, "json");
-		expect(result).toContain('✓ Authenticated! API key saved to profile "default".');
-		expect(result).toContain("elnora projects list");
-		expect(result).toContain("elnora doctor");
+		expect(JSON.parse(result)).toEqual(output);
 	});
 });
 

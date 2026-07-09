@@ -11,6 +11,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import pc from "picocolors";
 import { VERSION } from "./config.js";
+import { detectInstallMethod, getUpdateInstruction } from "./install-method.js";
 import { isColorEnabled } from "./tty.js";
 
 const NPM_REGISTRY_URL = "https://registry.npmjs.org/@elnora-ai/cli/latest";
@@ -18,11 +19,22 @@ const CACHE_DIR = join(homedir(), ".elnora");
 const CACHE_FILE = join(CACHE_DIR, ".update-check");
 const CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000; // 24 hours
 const FETCH_TIMEOUT_MS = 3000;
-const SEMVER_RE = /^\d+\.\d+\.\d+(?:-[\w.]+)?(?:\+[\w.]+)?$/;
 
 interface CacheEntry {
 	checkedAt: string;
 	latest: string;
+}
+
+/**
+ * Validate and canonicalize a version string from the npm registry. Returns a
+ * clean MAJOR.MINOR.PATCH rebuilt from numeric parts via Number() — so untrusted
+ * network data is never written verbatim to the cache file — or null if the value
+ * isn't a plain release version. Exported for testing.
+ */
+export function sanitizeVersion(raw: string): string | null {
+	const m = /^(\d{1,9})\.(\d{1,9})\.(\d{1,9})$/.exec(raw);
+	if (!m) return null;
+	return `${Number(m[1])}.${Number(m[2])}.${Number(m[3])}`;
 }
 
 function shouldSkipEntirely(): boolean {
@@ -50,14 +62,18 @@ function writeCache(entry: CacheEntry): void {
 	}
 }
 
-function showUpdateNotice(latest: string): void {
+/** Exported for testing. Writes the update banner with the install-aware command. */
+export function showUpdateNotice(latest: string): void {
 	// Only show in TTY
 	if (!process.stderr.isTTY) return;
 
+	// Advertise the command that actually installs the update, routed by how the
+	// CLI was installed (npm / Homebrew / binary). Previously this always said
+	// "elnora update", which only *checks* — the wrong command for every channel.
+	const command = getUpdateInstruction(detectInstallMethod());
 	const color = isColorEnabled();
-	const msg = color
-		? `\n${pc.yellow(`Update available: v${VERSION} → v${latest}`)}\nRun: elnora update\n`
-		: `\nUpdate available: v${VERSION} → v${latest}\nRun: elnora update\n`;
+	const head = `Update available: v${VERSION} → v${latest}`;
+	const msg = color ? `\n${pc.yellow(head)}\nRun: ${command}\n` : `\n${head}\nRun: ${command}\n`;
 	process.stderr.write(msg);
 }
 
@@ -78,7 +94,7 @@ export function isNewerVersion(a: string, b: string): boolean {
  * Register update check to run at process exit.
  * Cache refresh runs even in non-TTY; notification only in TTY.
  */
-export function registerUpdateCheck(): void {
+export function registerUpdateCheck(quiet = false): void {
 	if (shouldSkipEntirely()) return;
 
 	// Check cache first
@@ -86,8 +102,8 @@ export function registerUpdateCheck(): void {
 	if (cached) {
 		const elapsed = Date.now() - new Date(cached.checkedAt).getTime();
 		if (elapsed < CHECK_INTERVAL_MS) {
-			// Cache is fresh — show notice if update available
-			if (cached.latest && cached.latest !== VERSION && cached.latest !== "unknown") {
+			// Cache is fresh — show notice if update available (unless --quiet)
+			if (!quiet && cached.latest && cached.latest !== VERSION && cached.latest !== "unknown") {
 				if (isNewerVersion(cached.latest, VERSION)) {
 					showUpdateNotice(cached.latest);
 				}
@@ -108,13 +124,14 @@ export function registerUpdateCheck(): void {
 			});
 			if (!response.ok) return;
 			const data = (await response.json()) as { version?: string };
-			const latest = data.version ?? "unknown";
-
-			if (latest !== "unknown" && !SEMVER_RE.test(latest)) return;
+			// Sanitize the registry value before it touches disk: rebuild from numeric
+			// parts so untrusted network data is never written verbatim to the cache file.
+			const latest = data.version ? sanitizeVersion(data.version) : null;
+			if (!latest) return;
 
 			writeCache({ checkedAt: new Date().toISOString(), latest });
 
-			if (latest !== VERSION && latest !== "unknown" && isNewerVersion(latest, VERSION)) {
+			if (!quiet && latest !== VERSION && isNewerVersion(latest, VERSION)) {
 				showUpdateNotice(latest);
 			}
 		} catch {

@@ -22,6 +22,7 @@ export const tasksSend: ElnoraCommand<Input> = {
 	name: "tasks.send",
 	group: "tasks",
 	description: "Send a message to a task",
+	stdinField: "message",
 	inputSchema,
 	outputSchema: z.any(),
 
@@ -75,7 +76,7 @@ export const tasksSend: ElnoraCommand<Input> = {
 		if (input.stream) {
 			try {
 				const apiKey = resolveApiKey(ctx.profileName);
-				const renderer = new StreamRenderer();
+				const renderer = new StreamRenderer({ quiet: ctx.output.quiet });
 				for await (const event of streamTask(input.taskId, apiKey)) {
 					renderer.renderEvent(event);
 				}

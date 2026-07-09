@@ -11,8 +11,17 @@ vi.mock("node:os", async () => {
 	return { ...actual, homedir: () => TEST_HOME };
 });
 
+// Make the shadow-install check deterministic (default: no installs found → the
+// check skips, independent of the test machine's real PATH). Individual tests
+// override detectAllInstalls to exercise the warn path. uninstallCommandFor stays real.
+vi.mock("../../src/lib/install-discovery.js", async (importOriginal) => {
+	const actual = await importOriginal<typeof import("../../src/lib/install-discovery.js")>();
+	return { ...actual, detectAllInstalls: vi.fn(() => []) };
+});
+
 // Dynamic import after mock so constants are built with mocked homedir
 const { addDoctorCommand } = await import("../../src/commands/doctor.js");
+const { detectAllInstalls } = await import("../../src/lib/install-discovery.js");
 const { VERSION } = await import("../../src/lib/config.js");
 
 // Helper to capture console.error output
@@ -63,8 +72,14 @@ function installFetchMock(overrides?: Record<string, { status: number; body?: un
 }
 
 describe("elnora doctor", () => {
+	// A clean, isolated project dir so project-scope settings reads
+	// (process.cwd()/.claude/settings.json) are deterministic across machines.
+	let TEST_PROJECT: string;
+
 	beforeEach(() => {
 		installFetchMock();
+		TEST_PROJECT = mkdtempSync(join(tmpdir(), "elnora-doctor-proj-"));
+		vi.spyOn(process, "cwd").mockReturnValue(TEST_PROJECT);
 	});
 
 	afterEach(() => {
@@ -72,6 +87,11 @@ describe("elnora doctor", () => {
 		try {
 			rmSync(TEST_HOME, { recursive: true, force: true });
 			mkdirSync(TEST_HOME, { recursive: true });
+		} catch {
+			// ignore
+		}
+		try {
+			rmSync(TEST_PROJECT, { recursive: true, force: true });
 		} catch {
 			// ignore
 		}
@@ -249,16 +269,102 @@ describe("elnora doctor", () => {
 		}
 	});
 
-	test("summary line reflects pass/fail/warn counts", async () => {
+	test("summary line reflects pass/skip/fail counts", async () => {
 		installFetchMock({ "mcp.elnora.ai": { status: 503 } });
 		const capture = captureStderr();
 		const program = new Command();
 		addDoctorCommand(program);
 		await program.parseAsync(["node", "elnora", "doctor"]);
 		const output = capture.getOutput();
-		// Summary line format: "N/10 checks passed — N failed." or with warning suffix
-		// "N/10 checks passed — N failed (N warning(s))." — auth will also fail in test env.
-		expect(output).toMatch(/\/10 checks passed — \d+ failed/);
+		// New skip-aware summary format: "N passed, N skipped, N failed."
+		expect(output).toMatch(/\d+ passed/);
+		expect(output).toMatch(/\d+ failed/);
+		// Claude Code never launched in this env → those checks skip, not pass.
+		expect(output).toMatch(/\d+ skipped/);
+		capture.restore();
+	});
+
+	// ----- project-scope settings -----
+	test("passes plugin check when enabled at project scope only", async () => {
+		// User scope exists (so Claude Code counts as installed) but does NOT enable
+		// the plugin; the project's .claude/settings.json does.
+		const userClaude = join(TEST_HOME, ".claude");
+		mkdirSync(userClaude, { recursive: true });
+		writeFileSync(join(userClaude, "settings.json"), JSON.stringify({ enabledPlugins: {} }));
+		const projClaude = join(TEST_PROJECT, ".claude");
+		mkdirSync(projClaude, { recursive: true });
+		writeFileSync(
+			join(projClaude, "settings.json"),
+			JSON.stringify({ enabledPlugins: { "elnora@elnora-plugins": true } }),
+		);
+
+		const capture = captureStderr();
+		const program = new Command();
+		addDoctorCommand(program);
+		await program.parseAsync(["node", "elnora", "doctor"]);
+		const output = capture.getOutput();
+		expect(output).toMatch(/✓[^\n]*Plugin enabled.*elnora@elnora-plugins.*project scope/);
+		capture.restore();
+	});
+
+	// ----- skip is not counted as pass -----
+	test("does not report 'All checks passed' when checks were skipped", async () => {
+		// Fresh machine: Claude Code never installed → its 3 checks skip, plus the
+		// shadow-install check skips (no active install resolvable under the test).
+		const capture = captureStderr();
+		const program = new Command();
+		addDoctorCommand(program);
+		await program.parseAsync(["node", "elnora", "doctor"]);
+		const output = capture.getOutput();
+		expect(output).not.toContain("All checks passed");
+		expect(output).toMatch(/4 skipped/);
+		capture.restore();
+	});
+
+	// ----- shadow-install detection -----
+	test("warns about shadow installs with per-source uninstall commands", async () => {
+		vi.mocked(detectAllInstalls).mockReturnValueOnce([
+			{
+				path: "/home/u/.elnora/bin/elnora",
+				realPath: "/home/u/.elnora/bin/elnora",
+				pathDir: "/home/u/.elnora/bin",
+				source: "binary",
+				active: true,
+			},
+			{
+				path: "/usr/local/bin/elnora",
+				realPath: "/usr/local/bin/elnora",
+				pathDir: "/usr/local/bin",
+				source: "npm",
+				active: false,
+			},
+		]);
+		const capture = captureStderr();
+		const program = new Command();
+		addDoctorCommand(program);
+		await program.parseAsync(["node", "elnora", "doctor"]);
+		const output = capture.getOutput();
+		expect(output).toMatch(/![^\n]*Shadow installs/);
+		expect(output).toContain("/usr/local/bin/elnora");
+		expect(output).toContain("npm uninstall -g @elnora-ai/cli");
+		capture.restore();
+	});
+
+	test("passes when there is a single (active) install", async () => {
+		vi.mocked(detectAllInstalls).mockReturnValueOnce([
+			{
+				path: "/home/u/.elnora/bin/elnora",
+				realPath: "/home/u/.elnora/bin/elnora",
+				pathDir: "/home/u/.elnora/bin",
+				source: "binary",
+				active: true,
+			},
+		]);
+		const capture = captureStderr();
+		const program = new Command();
+		addDoctorCommand(program);
+		await program.parseAsync(["node", "elnora", "doctor"]);
+		expect(capture.getOutput()).toMatch(/✓[^\n]*No shadow installs/);
 		capture.restore();
 	});
 });

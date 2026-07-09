@@ -52,6 +52,7 @@ export const ENDPOINTS: Record<string, string> = {
 	// Folders
 	folder: "/folders/{id}",
 	folder_move: "/folders/{id}/move",
+	folders_files: "/folders/files",
 	// Organizations
 	organizations: "/organizations",
 	organization: "/organizations/{id}",

@@ -61,8 +61,9 @@ describe("files.list", () => {
 		expect(filesList.annotations?.readOnlyHint).toBe(true);
 	});
 
-	test("requires project UUID", () => {
-		expect(() => filesList.inputSchema.parse({})).toThrow();
+	test("project is optional; a malformed UUID is rejected", () => {
+		// ELN-880: no scope is required — lists the caller's workspace by default.
+		expect(filesList.inputSchema.parse({})).toMatchObject({ page: 1, pageSize: 25 });
 		expect(() => filesList.inputSchema.parse({ project: "not-uuid" })).toThrow();
 	});
 
@@ -72,7 +73,7 @@ describe("files.list", () => {
 		expect(parsed.pageSize).toBe(25);
 	});
 
-	test("calls GET /projects/{id}/files with pagination", async () => {
+	test("calls GET /projects/{id}/files with pagination when --project is given (legacy)", async () => {
 		const ctx = mockContext({ getResult: { items: [], total: 0 } });
 		const result = await filesList.execute({ project: PROJECT_ID, page: 1, pageSize: 25 }, ctx);
 		expect(ctx.client.get).toHaveBeenCalledWith("project_files", {
@@ -80,6 +81,12 @@ describe("files.list", () => {
 			queryParams: { page: 1, pageSize: 25 },
 		});
 		expect(result).toEqual({ items: [], total: 0 });
+	});
+
+	test("defaults to GET /folders/files (workspace) when no project is given (ELN-880)", async () => {
+		const ctx = mockContext({ getResult: [] });
+		await filesList.execute({ page: 1, pageSize: 25 }, ctx);
+		expect(ctx.client.get).toHaveBeenCalledWith("folders_files");
 	});
 });
 
@@ -153,16 +160,26 @@ describe("files.create", () => {
 		});
 	});
 
-	test("calls POST /files", async () => {
+	test("calls POST /files with fileType (backend field name) and projectId", async () => {
 		const ctx = mockContext({ postResult: { id: FILE_ID } });
 		const result = await filesCreate.execute({ project: PROJECT_ID, name: "f.txt", type: "text" }, ctx);
 		expect(ctx.client.post).toHaveBeenCalledWith("files", {
 			projectId: PROJECT_ID,
 			name: "f.txt",
-			type: "text",
+			fileType: "text",
 			folderId: undefined,
 		});
 		expect(result).toEqual({ id: FILE_ID });
+	});
+
+	test("omits projectId and maps --type to fileType when no project is given (ELN-880)", async () => {
+		const ctx = mockContext({ postResult: { id: FILE_ID } });
+		await filesCreate.execute({ name: "f.txt", type: "text" }, ctx);
+		expect(ctx.client.post).toHaveBeenCalledWith("files", {
+			name: "f.txt",
+			fileType: "text",
+			folderId: undefined,
+		});
 	});
 });
 
@@ -434,16 +451,14 @@ describe("files.fork", () => {
 		expect(filesFork.group).toBe("files");
 	});
 
-	test("requires fileId and targetProject", () => {
+	test("requires fileId; target project is optional", () => {
+		// ELN-880: omit --target-project → backend forks into the caller's default workspace.
 		expect(() => filesFork.inputSchema.parse({})).toThrow();
-		expect(() => filesFork.inputSchema.parse({ fileId: FILE_ID })).toThrow();
-		expect(filesFork.inputSchema.parse({ fileId: FILE_ID, targetProject: PROJECT_ID })).toEqual({
-			fileId: FILE_ID,
-			targetProject: PROJECT_ID,
-		});
+		expect(filesFork.inputSchema.parse({ fileId: FILE_ID })).toMatchObject({ fileId: FILE_ID });
+		expect(() => filesFork.inputSchema.parse({ fileId: FILE_ID, targetProject: "not-uuid" })).toThrow();
 	});
 
-	test("calls POST /files/{id}/fork", async () => {
+	test("calls POST /files/{id}/fork with a target project", async () => {
 		const ctx = mockContext({ postResult: { id: "new-file-id" } });
 		const result = await filesFork.execute({ fileId: FILE_ID, targetProject: PROJECT_ID }, ctx);
 		expect(ctx.client.post).toHaveBeenCalledWith(
@@ -452,6 +467,12 @@ describe("files.fork", () => {
 			{ pathParams: { id: FILE_ID } },
 		);
 		expect(result).toEqual({ id: "new-file-id" });
+	});
+
+	test("forks into the workspace (empty body) when no target is given (ELN-880)", async () => {
+		const ctx = mockContext({ postResult: { id: "new-file-id" } });
+		await filesFork.execute({ fileId: FILE_ID }, ctx);
+		expect(ctx.client.post).toHaveBeenCalledWith("file_fork", {}, { pathParams: { id: FILE_ID } });
 	});
 });
 

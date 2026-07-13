@@ -1,14 +1,32 @@
 ---
 name: elnora-folders
 description: >
-  This skill should be used when the user asks to "create folder", "list folders",
-  "rename folder", "move folder", "delete folder", "organize files into folders",
-  or any task involving Elnora Platform project folder management.
+  This skill should be used when the user asks to "browse the knowledge base",
+  "list KB folders", "show my folders", "open a folder", "create folder",
+  "list folders", "rename folder", "move folder", "delete folder", "organize files
+  into folders", or any task involving Elnora Platform folder management.
 ---
 
 # Elnora Folders
 
-Manage the folder tree within Elnora projects.
+Browse and manage folders in Elnora. The **Knowledge Base** is the current folder
+model (a workspace-wide tree with per-folder sharing); the older *project folder*
+commands are legacy and take a `<PROJECT_ID>`.
+
+## Browse the Knowledge Base
+
+Start at the roots and walk the tree — you need a folder ID from here before you can
+list its children or files.
+
+```bash
+$CLI --compact folders roots                 # top-level KB folders (Knowledge Base, memory, tasks, uploads, …)
+$CLI --compact folders children <FOLDER_ID>  # child folders of a folder
+$CLI --compact folders get <FOLDER_ID>       # folder details + breadcrumb path to root
+$CLI --compact folders files <FOLDER_ID>     # files placed directly in a folder (paged: --page / --page-size)
+```
+
+`folders roots` takes no arguments (the org comes from your token). The others take a
+positional `<FOLDER_ID>` (`folderId`).
 
 ## Tool Access
 
@@ -88,6 +106,10 @@ Destructive — confirm with user before running.
 
 | CLI command | MCP tool name |
 |-------------|---------------|
+| `folders roots` | `elnora_folders_roots` |
+| `folders children` | `elnora_folders_children` |
+| `folders get` | `elnora_folders_get` |
+| `folders files` | `elnora_folders_files` |
 | `folders list` | `elnora_folders_list` |
 | `folders create` | `elnora_folders_create` |
 | `folders rename` | `elnora_folders_rename` |

@@ -49,10 +49,14 @@ export const ENDPOINTS: Record<string, string> = {
 	file_working_copy: "/files/{id}/working-copy",
 	file_commit: "/files/{id}/commit",
 	file_upload_batch: "/files/upload/batch",
-	// Folders
+	// Folders (closure-table Knowledge Base — the `folder`/`folder_move` paths are shared with the
+	// legacy controller; the KB read/mutation verbs are distinguished by HTTP method at the call site)
 	folder: "/folders/{id}",
 	folder_move: "/folders/{id}/move",
 	folders_files: "/folders/files",
+	folder_roots: "/folders/roots",
+	folder_children: "/folders/{id}/children",
+	folder_files: "/folders/{id}/files",
 	// Organizations
 	organizations: "/organizations",
 	organization: "/organizations/{id}",

@@ -1,10 +1,14 @@
 import { describe, expect, test, vi } from "vitest";
+import { foldersChildren } from "../../../src/commands/folders/children.js";
 import { foldersCreate } from "../../../src/commands/folders/create.js";
 import { foldersDelete } from "../../../src/commands/folders/delete.js";
+import { foldersFiles } from "../../../src/commands/folders/files.js";
+import { foldersGet } from "../../../src/commands/folders/get.js";
 import { registerFolderCommands } from "../../../src/commands/folders/index.js";
 import { foldersList } from "../../../src/commands/folders/list.js";
 import { foldersMove } from "../../../src/commands/folders/move.js";
 import { foldersRename } from "../../../src/commands/folders/rename.js";
+import { foldersRoots } from "../../../src/commands/folders/roots.js";
 import type { CommandContext } from "../../../src/core/command.js";
 import { ValidationError } from "../../../src/lib/errors.js";
 
@@ -187,13 +191,71 @@ describe("folders.delete", () => {
 });
 
 // ---------------------------------------------------------------------------
+// Knowledge Base read commands (roots / children / get / files)
+// ---------------------------------------------------------------------------
+
+describe("folders.roots", () => {
+	test("is read-only and takes no args", () => {
+		expect(foldersRoots.annotations?.readOnlyHint).toBe(true);
+		expect(foldersRoots.inputSchema.parse({})).toEqual({});
+	});
+
+	test("calls GET /folders/roots", async () => {
+		const ctx = mockContext({ getResult: [{ id: FOLDER_ID, name: "Knowledge Base" }] });
+		await foldersRoots.execute({}, ctx);
+		expect(ctx.client.get).toHaveBeenCalledWith("folder_roots");
+	});
+});
+
+describe("folders.children", () => {
+	test("requires a valid folderId", () => {
+		expect(() => foldersChildren.inputSchema.parse({})).toThrow();
+		expect(() => foldersChildren.inputSchema.parse({ folderId: "bad" })).toThrow();
+	});
+
+	test("calls GET /folders/{id}/children", async () => {
+		const ctx = mockContext({ getResult: [] });
+		await foldersChildren.execute({ folderId: FOLDER_ID }, ctx);
+		expect(ctx.client.get).toHaveBeenCalledWith("folder_children", { pathParams: { id: FOLDER_ID } });
+	});
+});
+
+describe("folders.get", () => {
+	test("requires a valid folderId", () => {
+		expect(() => foldersGet.inputSchema.parse({})).toThrow();
+	});
+
+	test("calls GET /folders/{id}", async () => {
+		const ctx = mockContext({ getResult: { id: FOLDER_ID, breadcrumbs: [] } });
+		await foldersGet.execute({ folderId: FOLDER_ID }, ctx);
+		expect(ctx.client.get).toHaveBeenCalledWith("folder", { pathParams: { id: FOLDER_ID } });
+	});
+});
+
+describe("folders.files", () => {
+	test("requires a valid folderId and defaults pagination", () => {
+		expect(() => foldersFiles.inputSchema.parse({})).toThrow();
+		expect(foldersFiles.inputSchema.parse({ folderId: FOLDER_ID })).toMatchObject({ page: 1, pageSize: 25 });
+	});
+
+	test("calls GET /folders/{id}/files with pagination", async () => {
+		const ctx = mockContext({ getResult: { items: [], totalCount: 0 } });
+		await foldersFiles.execute({ folderId: FOLDER_ID, page: 1, pageSize: 25 }, ctx);
+		expect(ctx.client.get).toHaveBeenCalledWith("folder_files", {
+			pathParams: { id: FOLDER_ID },
+			queryParams: { page: 1, pageSize: 25 },
+		});
+	});
+});
+
+// ---------------------------------------------------------------------------
 // registerFolderCommands
 // ---------------------------------------------------------------------------
 
 describe("registerFolderCommands", () => {
-	test("returns all 5 folder commands", () => {
+	test("returns all 9 folder commands", () => {
 		const commands = registerFolderCommands();
-		expect(commands).toHaveLength(5);
+		expect(commands).toHaveLength(9);
 	});
 
 	test("all commands belong to folders group", () => {

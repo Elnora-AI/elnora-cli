@@ -5,6 +5,13 @@ All notable changes to the Elnora CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.3.0](https://github.com/Elnora-AI/elnora-cli/compare/v2.2.1...v2.3.0) (2026-07-13)
+
+
+### Features
+
+* **folders:** add Knowledge Base folder read commands ([#195](https://github.com/Elnora-AI/elnora-cli/issues/195)) ([af9f5f8](https://github.com/Elnora-AI/elnora-cli/commit/af9f5f8eaa22dabc924519e598770865f3a8d5e4))
+
 ## [2.2.1](https://github.com/Elnora-AI/elnora-cli/compare/v2.2.0...v2.2.1) (2026-07-09)
 
 

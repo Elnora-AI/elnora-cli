@@ -7,7 +7,7 @@ import { ValidationError } from "../../lib/errors.js";
 import type { OutputFormat } from "../../lib/output.js";
 
 const inputSchema = z.object({
-	project: z.string().uuid().describe("Project ID"),
+	project: z.string().uuid().optional().describe("Project ID (optional; defaults to your workspace)"),
 	filePaths: z.string().min(1).describe("Comma-separated local file paths to upload"),
 	folder: z.string().uuid().optional().describe("Folder ID"),
 });
@@ -52,9 +52,9 @@ export const filesUploadBatch: ElnoraCommand<Input> = {
 				const contentType = "application/octet-stream";
 				const fileSize = statSync(filePath).size;
 
-				// Step 1: Get presigned URL
+				// Step 1: Get presigned URL (projectId optional — omitted → caller's default workspace)
 				const uploadInfo = await ctx.client.post<Record<string, unknown>>("file_upload", {
-					projectId: input.project,
+					...(input.project ? { projectId: input.project } : {}),
 					fileName,
 					contentType,
 					fileSizeBytes: fileSize,

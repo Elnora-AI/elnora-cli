@@ -21,7 +21,8 @@ type Input = z.infer<typeof inputSchema>;
 export const tasksSend: ElnoraCommand<Input> = {
 	name: "tasks.send",
 	group: "tasks",
-	description: "Send a message to a task",
+	description:
+		"Send a message to a task. Returns the created user message immediately — the agent processes asynchronously. To get the AI response, poll elnora_tasks_messages until the last message has role 'assistant' with metadata.status 'completed'. Poll every 5-10s, timeout after 5 min.",
 	stdinField: "message",
 	inputSchema,
 	outputSchema: z.any(),

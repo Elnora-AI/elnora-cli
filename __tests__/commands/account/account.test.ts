@@ -77,16 +77,17 @@ describe("account.update", () => {
 		await expect(accountUpdate.execute({ userId: "123" }, ctx)).rejects.toThrow(ValidationError);
 	});
 
-	test("calls PATCH account_user with firstName", async () => {
-		const ctx = mockContext({ patchResult: {} });
+	test("calls PUT account_user with firstName (backend is PUT-only, not PATCH)", async () => {
+		const ctx = mockContext({ putResult: {} });
 		await accountUpdate.execute({ userId: "123", firstName: "Jane" }, ctx);
-		expect(ctx.client.patch).toHaveBeenCalledWith(
+		expect(ctx.client.put).toHaveBeenCalledWith(
 			"account_user",
 			{ firstName: "Jane" },
 			{
 				pathParams: { id: "123" },
 			},
 		);
+		expect(ctx.client.patch).not.toHaveBeenCalled();
 	});
 });
 

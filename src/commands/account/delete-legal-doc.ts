@@ -17,7 +17,7 @@ export const accountDeleteLegalDoc: ElnoraCommand<Input, Output> = {
 	description: "Delete a legal document version (SystemAdmin only)",
 	inputSchema,
 	outputSchema: z.any(),
-	annotations: { destructiveHint: true },
+	annotations: { destructiveHint: true, internal: true },
 
 	async execute(input, ctx) {
 		if (!input.yes) {

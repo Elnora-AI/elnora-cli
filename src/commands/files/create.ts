@@ -3,7 +3,7 @@ import type { ElnoraCommand } from "../../core/command.js";
 import type { OutputFormat } from "../../lib/output.js";
 
 const inputSchema = z.object({
-	project: z.string().uuid().describe("Project ID"),
+	project: z.string().uuid().optional().describe("Project ID (optional; defaults to your workspace)"),
 	name: z.string().min(1).describe("File name"),
 	type: z.string().min(1).describe("File type"),
 	folder: z.string().uuid().optional().describe("Folder ID"),
@@ -20,9 +20,12 @@ export const filesCreate: ElnoraCommand<Input> = {
 
 	async execute(input, ctx) {
 		return ctx.client.post("files", {
-			projectId: input.project,
+			// projectId optional (ELN-880 Phase C): omitted → backend uses the caller's default workspace.
+			...(input.project ? { projectId: input.project } : {}),
 			name: input.name,
-			type: input.type,
+			// Backend CreateFileDTO expects `fileType` (the CLI flag is --type). Previously sent as
+			// `type`, which the API ignored → "FileType field is required" 400.
+			fileType: input.type,
 			folderId: input.folder,
 		});
 	},

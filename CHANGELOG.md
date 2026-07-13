@@ -5,6 +5,21 @@ All notable changes to the Elnora CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.2.1](https://github.com/Elnora-AI/elnora-cli/compare/v2.2.0...v2.2.1) (2026-07-09)
+
+
+### Bug Fixes
+
+* use PUT for account update; restore tool-description parity ([#193](https://github.com/Elnora-AI/elnora-cli/issues/193)) ([1913d05](https://github.com/Elnora-AI/elnora-cli/commit/1913d05bea88da6a1a98aae4ae057ee3fd8280c9))
+
+## [2.2.0](https://github.com/Elnora-AI/elnora-cli/compare/v2.1.2...v2.2.0) (2026-07-09)
+
+
+### Features
+
+* CLI reference generator for docs.elnora.ai ([#183](https://github.com/Elnora-AI/elnora-cli/issues/183)) ([e2dacbd](https://github.com/Elnora-AI/elnora-cli/commit/e2dacbdf26ed81ce62cbbd405c48b6ea89f126cc))
+* make project optional on create/list/upload/fork commands ([#191](https://github.com/Elnora-AI/elnora-cli/issues/191)) ([ca985b0](https://github.com/Elnora-AI/elnora-cli/commit/ca985b0bc89c92a19837f47a4451cf6a37952e70))
+
 ## [2.1.2](https://github.com/Elnora-AI/elnora-cli/compare/v2.1.1...v2.1.2) (2026-06-17)
 
 

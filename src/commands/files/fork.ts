@@ -4,7 +4,7 @@ import type { OutputFormat } from "../../lib/output.js";
 
 const inputSchema = z.object({
 	fileId: z.string().uuid().describe("File ID to fork"),
-	targetProject: z.string().uuid().describe("Target project ID"),
+	targetProject: z.string().uuid().optional().describe("Target project ID (optional; defaults to your workspace)"),
 });
 
 type Input = z.infer<typeof inputSchema>;
@@ -19,7 +19,11 @@ export const filesFork: ElnoraCommand<Input> = {
 	async execute(input, ctx) {
 		return ctx.client.post(
 			"file_fork",
-			{ targetProjectId: input.targetProject },
+			{
+				// targetProject optional (ELN-880 Phase C): omit → backend forks into the caller's
+				// default workspace. Only sent when explicitly supplied.
+				...(input.targetProject ? { targetProjectId: input.targetProject } : {}),
+			},
 			{
 				pathParams: { id: input.fileId },
 			},

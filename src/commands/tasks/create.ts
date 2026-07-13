@@ -7,7 +7,7 @@ import { collectStreamResponse, streamTask } from "../../lib/stream.js";
 import { StreamRenderer } from "../../lib/stream-renderer.js";
 
 const inputSchema = z.object({
-	project: z.string().uuid().describe("Project ID"),
+	project: z.string().uuid().optional().describe("Project ID (optional; defaults to your workspace)"),
 	title: z.string().optional().describe("Task title"),
 	message: z.string().optional().describe("Initial message"),
 	wait: z.boolean().default(false).describe("Wait for agent response (polling)"),
@@ -19,14 +19,17 @@ type Input = z.infer<typeof inputSchema>;
 export const tasksCreate: ElnoraCommand<Input> = {
 	name: "tasks.create",
 	group: "tasks",
-	description: "Create a new task in a project",
+	description:
+		"Create a new task in a project. If a message is provided it is queued, but the AI response is NOT returned — the agent processes asynchronously. Poll elnora_tasks_messages every 5-10s until the last message has role 'assistant' with metadata.status 'completed'. Timeout after 5 min.",
 	stdinField: "message",
 	inputSchema,
 	outputSchema: z.any(),
 
 	async execute(input, ctx) {
 		const result = (await ctx.client.post("tasks", {
-			projectId: input.project,
+			// projectId is optional (ELN-880 Phase C): when omitted the backend creates the
+			// task in the caller's default workspace. Only sent when explicitly supplied.
+			...(input.project ? { projectId: input.project } : {}),
 			title: input.title,
 			initialMessage: input.message,
 		})) as { id: string; [key: string]: unknown };

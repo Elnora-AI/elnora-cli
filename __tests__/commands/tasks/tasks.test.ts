@@ -131,8 +131,9 @@ describe("tasks.create", () => {
 		expect(tasksCreate.group).toBe("tasks");
 	});
 
-	test("requires project UUID", () => {
-		expect(() => tasksCreate.inputSchema.parse({})).toThrow();
+	test("project is optional and rejects a malformed UUID", () => {
+		// ELN-880: projectId is optional — the backend creates the task in the caller's default workspace.
+		expect(tasksCreate.inputSchema.parse({})).toMatchObject({ wait: false, stream: false });
 		expect(() => tasksCreate.inputSchema.parse({ project: "not-uuid" })).toThrow();
 	});
 
@@ -167,6 +168,15 @@ describe("tasks.create", () => {
 		await tasksCreate.execute({ project: PROJECT_ID, stream: false, wait: false }, ctx);
 		expect(ctx.client.post).toHaveBeenCalledWith("tasks", {
 			projectId: PROJECT_ID,
+			title: undefined,
+			initialMessage: undefined,
+		});
+	});
+
+	test("omits projectId from the body when no project is supplied (ELN-880)", async () => {
+		const ctx = mockContext({ postResult: { id: TASK_ID } });
+		await tasksCreate.execute({ stream: false, wait: false }, ctx);
+		expect(ctx.client.post).toHaveBeenCalledWith("tasks", {
 			title: undefined,
 			initialMessage: undefined,
 		});

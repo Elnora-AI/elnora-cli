@@ -230,6 +230,40 @@ Full-text search inside file contents. Also available as `search file-content`.
 | `--page` | No | Page number (default 1) |
 | `--page-size` | No | Results per page (default 25, max 100) |
 
+### Move File
+
+```bash
+$CLI --compact files move <FILE_ID> <PARENT_FOLDER_ID>
+```
+
+Move a file into a different Knowledge Base folder. Both `<FILE_ID>` and `<PARENT_FOLDER_ID>` are positional. You need write access on both the file's current folder and the destination.
+
+### Share File
+
+```bash
+$CLI --compact files share <FILE_ID> --user-id <USER_ID>
+$CLI --compact files share <FILE_ID> --user-id <USER_ID> --role viewer
+$CLI --compact files share <FILE_ID> --org-wide
+```
+
+Grant access to a file. Provide **exactly one** recipient: `--user-id` (a specific member) or `--org-wide` (everyone in the organization).
+
+| Flag/Arg | Required | Notes |
+|----------|----------|-------|
+| `<FILE_ID>` | Yes | Positional — file UUID |
+| `--user-id` | * | Member's numeric user id. Find it with `orgs directory`. |
+| `--org-wide` | * | Share with the whole organization |
+| `--role` | No | `viewer`, `editor` (default), or `admin` |
+
+\* Exactly one of `--user-id` / `--org-wide` is required.
+
+### List / Revoke File Shares
+
+```bash
+$CLI --compact files shares <FILE_ID>              # list current shares (each has an "id" = ACE id)
+$CLI --compact files unshare <FILE_ID> <ACE_ID>    # revoke one share
+```
+
 ## MCP Tool Names
 
 | CLI command | MCP tool name |
@@ -253,6 +287,10 @@ Full-text search inside file contents. Also available as `search file-content`.
 | `files working-copy` | `elnora_files_workingCopy` |
 | `files commit` | `elnora_files_commit` |
 | `files search-content` | `elnora_files_searchContent` |
+| `files move` | `elnora_files_move` |
+| `files share` | `elnora_files_share` |
+| `files unshare` | `elnora_files_unshare` |
+| `files shares` | `elnora_files_shares` |
 
 ## Agent Recipes
 

@@ -10,9 +10,13 @@ import { filesFork } from "../../../src/commands/files/fork.js";
 import { filesGet } from "../../../src/commands/files/get.js";
 import { registerFileCommands } from "../../../src/commands/files/index.js";
 import { filesList } from "../../../src/commands/files/list.js";
+import { filesMove } from "../../../src/commands/files/move.js";
 import { filesPromote } from "../../../src/commands/files/promote.js";
 import { filesRestore } from "../../../src/commands/files/restore.js";
 import { filesSearchContent } from "../../../src/commands/files/search-content.js";
+import { filesShare } from "../../../src/commands/files/share.js";
+import { filesShares } from "../../../src/commands/files/shares.js";
+import { filesUnshare } from "../../../src/commands/files/unshare.js";
 import { filesUpdate } from "../../../src/commands/files/update.js";
 import { filesUpload } from "../../../src/commands/files/upload.js";
 import { filesUploadBatch } from "../../../src/commands/files/upload-batch.js";
@@ -25,6 +29,8 @@ import { ValidationError } from "../../../src/lib/errors.js";
 const FILE_ID = "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d";
 const PROJECT_ID = "d5c4b3a2-f6e5-4b7a-9d8c-1f0e2a3b4c5d";
 const VERSION_ID = "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e";
+const FOLDER_ID = "c3d4e5f6-a7b8-4c9d-8e0f-2a3b4c5d6e7f";
+const ACE_ID = "e5f6a7b8-c9d0-4e1f-9a2b-3c4d5e6f7a8b";
 
 function mockContext(overrides?: {
 	getResult?: unknown;
@@ -572,13 +578,90 @@ describe("files.searchContent", () => {
 });
 
 // ---------------------------------------------------------------------------
+// files.move / share / unshare / shares (KB Access V2)
+// ---------------------------------------------------------------------------
+
+describe("files.move", () => {
+	test("has correct name and group", () => {
+		expect(filesMove.name).toBe("files.move");
+		expect(filesMove.group).toBe("files");
+	});
+
+	test("PATCHes file_move with parentFolderId", async () => {
+		const ctx = mockContext({ patchResult: { id: FILE_ID } });
+		await filesMove.execute({ fileId: FILE_ID, parentFolderId: FOLDER_ID }, ctx);
+		expect(ctx.client.patch).toHaveBeenCalledWith(
+			"file_move",
+			{ parentFolderId: FOLDER_ID },
+			{ pathParams: { id: FILE_ID } },
+		);
+	});
+});
+
+describe("files.share", () => {
+	test("shares with a specific user (POST file_share)", async () => {
+		const ctx = mockContext({ postResult: { id: ACE_ID } });
+		await filesShare.execute({ fileId: FILE_ID, userId: 42, orgWide: false, role: "editor" }, ctx);
+		expect(ctx.client.post).toHaveBeenCalledWith(
+			"file_share",
+			{ userId: 42, role: "editor" },
+			{ pathParams: { id: FILE_ID } },
+		);
+	});
+
+	test("shares org-wide", async () => {
+		const ctx = mockContext({ postResult: { id: ACE_ID } });
+		await filesShare.execute({ fileId: FILE_ID, orgWide: true, role: "viewer" }, ctx);
+		expect(ctx.client.post).toHaveBeenCalledWith(
+			"file_share",
+			{ isOrgWide: true, role: "viewer" },
+			{ pathParams: { id: FILE_ID } },
+		);
+	});
+
+	test("rejects both user and org-wide", async () => {
+		const ctx = mockContext();
+		await expect(
+			filesShare.execute({ fileId: FILE_ID, userId: 42, orgWide: true, role: "editor" }, ctx),
+		).rejects.toThrow(ValidationError);
+	});
+
+	test("rejects neither user nor org-wide", async () => {
+		const ctx = mockContext();
+		await expect(filesShare.execute({ fileId: FILE_ID, orgWide: false, role: "editor" }, ctx)).rejects.toThrow(
+			ValidationError,
+		);
+	});
+});
+
+describe("files.unshare", () => {
+	test("DELETEs file_share_ace and returns revoked", async () => {
+		const ctx = mockContext();
+		const result = await filesUnshare.execute({ fileId: FILE_ID, aceId: ACE_ID }, ctx);
+		expect(ctx.client.del).toHaveBeenCalledWith("file_share_ace", {
+			pathParams: { id: FILE_ID, aceId: ACE_ID },
+		});
+		expect(result).toEqual({ revoked: true, fileId: FILE_ID, aceId: ACE_ID });
+	});
+});
+
+describe("files.shares", () => {
+	test("is read-only and GETs file_shares", async () => {
+		const ctx = mockContext({ getResult: [] });
+		expect(filesShares.annotations?.readOnlyHint).toBe(true);
+		await filesShares.execute({ fileId: FILE_ID }, ctx);
+		expect(ctx.client.get).toHaveBeenCalledWith("file_shares", { pathParams: { id: FILE_ID } });
+	});
+});
+
+// ---------------------------------------------------------------------------
 // registerFileCommands
 // ---------------------------------------------------------------------------
 
 describe("registerFileCommands", () => {
-	test("returns all 19 file commands", () => {
+	test("returns all 23 file commands", () => {
 		const commands = registerFileCommands();
-		expect(commands).toHaveLength(19);
+		expect(commands).toHaveLength(23);
 	});
 
 	test("all commands belong to files group", () => {

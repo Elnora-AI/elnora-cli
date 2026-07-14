@@ -49,6 +49,11 @@ export const ENDPOINTS: Record<string, string> = {
 	file_working_copy: "/files/{id}/working-copy",
 	file_commit: "/files/{id}/commit",
 	file_upload_batch: "/files/upload/batch",
+	file_move: "/files/{id}/move",
+	// Per-file sharing (KB Access V2)
+	file_share: "/files/{id}/share",
+	file_share_ace: "/files/{id}/share/{aceId}",
+	file_shares: "/files/{id}/shares",
 	// Folders (closure-table Knowledge Base — the `folder`/`folder_move` paths are shared with the
 	// legacy controller; the KB read/mutation verbs are distinguished by HTTP method at the call site)
 	folder: "/folders/{id}",
@@ -57,6 +62,10 @@ export const ENDPOINTS: Record<string, string> = {
 	folder_roots: "/folders/roots",
 	folder_children: "/folders/{id}/children",
 	folder_files: "/folders/{id}/files",
+	// Per-folder sharing (KB Access V2)
+	folder_share: "/folders/{id}/share",
+	folder_share_ace: "/folders/{id}/share/{aceId}",
+	folder_shares: "/folders/{id}/shares",
 	// Organizations
 	organizations: "/organizations",
 	organization: "/organizations/{id}",
@@ -68,6 +77,7 @@ export const ENDPOINTS: Record<string, string> = {
 	organization_set_default: "/organizations/{id}/set-default",
 	organizations_all: "/organizations/all",
 	org_files: "/organizations/{orgId}/files",
+	org_member_directory: "/organizations/{orgId}/members/directory",
 	// Organization invitations
 	org_invitations: "/organizations/{orgId}/invitations",
 	org_invitation: "/organizations/{orgId}/invitations/{invId}",

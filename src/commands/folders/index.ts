@@ -8,6 +8,9 @@ import { foldersList } from "./list.js";
 import { foldersMove } from "./move.js";
 import { foldersRename } from "./rename.js";
 import { foldersRoots } from "./roots.js";
+import { foldersShare } from "./share.js";
+import { foldersShares } from "./shares.js";
+import { foldersUnshare } from "./unshare.js";
 
 export function registerFolderCommands(): ElnoraCommand[] {
 	return [
@@ -20,6 +23,9 @@ export function registerFolderCommands(): ElnoraCommand[] {
 		foldersRename,
 		foldersMove,
 		foldersDelete,
+		foldersShare,
+		foldersUnshare,
+		foldersShares,
 	];
 }
 
@@ -33,4 +39,7 @@ export {
 	foldersMove,
 	foldersRename,
 	foldersRoots,
+	foldersShare,
+	foldersShares,
+	foldersUnshare,
 };

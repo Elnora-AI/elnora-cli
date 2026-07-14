@@ -9,9 +9,13 @@ import { filesDownload } from "./download.js";
 import { filesFork } from "./fork.js";
 import { filesGet } from "./get.js";
 import { filesList } from "./list.js";
+import { filesMove } from "./move.js";
 import { filesPromote } from "./promote.js";
 import { filesRestore } from "./restore.js";
 import { filesSearchContent } from "./search-content.js";
+import { filesShare } from "./share.js";
+import { filesShares } from "./shares.js";
+import { filesUnshare } from "./unshare.js";
 import { filesUpdate } from "./update.js";
 import { filesUpload } from "./upload.js";
 import { filesUploadBatch } from "./upload-batch.js";
@@ -40,6 +44,10 @@ export function registerFileCommands(): ElnoraCommand[] {
 		filesWorkingCopy,
 		filesCommit,
 		filesSearchContent,
+		filesMove,
+		filesShare,
+		filesUnshare,
+		filesShares,
 	];
 }
 
@@ -54,9 +62,13 @@ export {
 	filesFork,
 	filesGet,
 	filesList,
+	filesMove,
 	filesPromote,
 	filesRestore,
 	filesSearchContent,
+	filesShare,
+	filesShares,
+	filesUnshare,
 	filesUpdate,
 	filesUpload,
 	filesUploadBatch,

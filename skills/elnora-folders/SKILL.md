@@ -102,6 +102,22 @@ $CLI --compact folders delete <FOLDER_ID>
 
 Destructive — confirm with user before running.
 
+### Share a Folder
+
+```bash
+$CLI --compact folders share <FOLDER_ID> --user-id <USER_ID>
+$CLI --compact folders share <FOLDER_ID> --org-wide --role viewer
+```
+
+Grant access to a folder (sub-folders and files inherit it). Provide **exactly one** recipient: `--user-id` (a specific member — find the id with `orgs directory`) or `--org-wide`. `--role` is `viewer`, `editor` (default), or `admin`.
+
+### List / Revoke Folder Shares
+
+```bash
+$CLI --compact folders shares <FOLDER_ID>            # list current shares (each has an "id" = ACE id)
+$CLI --compact folders unshare <FOLDER_ID> <ACE_ID>  # revoke one share
+```
+
 ## MCP Tool Names
 
 | CLI command | MCP tool name |
@@ -115,6 +131,9 @@ Destructive — confirm with user before running.
 | `folders rename` | `elnora_folders_rename` |
 | `folders move` | `elnora_folders_move` |
 | `folders delete` | `elnora_folders_delete` |
+| `folders share` | `elnora_folders_share` |
+| `folders unshare` | `elnora_folders_unshare` |
+| `folders shares` | `elnora_folders_shares` |
 
 ## Agent Recipes
 

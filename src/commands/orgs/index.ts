@@ -4,6 +4,7 @@ import { orgsBilling } from "./billing.js";
 import { orgsCancelInvite } from "./cancel-invite.js";
 import { orgsCreate } from "./create.js";
 import { orgsDelete } from "./delete.js";
+import { orgsDirectory } from "./directory.js";
 import { orgsFiles } from "./files.js";
 import { orgsGet } from "./get.js";
 import { orgsInvitationInfo } from "./invitation-info.js";
@@ -40,6 +41,7 @@ export function registerOrgCommands(): ElnoraCommand[] {
 		orgsAcceptInvite,
 		orgsFiles,
 		orgsListAll,
+		orgsDirectory,
 	];
 }
 
@@ -49,6 +51,7 @@ export {
 	orgsCancelInvite,
 	orgsCreate,
 	orgsDelete,
+	orgsDirectory,
 	orgsFiles,
 	orgsGet,
 	orgsInvitationInfo,

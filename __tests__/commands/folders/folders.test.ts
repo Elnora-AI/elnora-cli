@@ -9,12 +9,16 @@ import { foldersList } from "../../../src/commands/folders/list.js";
 import { foldersMove } from "../../../src/commands/folders/move.js";
 import { foldersRename } from "../../../src/commands/folders/rename.js";
 import { foldersRoots } from "../../../src/commands/folders/roots.js";
+import { foldersShare } from "../../../src/commands/folders/share.js";
+import { foldersShares } from "../../../src/commands/folders/shares.js";
+import { foldersUnshare } from "../../../src/commands/folders/unshare.js";
 import type { CommandContext } from "../../../src/core/command.js";
 import { ValidationError } from "../../../src/lib/errors.js";
 
 const PROJECT_ID = "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d";
 const FOLDER_ID = "d5c4b3a2-f6e5-4b7a-9d8c-1f0e2a3b4c5d";
 const PARENT_ID = "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e";
+const ACE_ID = "e5f6a7b8-c9d0-4e1f-9a2b-3c4d5e6f7a8b";
 
 function mockContext(overrides?: {
 	getResult?: unknown;
@@ -249,13 +253,66 @@ describe("folders.files", () => {
 });
 
 // ---------------------------------------------------------------------------
+// folders.share / unshare / shares (KB Access V2)
+// ---------------------------------------------------------------------------
+
+describe("folders.share", () => {
+	test("shares with a specific user (POST folder_share)", async () => {
+		const ctx = mockContext({ postResult: { id: ACE_ID } });
+		await foldersShare.execute({ folderId: FOLDER_ID, userId: 42, orgWide: false, role: "editor" }, ctx);
+		expect(ctx.client.post).toHaveBeenCalledWith(
+			"folder_share",
+			{ userId: 42, role: "editor" },
+			{ pathParams: { id: FOLDER_ID } },
+		);
+	});
+
+	test("shares org-wide", async () => {
+		const ctx = mockContext({ postResult: { id: ACE_ID } });
+		await foldersShare.execute({ folderId: FOLDER_ID, orgWide: true, role: "admin" }, ctx);
+		expect(ctx.client.post).toHaveBeenCalledWith(
+			"folder_share",
+			{ isOrgWide: true, role: "admin" },
+			{ pathParams: { id: FOLDER_ID } },
+		);
+	});
+
+	test("rejects both user and org-wide", async () => {
+		const ctx = mockContext();
+		await expect(
+			foldersShare.execute({ folderId: FOLDER_ID, userId: 42, orgWide: true, role: "editor" }, ctx),
+		).rejects.toThrow(ValidationError);
+	});
+});
+
+describe("folders.unshare", () => {
+	test("DELETEs folder_share_ace and returns revoked", async () => {
+		const ctx = mockContext();
+		const result = await foldersUnshare.execute({ folderId: FOLDER_ID, aceId: ACE_ID }, ctx);
+		expect(ctx.client.del).toHaveBeenCalledWith("folder_share_ace", {
+			pathParams: { id: FOLDER_ID, aceId: ACE_ID },
+		});
+		expect(result).toEqual({ revoked: true, folderId: FOLDER_ID, aceId: ACE_ID });
+	});
+});
+
+describe("folders.shares", () => {
+	test("is read-only and GETs folder_shares", async () => {
+		const ctx = mockContext({ getResult: [] });
+		expect(foldersShares.annotations?.readOnlyHint).toBe(true);
+		await foldersShares.execute({ folderId: FOLDER_ID }, ctx);
+		expect(ctx.client.get).toHaveBeenCalledWith("folder_shares", { pathParams: { id: FOLDER_ID } });
+	});
+});
+
+// ---------------------------------------------------------------------------
 // registerFolderCommands
 // ---------------------------------------------------------------------------
 
 describe("registerFolderCommands", () => {
-	test("returns all 9 folder commands", () => {
+	test("returns all 12 folder commands", () => {
 		const commands = registerFolderCommands();
-		expect(commands).toHaveLength(9);
+		expect(commands).toHaveLength(12);
 	});
 
 	test("all commands belong to folders group", () => {

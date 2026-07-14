@@ -109,6 +109,14 @@ $CLI --compact orgs files <ORG_ID> --page 2 --page-size 50
 
 `<ORG_ID>` is positional (`orgId`). Lists all files across all projects in the organization.
 
+### Search Member Directory
+
+```bash
+$CLI --compact orgs directory <ORG_ID> --query "ada"
+```
+
+Look up fellow organization members by name or email substring — this is how you find the numeric `userId` needed by `files share` / `folders share`. `<ORG_ID>` is positional; `--query` needs at least 2 characters. Any member can use it.
+
 ### Set Default Organization
 
 ```bash
@@ -256,6 +264,7 @@ Destructive — confirm with user first.
 | `orgs remove-member` | `elnora_orgs_removeMember` |
 | `orgs billing` | `elnora_orgs_billing` |
 | `orgs files` | `elnora_orgs_files` |
+| `orgs directory` | `elnora_orgs_directory` |
 | `orgs set-default` | `elnora_orgs_setDefault` |
 | `orgs set-stripe` | `elnora_orgs_setStripe` |
 | `orgs list-all` | `elnora_orgs_listAll` |

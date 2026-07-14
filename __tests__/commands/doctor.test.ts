@@ -135,6 +135,7 @@ describe("elnora doctor", () => {
 			"elnora-orgs",
 			"elnora-platform",
 			"elnora-projects",
+			"elnora-review",
 			"elnora-search",
 			"elnora-tasks",
 		]) {
@@ -156,7 +157,7 @@ describe("elnora doctor", () => {
 		const output = capture.getOutput();
 		// Verify the Claude Code section reports clean results
 		expect(output).toMatch(/✓[^\n]*Plugin enabled.*elnora@elnora-plugins/);
-		expect(output).toMatch(/✓[^\n]*Skills installed.*9 skills/);
+		expect(output).toMatch(/✓[^\n]*Skills installed.*10 skills/);
 		// Split the Plugin version check into a structure match + a literal
 		// substring check so we don't have to build a regex from VERSION
 		// (avoids regex-escaping pitfalls flagged by CodeQL).
@@ -195,6 +196,7 @@ describe("elnora doctor", () => {
 			"elnora-orgs",
 			"elnora-platform",
 			"elnora-projects",
+			"elnora-review",
 			"elnora-search",
 			"elnora-tasks",
 		]) {

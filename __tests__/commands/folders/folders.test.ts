@@ -23,6 +23,7 @@ const ACE_ID = "e5f6a7b8-c9d0-4e1f-9a2b-3c4d5e6f7a8b";
 function mockContext(overrides?: {
 	getResult?: unknown;
 	postResult?: unknown;
+	patchResult?: unknown;
 	putResult?: unknown;
 	delResult?: unknown;
 }): CommandContext {
@@ -30,7 +31,7 @@ function mockContext(overrides?: {
 		client: {
 			get: vi.fn().mockResolvedValue(overrides?.getResult ?? {}),
 			post: vi.fn().mockResolvedValue(overrides?.postResult ?? {}),
-			patch: vi.fn().mockResolvedValue({}),
+			patch: vi.fn().mockResolvedValue(overrides?.patchResult ?? {}),
 			put: vi.fn().mockResolvedValue(overrides?.putResult ?? {}),
 			del: vi.fn().mockResolvedValue(overrides?.delResult ?? undefined),
 		} as unknown as CommandContext["client"],
@@ -79,32 +80,30 @@ describe("folders.create", () => {
 		expect(foldersCreate.group).toBe("folders");
 	});
 
-	test("requires projectId and name", () => {
+	test("requires name; projectId is no longer required", () => {
 		expect(() => foldersCreate.inputSchema.parse({})).toThrow();
-		expect(() => foldersCreate.inputSchema.parse({ projectId: PROJECT_ID })).toThrow();
-		expect(foldersCreate.inputSchema.parse({ projectId: PROJECT_ID, name: "Folder" })).toEqual({
-			projectId: PROJECT_ID,
-			name: "Folder",
-		});
+		expect(foldersCreate.inputSchema.parse({ name: "Folder" })).toMatchObject({ name: "Folder" });
 	});
 
-	test("calls POST /projects/{id}/folders", async () => {
+	test("POSTs to the KB folder collection by default", async () => {
 		const ctx = mockContext({ postResult: { id: FOLDER_ID, name: "New" } });
-		const result = await foldersCreate.execute({ projectId: PROJECT_ID, name: "New" }, ctx);
-		expect(ctx.client.post).toHaveBeenCalledWith(
-			"project_folders",
-			{ name: "New" },
-			{ pathParams: { id: PROJECT_ID } },
-		);
+		const result = await foldersCreate.execute({ name: "New" }, ctx);
+		expect(ctx.client.post).toHaveBeenCalledWith("folder_create", { name: "New" });
 		expect(result).toEqual({ id: FOLDER_ID, name: "New" });
 	});
 
-	test("includes parentId when provided", async () => {
+	test("includes parentFolderId when parentId is provided", async () => {
 		const ctx = mockContext({ postResult: { id: FOLDER_ID } });
-		await foldersCreate.execute({ projectId: PROJECT_ID, name: "Sub", parentId: PARENT_ID }, ctx);
+		await foldersCreate.execute({ name: "Sub", parentId: PARENT_ID }, ctx);
+		expect(ctx.client.post).toHaveBeenCalledWith("folder_create", { name: "Sub", parentFolderId: PARENT_ID });
+	});
+
+	test("uses the legacy project endpoint when --project is set", async () => {
+		const ctx = mockContext({ postResult: { id: FOLDER_ID } });
+		await foldersCreate.execute({ name: "Leg", project: PROJECT_ID }, ctx);
 		expect(ctx.client.post).toHaveBeenCalledWith(
 			"project_folders",
-			{ name: "Sub", parentId: PARENT_ID },
+			{ name: "Leg" },
 			{ pathParams: { id: PROJECT_ID } },
 		);
 	});
@@ -124,11 +123,17 @@ describe("folders.rename", () => {
 		expect(foldersRename.annotations?.idempotentHint).toBe(true);
 	});
 
-	test("calls PUT /folders/{id}", async () => {
-		const ctx = mockContext({ putResult: { id: FOLDER_ID, name: "Renamed" } });
-		const result = await foldersRename.execute({ folderId: FOLDER_ID, name: "Renamed" }, ctx);
-		expect(ctx.client.put).toHaveBeenCalledWith("folder", { name: "Renamed" }, { pathParams: { id: FOLDER_ID } });
+	test("PATCHes the KB folder by default", async () => {
+		const ctx = mockContext({ patchResult: { id: FOLDER_ID, name: "Renamed" } });
+		const result = await foldersRename.execute({ folderId: FOLDER_ID, name: "Renamed", legacy: false }, ctx);
+		expect(ctx.client.patch).toHaveBeenCalledWith("folder", { name: "Renamed" }, { pathParams: { id: FOLDER_ID } });
 		expect(result).toEqual({ id: FOLDER_ID, name: "Renamed" });
+	});
+
+	test("PUTs the legacy folder when --legacy is set", async () => {
+		const ctx = mockContext({ putResult: { id: FOLDER_ID } });
+		await foldersRename.execute({ folderId: FOLDER_ID, name: "Renamed", legacy: true }, ctx);
+		expect(ctx.client.put).toHaveBeenCalledWith("folder", { name: "Renamed" }, { pathParams: { id: FOLDER_ID } });
 	});
 });
 
@@ -142,27 +147,47 @@ describe("folders.move", () => {
 		expect(foldersMove.group).toBe("folders");
 	});
 
-	test("sends null parentId when 'root' is provided", async () => {
-		const ctx = mockContext({ putResult: { id: FOLDER_ID } });
-		await foldersMove.execute({ folderId: FOLDER_ID, parentId: "root" }, ctx);
-		expect(ctx.client.put).toHaveBeenCalledWith("folder_move", { parentId: null }, { pathParams: { id: FOLDER_ID } });
+	test("PATCHes folder_move with parentFolderId for a UUID parent", async () => {
+		const ctx = mockContext({ patchResult: { id: FOLDER_ID } });
+		await foldersMove.execute({ folderId: FOLDER_ID, parentId: PARENT_ID, legacy: false }, ctx);
+		expect(ctx.client.patch).toHaveBeenCalledWith(
+			"folder_move",
+			{ parentFolderId: PARENT_ID },
+			{ pathParams: { id: FOLDER_ID } },
+		);
 	});
 
-	test("sends UUID parentId when valid UUID is provided", async () => {
+	test("PATCHes folder with moveToRoot when 'root' is provided", async () => {
+		const ctx = mockContext({ patchResult: { id: FOLDER_ID } });
+		await foldersMove.execute({ folderId: FOLDER_ID, parentId: "root", legacy: false }, ctx);
+		expect(ctx.client.patch).toHaveBeenCalledWith("folder", { moveToRoot: true }, { pathParams: { id: FOLDER_ID } });
+	});
+
+	test("PUTs legacy folder_move with newParentFolderId when --legacy is set", async () => {
 		const ctx = mockContext({ putResult: { id: FOLDER_ID } });
-		await foldersMove.execute({ folderId: FOLDER_ID, parentId: PARENT_ID }, ctx);
+		await foldersMove.execute({ folderId: FOLDER_ID, parentId: PARENT_ID, legacy: true }, ctx);
 		expect(ctx.client.put).toHaveBeenCalledWith(
 			"folder_move",
-			{ parentId: PARENT_ID },
+			{ newParentFolderId: PARENT_ID },
+			{ pathParams: { id: FOLDER_ID } },
+		);
+	});
+
+	test("legacy move to 'root' sends null newParentFolderId", async () => {
+		const ctx = mockContext({ putResult: { id: FOLDER_ID } });
+		await foldersMove.execute({ folderId: FOLDER_ID, parentId: "root", legacy: true }, ctx);
+		expect(ctx.client.put).toHaveBeenCalledWith(
+			"folder_move",
+			{ newParentFolderId: null },
 			{ pathParams: { id: FOLDER_ID } },
 		);
 	});
 
 	test("throws ValidationError for invalid parent value", async () => {
 		const ctx = mockContext();
-		await expect(foldersMove.execute({ folderId: FOLDER_ID, parentId: "invalid-string" }, ctx)).rejects.toThrow(
-			ValidationError,
-		);
+		await expect(
+			foldersMove.execute({ folderId: FOLDER_ID, parentId: "invalid-string", legacy: false }, ctx),
+		).rejects.toThrow(ValidationError);
 	});
 });
 
@@ -180,17 +205,22 @@ describe("folders.delete", () => {
 		expect(foldersDelete.annotations?.destructiveHint).toBe(true);
 	});
 
-	test("calls DELETE /folders/{id} and returns deleted result", async () => {
+	test("archives the KB folder by default", async () => {
 		const ctx = mockContext();
-		const result = await foldersDelete.execute({ folderId: FOLDER_ID }, ctx);
-		expect(ctx.client.del).toHaveBeenCalledWith("folder", {
-			pathParams: { id: FOLDER_ID },
-		});
+		const result = await foldersDelete.execute({ folderId: FOLDER_ID, legacy: false }, ctx);
+		expect(ctx.client.post).toHaveBeenCalledWith("folder_archive", {}, { pathParams: { id: FOLDER_ID } });
+		expect(result).toEqual({ archived: true, folderId: FOLDER_ID });
+	});
+
+	test("hard-deletes the legacy folder when --legacy is set", async () => {
+		const ctx = mockContext();
+		const result = await foldersDelete.execute({ folderId: FOLDER_ID, legacy: true }, ctx);
+		expect(ctx.client.del).toHaveBeenCalledWith("folder", { pathParams: { id: FOLDER_ID } });
 		expect(result).toEqual({ deleted: true, folderId: FOLDER_ID });
 	});
 
 	test("formatOutput compact returns folderId", () => {
-		expect(foldersDelete.formatOutput({ deleted: true, folderId: FOLDER_ID }, "compact")).toBe(FOLDER_ID);
+		expect(foldersDelete.formatOutput({ archived: true, folderId: FOLDER_ID }, "compact")).toBe(FOLDER_ID);
 	});
 });
 

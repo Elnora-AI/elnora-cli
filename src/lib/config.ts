@@ -34,6 +34,9 @@ export const ENDPOINTS: Record<string, string> = {
 	tasks: "/tasks",
 	task: "/tasks/{id}",
 	task_messages: "/tasks/{id}/messages",
+	task_unarchive: "/tasks/{id}/unarchive",
+	task_attachments: "/tasks/{id}/attachments",
+	task_attachment_content: "/tasks/{id}/attachments/{aid}/content",
 	// Files
 	files: "/files",
 	file: "/files/{id}",
@@ -57,7 +60,9 @@ export const ENDPOINTS: Record<string, string> = {
 	// Folders (closure-table Knowledge Base — the `folder`/`folder_move` paths are shared with the
 	// legacy controller; the KB read/mutation verbs are distinguished by HTTP method at the call site)
 	folder: "/folders/{id}",
+	folder_create: "/folders",
 	folder_move: "/folders/{id}/move",
+	folder_archive: "/folders/{id}/archive",
 	folders_files: "/folders/files",
 	folder_roots: "/folders/roots",
 	folder_children: "/folders/{id}/children",
@@ -78,6 +83,7 @@ export const ENDPOINTS: Record<string, string> = {
 	organizations_all: "/organizations/all",
 	org_files: "/organizations/{orgId}/files",
 	org_member_directory: "/organizations/{orgId}/members/directory",
+	org_kb_autotidy: "/organizations/{orgId}/kb-autotidy",
 	// Organization invitations
 	org_invitations: "/organizations/{orgId}/invitations",
 	org_invitation: "/organizations/{orgId}/invitations/{invId}",
@@ -89,6 +95,10 @@ export const ENDPOINTS: Record<string, string> = {
 	library_files: "/organizations/{orgId}/library/files",
 	library_folders: "/organizations/{orgId}/library/folders",
 	library_folder: "/organizations/{orgId}/library/folders/{id}",
+	// Knowledge Base review queue
+	kb_review_items: "/kb-review-items",
+	kb_review_approve: "/kb-review-items/{id}/approve",
+	kb_review_reject: "/kb-review-items/{id}/reject",
 	// Search
 	search_tasks: "/search/tasks",
 	search_files: "/search/files",

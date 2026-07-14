@@ -15,6 +15,7 @@ import { orgsListAll } from "./list-all.js";
 import { orgsMembers } from "./members.js";
 import { orgsRemoveMember } from "./remove-member.js";
 import { orgsResendInvite } from "./resend-invite.js";
+import { orgsSetAutotidy } from "./set-autotidy.js";
 import { orgsSetDefault } from "./set-default.js";
 import { orgsSetStripe } from "./set-stripe.js";
 import { orgsUpdate } from "./update.js";
@@ -42,6 +43,7 @@ export function registerOrgCommands(): ElnoraCommand[] {
 		orgsFiles,
 		orgsListAll,
 		orgsDirectory,
+		orgsSetAutotidy,
 	];
 }
 
@@ -62,6 +64,7 @@ export {
 	orgsMembers,
 	orgsRemoveMember,
 	orgsResendInvite,
+	orgsSetAutotidy,
 	orgsSetDefault,
 	orgsSetStripe,
 	orgsUpdate,

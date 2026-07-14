@@ -16,6 +16,7 @@ import { orgsListAll } from "../../../src/commands/orgs/list-all.js";
 import { orgsMembers } from "../../../src/commands/orgs/members.js";
 import { orgsRemoveMember } from "../../../src/commands/orgs/remove-member.js";
 import { orgsResendInvite } from "../../../src/commands/orgs/resend-invite.js";
+import { orgsSetAutotidy } from "../../../src/commands/orgs/set-autotidy.js";
 import { orgsSetDefault } from "../../../src/commands/orgs/set-default.js";
 import { orgsSetStripe } from "../../../src/commands/orgs/set-stripe.js";
 import { orgsUpdate } from "../../../src/commands/orgs/update.js";
@@ -587,13 +588,39 @@ describe("orgs.directory", () => {
 });
 
 // ---------------------------------------------------------------------------
+// orgs.setAutotidy
+// ---------------------------------------------------------------------------
+
+describe("orgs.setAutotidy", () => {
+	test("PATCHes kb-autotidy with enabled true", async () => {
+		const ctx = mockContext({ patchResult: { kbAutotidyEnabled: true } });
+		await orgsSetAutotidy.execute({ orgId: ORG_ID, enabled: true }, ctx);
+		expect(ctx.client.patch).toHaveBeenCalledWith(
+			"org_kb_autotidy",
+			{ enabled: true },
+			{ pathParams: { orgId: ORG_ID } },
+		);
+	});
+
+	test("PATCHes kb-autotidy with enabled false", async () => {
+		const ctx = mockContext({ patchResult: { kbAutotidyEnabled: false } });
+		await orgsSetAutotidy.execute({ orgId: ORG_ID, enabled: false }, ctx);
+		expect(ctx.client.patch).toHaveBeenCalledWith(
+			"org_kb_autotidy",
+			{ enabled: false },
+			{ pathParams: { orgId: ORG_ID } },
+		);
+	});
+});
+
+// ---------------------------------------------------------------------------
 // registerOrgCommands
 // ---------------------------------------------------------------------------
 
 describe("registerOrgCommands", () => {
-	test("returns all 20 org commands", () => {
+	test("returns all 21 org commands", () => {
 		const commands = registerOrgCommands();
-		expect(commands).toHaveLength(20);
+		expect(commands).toHaveLength(21);
 	});
 
 	test("all commands belong to orgs group", () => {

@@ -1,11 +1,14 @@
 import { describe, expect, test, vi } from "vitest";
 import { tasksArchive } from "../../../src/commands/tasks/archive.js";
+import { tasksAttachmentContent } from "../../../src/commands/tasks/attachment-content.js";
+import { tasksAttachments } from "../../../src/commands/tasks/attachments.js";
 import { tasksCreate } from "../../../src/commands/tasks/create.js";
 import { tasksGet } from "../../../src/commands/tasks/get.js";
 import { registerTaskCommands } from "../../../src/commands/tasks/index.js";
 import { tasksList } from "../../../src/commands/tasks/list.js";
 import { tasksMessages } from "../../../src/commands/tasks/messages.js";
 import { tasksSend } from "../../../src/commands/tasks/send.js";
+import { tasksUnarchive } from "../../../src/commands/tasks/unarchive.js";
 import { tasksUpdate } from "../../../src/commands/tasks/update.js";
 import type { CommandContext } from "../../../src/core/command.js";
 import { ValidationError } from "../../../src/lib/errors.js";
@@ -78,6 +81,14 @@ describe("tasks.list", () => {
 
 	test("rejects invalid project UUID", () => {
 		expect(() => tasksList.inputSchema.parse({ project: "not-uuid" })).toThrow();
+	});
+
+	test("includes status in queryParams when provided", async () => {
+		const ctx = mockContext({ getResult: { items: [] } });
+		await tasksList.execute({ status: "archived", page: 1, pageSize: 25 }, ctx);
+		expect(ctx.client.get).toHaveBeenCalledWith("tasks", {
+			queryParams: { page: 1, pageSize: 25, status: "archived" },
+		});
 	});
 
 	test("formatOutput compact returns id or JSON", () => {
@@ -388,13 +399,45 @@ describe("tasks.archive", () => {
 });
 
 // ---------------------------------------------------------------------------
+// tasks.unarchive / attachments / attachmentContent
+// ---------------------------------------------------------------------------
+
+describe("tasks.unarchive", () => {
+	test("POSTs the unarchive endpoint and returns unarchived", async () => {
+		const ctx = mockContext();
+		const result = await tasksUnarchive.execute({ taskId: TASK_ID }, ctx);
+		expect(ctx.client.post).toHaveBeenCalledWith("task_unarchive", {}, { pathParams: { id: TASK_ID } });
+		expect(result).toEqual({ unarchived: true, taskId: TASK_ID });
+	});
+});
+
+describe("tasks.attachments", () => {
+	test("is read-only and GETs the attachments list", async () => {
+		expect(tasksAttachments.annotations?.readOnlyHint).toBe(true);
+		const ctx = mockContext({ getResult: [] });
+		await tasksAttachments.execute({ taskId: TASK_ID }, ctx);
+		expect(ctx.client.get).toHaveBeenCalledWith("task_attachments", { pathParams: { id: TASK_ID } });
+	});
+});
+
+describe("tasks.attachmentContent", () => {
+	test("GETs the attachment content with both path params", async () => {
+		const ctx = mockContext({ getResult: { content: "hi" } });
+		await tasksAttachmentContent.execute({ taskId: TASK_ID, attachmentId: FILE_ID_1 }, ctx);
+		expect(ctx.client.get).toHaveBeenCalledWith("task_attachment_content", {
+			pathParams: { id: TASK_ID, aid: FILE_ID_1 },
+		});
+	});
+});
+
+// ---------------------------------------------------------------------------
 // registerTaskCommands
 // ---------------------------------------------------------------------------
 
 describe("registerTaskCommands", () => {
-	test("returns all 7 task commands", () => {
+	test("returns all 10 task commands", () => {
 		const commands = registerTaskCommands();
-		expect(commands).toHaveLength(7);
+		expect(commands).toHaveLength(10);
 	});
 
 	test("all commands belong to tasks group", () => {

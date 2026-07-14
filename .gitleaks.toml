@@ -1,0 +1,17 @@
+# gitleaks config for elnora-cli.
+# Extend the built-in ruleset, then allow-list the test directories. The unit
+# tests — current TypeScript `__tests__/` and the historical Python `tests/`
+# from before the TS rewrite — use synthetic `elnora_live_…` fixture keys.
+# These are deterministic placeholder strings (e.g. `elnora_live_testkey1234567890`,
+# `elnora_live_fromenv1234567890`), not real credentials: real keys are
+# high-entropy and live only in gitignored `~/.elnora/profiles.toml` and `.env`,
+# never in the tree.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Unit-test fixtures use synthetic elnora_live_ placeholder keys, not real secrets."
+paths = [
+  '''__tests__/.*''',
+  '''tests/.*''',
+]

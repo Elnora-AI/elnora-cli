@@ -202,6 +202,7 @@ Run `elnora config show` to print the resolved endpoints and active profile.
 
 ## Documentation
 
+- [Setup for AI agents](INSTALL_FOR_AGENTS.md) — hand an autonomous coding agent the install, auth, and setup runbook
 - [Migration Guide](MIGRATION.md) — migrating from the Python CLI
 - [API Reference](https://docs.elnora.ai)
 - [Platform](https://platform.elnora.ai)

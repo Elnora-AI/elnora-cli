@@ -230,9 +230,13 @@ jobs:
           VERSION="${GITHUB_REF_NAME#v}"
           echo "Syncing skills and updating version to $VERSION"
 
-          # Copy skill files
-          for skill in elnora-admin elnora-agent elnora-files elnora-folders elnora-orgs elnora-platform elnora-projects elnora-search elnora-tasks; do
-            cp "skills/$skill/SKILL.md" "elnora-plugins/elnora/skills/$skill/SKILL.md"
+          # Copy every skill (this repo's skills/ is the source of truth), creating
+          # the destination dir so newly-added skills sync automatically instead of
+          # being silently dropped by a hard-coded list.
+          for dir in skills/*/; do
+            skill="$(basename "$dir")"
+            mkdir -p "elnora-plugins/elnora/skills/$skill"
+            cp "$dir/SKILL.md" "elnora-plugins/elnora/skills/$skill/SKILL.md"
           done
 
           # Update plugin.json version

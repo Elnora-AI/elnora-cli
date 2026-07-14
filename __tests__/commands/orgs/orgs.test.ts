@@ -4,6 +4,7 @@ import { orgsBilling } from "../../../src/commands/orgs/billing.js";
 import { orgsCancelInvite } from "../../../src/commands/orgs/cancel-invite.js";
 import { orgsCreate } from "../../../src/commands/orgs/create.js";
 import { orgsDelete } from "../../../src/commands/orgs/delete.js";
+import { orgsDirectory } from "../../../src/commands/orgs/directory.js";
 import { orgsFiles } from "../../../src/commands/orgs/files.js";
 import { orgsGet } from "../../../src/commands/orgs/get.js";
 import { registerOrgCommands } from "../../../src/commands/orgs/index.js";
@@ -562,13 +563,37 @@ describe("orgs.listAll", () => {
 });
 
 // ---------------------------------------------------------------------------
+// orgs.directory (Share-modal member typeahead)
+// ---------------------------------------------------------------------------
+
+describe("orgs.directory", () => {
+	test("is read-only and GETs the member directory with q", async () => {
+		const ctx = mockContext({ getResult: [] });
+		expect(orgsDirectory.annotations?.readOnlyHint).toBe(true);
+		await orgsDirectory.execute({ orgId: ORG_ID, query: "ada" }, ctx);
+		expect(ctx.client.get).toHaveBeenCalledWith("org_member_directory", {
+			pathParams: { orgId: ORG_ID },
+			queryParams: { q: "ada" },
+		});
+	});
+
+	test("requires a query of at least 2 characters", () => {
+		expect(() => orgsDirectory.inputSchema.parse({ orgId: ORG_ID, query: "a" })).toThrow();
+		expect(orgsDirectory.inputSchema.parse({ orgId: ORG_ID, query: "ab" })).toEqual({
+			orgId: ORG_ID,
+			query: "ab",
+		});
+	});
+});
+
+// ---------------------------------------------------------------------------
 // registerOrgCommands
 // ---------------------------------------------------------------------------
 
 describe("registerOrgCommands", () => {
-	test("returns all 19 org commands", () => {
+	test("returns all 20 org commands", () => {
 		const commands = registerOrgCommands();
-		expect(commands).toHaveLength(19);
+		expect(commands).toHaveLength(20);
 	});
 
 	test("all commands belong to orgs group", () => {

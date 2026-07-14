@@ -5,6 +5,13 @@ All notable changes to the Elnora CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.5.0](https://github.com/Elnora-AI/elnora-cli/compare/v2.4.0...v2.5.0) (2026-07-14)
+
+
+### Features
+
+* KB folder-mutation repoint + review queue, auto-tidy & task-lifecycle commands ([#205](https://github.com/Elnora-AI/elnora-cli/issues/205)) ([443125d](https://github.com/Elnora-AI/elnora-cli/commit/443125d6abc49f06c05eadfa99857f362bab6b2f))
+
 ## [2.4.0](https://github.com/Elnora-AI/elnora-cli/compare/v2.3.0...v2.4.0) (2026-07-14)
 
 

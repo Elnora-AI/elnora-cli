@@ -57,7 +57,9 @@ export const ENDPOINTS: Record<string, string> = {
 	// Folders (closure-table Knowledge Base — the `folder`/`folder_move` paths are shared with the
 	// legacy controller; the KB read/mutation verbs are distinguished by HTTP method at the call site)
 	folder: "/folders/{id}",
+	folder_create: "/folders",
 	folder_move: "/folders/{id}/move",
+	folder_archive: "/folders/{id}/archive",
 	folders_files: "/folders/files",
 	folder_roots: "/folders/roots",
 	folder_children: "/folders/{id}/children",

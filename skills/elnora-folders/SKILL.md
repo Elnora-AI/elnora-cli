@@ -57,31 +57,30 @@ CLI="elnora"
 
 ## Commands
 
-### List Folders
-
-```bash
-$CLI --compact folders list <PROJECT_ID>
-```
-
-`<PROJECT_ID>` is positional (`projectId`). Returns the folder tree for the project.
+> **Knowledge Base by default.** `create` / `rename` / `move` / `delete` operate on the
+> Knowledge Base (the current folder model — same tree as `folders roots`/`children`). The
+> old project-scoped folders are legacy; reach them with `--project` (create) or `--legacy`
+> (rename/move/delete).
 
 ### Create Folder
 
 ```bash
-$CLI --compact folders create <PROJECT_ID> --name "Experiments"
-$CLI --compact folders create <PROJECT_ID> --name "Sub Folder" --parent-id <PARENT_FOLDER_ID>
+$CLI --compact folders create --name "Experiments"
+$CLI --compact folders create --name "Sub Folder" --parent-id <PARENT_FOLDER_ID>
+$CLI --compact folders create --name "Legacy" --project <PROJECT_ID>   # legacy project folder
 ```
 
 | Flag/Arg | Required | Notes |
 |----------|----------|-------|
-| `<PROJECT_ID>` | Yes | Positional — project UUID |
 | `--name` | Yes | Folder name |
-| `--parent-id` | No | Parent folder UUID for nesting (optional, so it's a flag) |
+| `--parent-id` | No | Parent folder UUID for nesting |
+| `--project` | No | Legacy: create a project-scoped folder in this project instead |
 
 ### Rename Folder
 
 ```bash
 $CLI --compact folders rename <FOLDER_ID> --name "New Name"
+$CLI --compact folders rename <FOLDER_ID> --name "New Name" --legacy   # a legacy project folder
 ```
 
 ### Move Folder
@@ -89,18 +88,28 @@ $CLI --compact folders rename <FOLDER_ID> --name "New Name"
 ```bash
 $CLI --compact folders move <FOLDER_ID> <NEW_PARENT_ID>
 $CLI --compact folders move <FOLDER_ID> root
+$CLI --compact folders move <FOLDER_ID> <NEW_PARENT_ID> --legacy
 ```
 
-Both `<FOLDER_ID>` and `<NEW_PARENT_ID>` are positional (`folderId` and `parentId`). Use `root` to move to the project root level.
+Both `<FOLDER_ID>` and `<NEW_PARENT_ID>` are positional (`folderId` and `parentId`). Use `root` to move to the top level.
 
 ### Delete Folder
 
 ```bash
-$CLI --compact folders delete <FOLDER_ID>
-# -> {"deleted":true,"folderId":"<UUID>"}
+$CLI --compact folders delete <FOLDER_ID>            # KB: archives the folder
+# -> {"archived":true,"folderId":"<UUID>"}
+$CLI --compact folders delete <FOLDER_ID> --legacy   # legacy: hard-deletes a project folder
 ```
 
 Destructive — confirm with user before running.
+
+### List Folders (legacy)
+
+```bash
+$CLI --compact folders list <PROJECT_ID>
+```
+
+Legacy project-scoped folder tree. `<PROJECT_ID>` is positional. For the Knowledge Base, browse with `folders roots` / `folders children` instead.
 
 ### Share a Folder
 
@@ -137,18 +146,19 @@ $CLI --compact folders unshare <FOLDER_ID> <ACE_ID>  # revoke one share
 
 ## Agent Recipes
 
-**Set up folder structure for a new project:**
+**Set up a Knowledge Base folder structure:**
 
 ```bash
-PROJECT="<PROJECT_ID>"
-$CLI --compact folders create "$PROJECT" --name "Protocols"
-$CLI --compact folders create "$PROJECT" --name "Data"
-$CLI --compact folders create "$PROJECT" --name "Reports"
+$CLI --compact folders create --name "Protocols"
+$CLI --compact folders create --name "Data"
+$CLI --compact folders create --name "Reports"
+# nest one under another with --parent-id <FOLDER_ID>
 ```
 
 **Move a file into a folder:**
 
 ```bash
-$CLI --compact folders list <PROJECT_ID>
-$CLI --compact files update <FILE_ID> --folder <FOLDER_ID>
+$CLI --compact folders roots                 # find the folder to move into
+$CLI --compact folders children <FOLDER_ID>
+$CLI --compact files move <FILE_ID> <FOLDER_ID>
 ```

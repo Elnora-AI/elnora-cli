@@ -3,7 +3,8 @@ name: elnora-folders
 description: >
   This skill should be used when the user asks to "browse the knowledge base",
   "list KB folders", "show my folders", "open a folder", "create folder",
-  "list folders", "rename folder", "move folder", "delete folder", "organize files
+  "list folders", "rename folder", "move folder", "delete folder", "share a folder",
+  "unshare a folder", "folder permissions", "who can access a folder", "organize files
   into folders", or any task involving Elnora Platform folder management.
 ---
 

@@ -5,7 +5,8 @@ description: >
   "get file content", "view protocol output", "file versions", "version history",
   "download protocol", "upload file", "upload batch", "bulk upload", "create file",
   "archive file", "fork file", "promote file", "working copy", "commit working copy",
-  "update file", "restore version",
+  "update file", "restore version", "share a file", "unshare a file", "file shares",
+  "who can access a file", "move a file to a folder",
   or any task involving Elnora Platform file management.
   NOT for searching file contents across files — use elnora-search for that.
 ---

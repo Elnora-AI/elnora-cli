@@ -6,7 +6,8 @@ description: >
   "resend invitation", "reinvite", "cancel invitation", "accept invitation",
   "get invitation info", "remove member from org", "organization library",
   "shared library", "library files", "library folders", "set default org",
-  "delete org", "list all orgs", "set stripe",
+  "delete org", "list all orgs", "set stripe", "search members", "member directory",
+  "find a member", "look up a user id to share with", "auto-tidy", "set auto-tidy",
   or any task involving Elnora Platform organization management and shared library resources.
 ---
 

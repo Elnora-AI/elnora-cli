@@ -5,6 +5,13 @@ All notable changes to the Elnora CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.4.0](https://github.com/Elnora-AI/elnora-cli/compare/v2.3.0...v2.4.0) (2026-07-14)
+
+
+### Features
+
+* **sharing:** file & folder sharing, file move, and member directory ([#201](https://github.com/Elnora-AI/elnora-cli/issues/201)) ([61bf2e4](https://github.com/Elnora-AI/elnora-cli/commit/61bf2e429e05f566d864e4f219a1c80f4d1c01b8))
+
 ## [2.3.0](https://github.com/Elnora-AI/elnora-cli/compare/v2.2.1...v2.3.0) (2026-07-13)
 
 

@@ -81,10 +81,11 @@ Get keys: platform.elnora.ai > Settings > API Keys
 |------|-----------|------------------|
 | List/get/create/update/archive projects, manage members | `elnora-projects` | project, workspace, create project, members, add member |
 | Create/manage/message tasks, protocol generation | `elnora-tasks` | task, protocol, send message, conversation, generate |
-| Browse/read/upload/create/version/fork files | `elnora-files` | file, content, version history, upload, download, fork, working copy |
+| Browse/read/upload/version/fork/share/move files | `elnora-files` | file, content, version history, upload, download, fork, working copy, share file, move file |
 | Find tasks or files by keyword | `elnora-search` | search, find, query |
-| Manage project folder trees | `elnora-folders` | folder, create folder, move folder |
-| Org management, members, billing, invitations, shared library | `elnora-orgs` | organization, org, billing, invite, library |
+| Browse/create/rename/move/delete/share Knowledge Base folders | `elnora-folders` | folder, KB folder, create folder, move folder, share folder |
+| Approve/reject Knowledge Base auto-tidy proposals | `elnora-review` | review queue, KB review, approve, reject, auto-tidy |
+| Org management, members, billing, invitations, member directory, auto-tidy, shared library | `elnora-orgs` | organization, org, billing, invite, member directory, auto-tidy, library |
 | Auth, API keys, account, health, diagnostics | `elnora-admin` | login, logout, profiles, api key, health, account, feedback, audit, completion |
 | Feature flags (SystemAdmin) | `elnora-admin` | feature flag, flags, set flag, list flags |
 | What can the Elnora Agent do? (tools, search, memory) | `elnora-agent` | agent capabilities, agent tools, what can agent do |
@@ -186,15 +187,16 @@ elnora auth         Manage authentication
 elnora completion   Generate shell completion script
 elnora doctor       Run diagnostics (API, auth, version, config checks)
 elnora feedback     Submit feedback
-elnora files        Manage project files (incl. batch upload)
+elnora files        Manage files (share, move, versions, batch upload)
 elnora flags        Manage global feature flags (SystemAdmin)
-elnora folders      Manage project folders
+elnora folders      Manage Knowledge Base folders (browse, share)
 elnora health       Check platform reachability
 elnora library      Manage organization library
 elnora mcp          Run as MCP server (--http or --stdio)
 elnora open         Open platform pages in browser
-elnora orgs         Manage organizations (incl. set-default, delete, list-all)
+elnora orgs         Manage organizations (members, directory, set-autotidy, billing)
 elnora projects     Manage projects
+elnora review       Approve/reject Knowledge Base review-queue items
 elnora search       Search tasks, files, and file content
 elnora setup        Configure AI coding tools (Claude Code, Cursor, VS Code, Codex)
 elnora tasks        Manage tasks

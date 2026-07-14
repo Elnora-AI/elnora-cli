@@ -3,8 +3,9 @@ name: elnora-tasks
 description: >
   This skill should be used when the user asks to "create a task", "send a message",
   "generate a protocol", "list tasks", "get task", "view task details",
-  "read task messages", "update task status", "archive a task", "talk to Elnora",
-  "ask Elnora to generate", "protocol conversation",
+  "read task messages", "update task status", "archive a task", "unarchive a task",
+  "restore a task", "list archived tasks", "task attachments", "read an attachment",
+  "talk to Elnora", "ask Elnora to generate", "protocol conversation",
   or any task involving Elnora Platform task management and protocol generation.
 ---
 

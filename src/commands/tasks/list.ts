@@ -5,6 +5,10 @@ import { paginationInput } from "../_shared/pagination.js";
 
 const inputSchema = z.object({
 	project: z.string().uuid().optional().describe("Project ID to filter by"),
+	status: z
+		.enum(["active", "archived", "all"])
+		.optional()
+		.describe("Lifecycle filter: active (default), archived, or all"),
 	...paginationInput,
 });
 
@@ -13,21 +17,18 @@ type Input = z.infer<typeof inputSchema>;
 export const tasksList: ElnoraCommand<Input> = {
 	name: "tasks.list",
 	group: "tasks",
-	description: "List tasks, optionally filtered by project",
+	description: "List tasks, optionally filtered by project or lifecycle status",
 	inputSchema,
 	outputSchema: z.any(),
 	annotations: { readOnlyHint: true },
 
 	async execute(input, ctx) {
+		const queryParams: Record<string, string | number> = { page: input.page, pageSize: input.pageSize };
+		if (input.status) queryParams.status = input.status;
 		if (input.project) {
-			return ctx.client.get("project_tasks", {
-				pathParams: { id: input.project },
-				queryParams: { page: input.page, pageSize: input.pageSize },
-			});
+			return ctx.client.get("project_tasks", { pathParams: { id: input.project }, queryParams });
 		}
-		return ctx.client.get("tasks", {
-			queryParams: { page: input.page, pageSize: input.pageSize },
-		});
+		return ctx.client.get("tasks", { queryParams });
 	},
 
 	formatOutput(output: unknown, format: OutputFormat): string {

@@ -49,7 +49,7 @@ elnora setup
 
 This auto-detects which tools you have installed and configures them:
 
-- **Claude Code** — registers the `elnora-plugins` marketplace and enables 9 skills (`elnora-tasks`, `elnora-projects`, `elnora-files`, etc.) so you can use natural language.
+- **Claude Code** — registers the `elnora-plugins` marketplace and enables 10 skills (`elnora-tasks`, `elnora-projects`, `elnora-files`, etc.) so you can use natural language.
 - **Cursor / VS Code / Codex** — writes an MCP server config pointing at `https://mcp.elnora.ai/mcp` with your API key.
 
 Target a specific tool: `elnora setup claude` · `elnora setup cursor` · `elnora setup vscode` · `elnora setup codex`.

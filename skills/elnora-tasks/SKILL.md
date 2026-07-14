@@ -89,11 +89,13 @@ $CLI --compact --fields "id,name" projects list
 
 ```bash
 $CLI --compact tasks list
+$CLI --compact tasks list --status archived     # only archived tasks
+$CLI --compact tasks list --status all
 $CLI --compact tasks list --project <PROJECT_ID>
 $CLI --compact tasks list --project <PROJECT_ID> --page 2 --page-size 50
 ```
 
-Pagination: `--page` (default 1), `--page-size` (default 25, max 100).
+`--status` is `active` (default — hides archived), `archived`, or `all`. Pagination: `--page` (default 1), `--page-size` (default 25, max 100).
 
 Response:
 
@@ -175,14 +177,23 @@ $CLI --compact tasks update <TASK_ID> --status completed
 
 Must provide at least one of `--title` or `--status`.
 
-### Archive Task
+### Archive / Unarchive Task
 
 ```bash
 $CLI --compact tasks archive <TASK_ID>
 # -> {"archived":true,"taskId":"<UUID>"}
+$CLI --compact tasks unarchive <TASK_ID>
+# -> {"unarchived":true,"taskId":"<UUID>"}
 ```
 
-Destructive — confirm with user before running.
+Archive is destructive-ish (hides the task) — confirm with user. Archived tasks are found with `tasks list --status archived` and restored with `tasks unarchive`.
+
+### Task Attachments
+
+```bash
+$CLI --compact tasks attachments <TASK_ID>                        # list attached files
+$CLI --compact tasks attachment-content <TASK_ID> <ATTACHMENT_ID>  # read one attachment
+```
 
 ## MCP Tool Names
 
@@ -197,6 +208,9 @@ All commands are auto-registered as MCP tools with the `elnora_` prefix:
 | `tasks messages` | `elnora_tasks_messages` |
 | `tasks update` | `elnora_tasks_update` |
 | `tasks archive` | `elnora_tasks_archive` |
+| `tasks unarchive` | `elnora_tasks_unarchive` |
+| `tasks attachments` | `elnora_tasks_attachments` |
+| `tasks attachment-content` | `elnora_tasks_attachmentContent` |
 
 MCP tools accept the same parameters as CLI flags (camelCase). `elnora_tasks_send` always waits for the full agent response.
 

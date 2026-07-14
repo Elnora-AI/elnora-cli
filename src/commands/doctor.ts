@@ -25,6 +25,7 @@ const EXPECTED_SKILLS = [
 	"elnora-orgs",
 	"elnora-platform",
 	"elnora-projects",
+	"elnora-review",
 	"elnora-search",
 	"elnora-tasks",
 ];

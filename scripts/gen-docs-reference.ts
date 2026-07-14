@@ -186,6 +186,7 @@ const GROUP_BLURB: Record<string, string> = {
 	orgs: "Manage organizations, members, and invitations.",
 	projects: "Create and manage projects and their members.",
 	protocols: "Generate and optimize bioprotocols.",
+	review: "Approve or reject Knowledge Base auto-tidy proposals.",
 	search: "Search across your knowledge base and content.",
 	tasks: "Drive the Elnora agent — create tasks and exchange messages.",
 };

@@ -123,6 +123,15 @@ Look up fellow organization members by name or email substring — this is how y
 $CLI --compact orgs set-default <ORG_ID>
 ```
 
+### Set Knowledge Base Auto-Tidy
+
+```bash
+$CLI --compact orgs set-autotidy <ORG_ID> --enabled   # turn on
+$CLI --compact orgs set-autotidy <ORG_ID>             # turn off (omit --enabled)
+```
+
+Toggles KB auto-tidy for the org. When on, the agent proposes folder/file tidy-ups that land in the review queue (see the `elnora-review` skill).
+
 ### Set Stripe Customer ID (SystemAdmin)
 
 ```bash
@@ -265,6 +274,7 @@ Destructive — confirm with user first.
 | `orgs billing` | `elnora_orgs_billing` |
 | `orgs files` | `elnora_orgs_files` |
 | `orgs directory` | `elnora_orgs_directory` |
+| `orgs set-autotidy` | `elnora_orgs_setAutotidy` |
 | `orgs set-default` | `elnora_orgs_setDefault` |
 | `orgs set-stripe` | `elnora_orgs_setStripe` |
 | `orgs list-all` | `elnora_orgs_listAll` |

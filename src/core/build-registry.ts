@@ -21,6 +21,7 @@ import { registerLibraryCommands } from "../commands/library/index.js";
 import { registerOrgCommands } from "../commands/orgs/index.js";
 import { registerProjectCommands } from "../commands/projects/index.js";
 import { registerProtocolCommands } from "../commands/protocols/index.js";
+import { registerReviewCommands } from "../commands/review/index.js";
 import { registerSearchCommands } from "../commands/search/index.js";
 import { registerTaskCommands } from "../commands/tasks/index.js";
 import { CommandRegistry } from "./registry.js";
@@ -36,6 +37,7 @@ export function buildRegistry(): CommandRegistry {
 		registerFileCommands(),
 		registerOrgCommands(),
 		registerFolderCommands(),
+		registerReviewCommands(),
 		registerSearchCommands(),
 		registerProtocolCommands(),
 		registerLibraryCommands(),

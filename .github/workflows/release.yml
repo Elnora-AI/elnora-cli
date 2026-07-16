@@ -106,7 +106,7 @@ jobs:
           cache: "pnpm"
       - name: Sync version from release tag
         run: |
-          VERSION="${GITHUB_REF_NAME##*-v}"
+          VERSION="${GITHUB_REF_NAME#v}"
           echo "Publishing version: $VERSION"
           npm version "$VERSION" --no-git-tag-version --allow-same-version
       - run: pnpm install --frozen-lockfile
@@ -170,7 +170,7 @@ jobs:
 
       - name: Extract version from tag
         run: |
-          VERSION="${GITHUB_REF_NAME##*-v}"
+          VERSION="${GITHUB_REF_NAME#v}"
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
           echo "Updating Homebrew formula to $VERSION"
 

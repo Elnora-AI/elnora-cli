@@ -5,6 +5,13 @@ All notable changes to the Elnora CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.6.0](https://github.com/Elnora-AI/elnora-cli/compare/v2.5.2...v2.6.0) (2026-07-18)
+
+
+### Features
+
+* deprecate the projects command group and move the auth check off the projects endpoint ([#213](https://github.com/Elnora-AI/elnora-cli/issues/213)) ([0afae89](https://github.com/Elnora-AI/elnora-cli/commit/0afae89cb6160dd1aa5f757ab4c3fa61033f3597))
+
 ## [2.5.2](https://github.com/Elnora-AI/elnora-cli/compare/v2.5.1...v2.5.2) (2026-07-16)
 
 

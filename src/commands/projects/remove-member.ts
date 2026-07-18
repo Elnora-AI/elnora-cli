@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { ElnoraCommand } from "../../core/command.js";
 import type { OutputFormat } from "../../lib/output.js";
+import { projectsRemoved } from "../_shared/deprecated.js";
 
 const inputSchema = z.object({
 	projectId: z.string().uuid().describe("Project ID"),
@@ -8,25 +9,21 @@ const inputSchema = z.object({
 });
 
 type Input = z.infer<typeof inputSchema>;
-type Output = { removed: boolean };
 
-export const projectsRemoveMember: ElnoraCommand<Input, Output> = {
+export const projectsRemoveMember: ElnoraCommand<Input> = {
 	name: "projects.removeMember",
 	group: "projects",
-	description: "Remove a member from a project",
+	description: "[DEPRECATED] Remove a member from a project — projects were removed; this is a no-op.",
 	inputSchema,
 	outputSchema: z.any(),
 	annotations: { destructiveHint: true },
 
-	async execute(input, ctx) {
-		await ctx.client.del("project_member", {
-			pathParams: { id: input.projectId, uid: input.userId },
-		});
-		return { removed: true };
+	async execute() {
+		return projectsRemoved();
 	},
 
-	formatOutput(output: Output, format: OutputFormat): string {
-		if (format === "compact") return String(output.removed);
+	formatOutput(output: unknown, format: OutputFormat): string {
+		if (format === "compact") return (output as { id?: string }).id ?? JSON.stringify(output);
 		return JSON.stringify(output, null, 2);
 	},
 };

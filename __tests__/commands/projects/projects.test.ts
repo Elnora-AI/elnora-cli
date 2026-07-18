@@ -11,30 +11,36 @@ import { projectsRemoveMember } from "../../../src/commands/projects/remove-memb
 import { projectsUpdate } from "../../../src/commands/projects/update.js";
 import { projectsUpdateRole } from "../../../src/commands/projects/update-role.js";
 import type { CommandContext } from "../../../src/core/command.js";
-import { ValidationError } from "../../../src/lib/errors.js";
 
 const PROJECT_ID = "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d";
 const USER_ID = "d5c4b3a2-f6e5-4b7a-9d8c-1f0e2a3b4c5d";
 
-function mockContext(overrides?: {
-	getResult?: unknown;
-	postResult?: unknown;
-	patchResult?: unknown;
-	putResult?: unknown;
-	delResult?: unknown;
-}): CommandContext {
+function mockContext(): CommandContext {
 	return {
 		client: {
-			get: vi.fn().mockResolvedValue(overrides?.getResult ?? {}),
-			post: vi.fn().mockResolvedValue(overrides?.postResult ?? {}),
-			patch: vi.fn().mockResolvedValue(overrides?.patchResult ?? {}),
-			put: vi.fn().mockResolvedValue(overrides?.putResult ?? {}),
-			del: vi.fn().mockResolvedValue(overrides?.delResult ?? undefined),
+			get: vi.fn().mockResolvedValue({}),
+			post: vi.fn().mockResolvedValue({}),
+			patch: vi.fn().mockResolvedValue({}),
+			put: vi.fn().mockResolvedValue({}),
+			del: vi.fn().mockResolvedValue(undefined),
 		} as unknown as CommandContext["client"],
 		profileName: "default",
 		mode: "cli",
 		output: { format: "json", compact: false },
 	};
+}
+
+/**
+ * Every project command is a deprecated no-op (ELN-880/881 removed the "project"
+ * concept). They stay registered — same names + input schemas so the CLI↔MCP
+ * parity gate keeps resolving — but must NOT call the backend `/projects` shim.
+ */
+function expectNoBackendCall(ctx: CommandContext): void {
+	expect(ctx.client.get).not.toHaveBeenCalled();
+	expect(ctx.client.post).not.toHaveBeenCalled();
+	expect(ctx.client.patch).not.toHaveBeenCalled();
+	expect(ctx.client.put).not.toHaveBeenCalled();
+	expect(ctx.client.del).not.toHaveBeenCalled();
 }
 
 // ---------------------------------------------------------------------------
@@ -51,29 +57,17 @@ describe("projects.list", () => {
 		expect(projectsList.annotations?.readOnlyHint).toBe(true);
 	});
 
-	test("calls GET /projects with pagination", async () => {
-		const ctx = mockContext({ getResult: { items: [], total: 0 } });
-		const result = await projectsList.execute({ page: 2, pageSize: 10 }, ctx);
-		expect(ctx.client.get).toHaveBeenCalledWith("projects", {
-			queryParams: { page: 2, pageSize: 10 },
-		});
-		expect(result).toEqual({ items: [], total: 0 });
-	});
-
 	test("uses default pagination values", () => {
 		const parsed = projectsList.inputSchema.parse({});
 		expect(parsed.page).toBe(1);
 		expect(parsed.pageSize).toBe(25);
 	});
 
-	test("formatOutput compact returns id or JSON", () => {
-		expect(projectsList.formatOutput({ id: "abc" }, "compact")).toBe("abc");
-		expect(projectsList.formatOutput([1, 2], "compact")).toBe("[1,2]");
-	});
-
-	test("formatOutput json returns pretty JSON", () => {
-		const output = { items: [] };
-		expect(projectsList.formatOutput(output, "json")).toBe(JSON.stringify(output, null, 2));
+	test("is a deprecated no-op returning an empty page (no backend call)", async () => {
+		const ctx = mockContext();
+		const result = await projectsList.execute({ page: 2, pageSize: 10 }, ctx);
+		expectNoBackendCall(ctx);
+		expect(result).toMatchObject({ deprecated: true, items: [], totalCount: 0, page: 2, pageSize: 10 });
 	});
 });
 
@@ -93,13 +87,11 @@ describe("projects.get", () => {
 		expect(projectsGet.inputSchema.parse({ projectId: PROJECT_ID })).toEqual({ projectId: PROJECT_ID });
 	});
 
-	test("calls GET /projects/{id}", async () => {
-		const ctx = mockContext({ getResult: { id: PROJECT_ID, name: "Test" } });
+	test("is a deprecated no-op (no backend call)", async () => {
+		const ctx = mockContext();
 		const result = await projectsGet.execute({ projectId: PROJECT_ID }, ctx);
-		expect(ctx.client.get).toHaveBeenCalledWith("project", {
-			pathParams: { id: PROJECT_ID },
-		});
-		expect(result).toEqual({ id: PROJECT_ID, name: "Test" });
+		expectNoBackendCall(ctx);
+		expect(result).toMatchObject({ deprecated: true });
 	});
 });
 
@@ -123,11 +115,11 @@ describe("projects.create", () => {
 		});
 	});
 
-	test("calls POST /projects", async () => {
-		const ctx = mockContext({ postResult: { id: PROJECT_ID, name: "New" } });
+	test("is a deprecated no-op (no backend call)", async () => {
+		const ctx = mockContext();
 		const result = await projectsCreate.execute({ name: "New" }, ctx);
-		expect(ctx.client.post).toHaveBeenCalledWith("projects", { name: "New" });
-		expect(result).toEqual({ id: PROJECT_ID, name: "New" });
+		expectNoBackendCall(ctx);
+		expect(result).toMatchObject({ deprecated: true });
 	});
 });
 
@@ -141,26 +133,11 @@ describe("projects.update", () => {
 		expect(projectsUpdate.group).toBe("projects");
 	});
 
-	test("throws ValidationError when no fields provided", async () => {
+	test("is a deprecated no-op (no backend call, no validation error)", async () => {
 		const ctx = mockContext();
-		await expect(projectsUpdate.execute({ projectId: PROJECT_ID }, ctx)).rejects.toThrow(ValidationError);
-	});
-
-	test("calls PATCH /projects/{id} with fields", async () => {
-		const ctx = mockContext({ patchResult: { id: PROJECT_ID, name: "Updated" } });
-		const result = await projectsUpdate.execute({ projectId: PROJECT_ID, name: "Updated" }, ctx);
-		expect(ctx.client.patch).toHaveBeenCalledWith("project", { name: "Updated" }, { pathParams: { id: PROJECT_ID } });
-		expect(result).toEqual({ id: PROJECT_ID, name: "Updated" });
-	});
-
-	test("accepts description-only update", async () => {
-		const ctx = mockContext({ patchResult: {} });
-		await projectsUpdate.execute({ projectId: PROJECT_ID, description: "New desc" }, ctx);
-		expect(ctx.client.patch).toHaveBeenCalledWith(
-			"project",
-			{ description: "New desc" },
-			{ pathParams: { id: PROJECT_ID } },
-		);
+		const result = await projectsUpdate.execute({ projectId: PROJECT_ID }, ctx);
+		expectNoBackendCall(ctx);
+		expect(result).toMatchObject({ deprecated: true });
 	});
 });
 
@@ -178,17 +155,11 @@ describe("projects.archive", () => {
 		expect(projectsArchive.annotations?.destructiveHint).toBe(true);
 	});
 
-	test("calls DELETE /projects/{id} and returns archived result", async () => {
+	test("is a deprecated no-op (no backend call)", async () => {
 		const ctx = mockContext();
 		const result = await projectsArchive.execute({ projectId: PROJECT_ID }, ctx);
-		expect(ctx.client.del).toHaveBeenCalledWith("project", {
-			pathParams: { id: PROJECT_ID },
-		});
-		expect(result).toEqual({ archived: true, projectId: PROJECT_ID });
-	});
-
-	test("formatOutput compact returns projectId", () => {
-		expect(projectsArchive.formatOutput({ archived: true, projectId: PROJECT_ID }, "compact")).toBe(PROJECT_ID);
+		expectNoBackendCall(ctx);
+		expect(result).toMatchObject({ deprecated: true });
 	});
 });
 
@@ -206,14 +177,11 @@ describe("projects.members", () => {
 		expect(projectsMembers.annotations?.readOnlyHint).toBe(true);
 	});
 
-	test("calls GET /projects/{id}/members", async () => {
-		const members = [{ userId: USER_ID, role: "Admin" }];
-		const ctx = mockContext({ getResult: members });
+	test("is a deprecated no-op (no backend call)", async () => {
+		const ctx = mockContext();
 		const result = await projectsMembers.execute({ projectId: PROJECT_ID }, ctx);
-		expect(ctx.client.get).toHaveBeenCalledWith("project_members", {
-			pathParams: { id: PROJECT_ID },
-		});
-		expect(result).toEqual(members);
+		expectNoBackendCall(ctx);
+		expect(result).toMatchObject({ deprecated: true });
 	});
 });
 
@@ -235,15 +203,11 @@ describe("projects.addMember", () => {
 		expect(parsed.role).toBe("Member");
 	});
 
-	test("calls POST /projects/{id}/members", async () => {
-		const ctx = mockContext({ postResult: { userId: USER_ID, role: "Member" } });
+	test("is a deprecated no-op (no backend call)", async () => {
+		const ctx = mockContext();
 		const result = await projectsAddMember.execute({ projectId: PROJECT_ID, userId: USER_ID, role: "Member" }, ctx);
-		expect(ctx.client.post).toHaveBeenCalledWith(
-			"project_members",
-			{ userId: USER_ID, role: "Member" },
-			{ pathParams: { id: PROJECT_ID } },
-		);
-		expect(result).toEqual({ userId: USER_ID, role: "Member" });
+		expectNoBackendCall(ctx);
+		expect(result).toMatchObject({ deprecated: true });
 	});
 });
 
@@ -261,15 +225,11 @@ describe("projects.updateRole", () => {
 		expect(projectsUpdateRole.annotations?.idempotentHint).toBe(true);
 	});
 
-	test("calls PUT /projects/{id}/members/{uid}/role", async () => {
-		const ctx = mockContext({ putResult: { role: "Admin" } });
+	test("is a deprecated no-op (no backend call)", async () => {
+		const ctx = mockContext();
 		const result = await projectsUpdateRole.execute({ projectId: PROJECT_ID, userId: USER_ID, role: "Admin" }, ctx);
-		expect(ctx.client.put).toHaveBeenCalledWith(
-			"project_member_role",
-			{ role: "Admin" },
-			{ pathParams: { id: PROJECT_ID, uid: USER_ID } },
-		);
-		expect(result).toEqual({ role: "Admin" });
+		expectNoBackendCall(ctx);
+		expect(result).toMatchObject({ deprecated: true });
 	});
 });
 
@@ -287,17 +247,11 @@ describe("projects.removeMember", () => {
 		expect(projectsRemoveMember.annotations?.destructiveHint).toBe(true);
 	});
 
-	test("calls DELETE /projects/{id}/members/{uid} and returns removed result", async () => {
+	test("is a deprecated no-op (no backend call)", async () => {
 		const ctx = mockContext();
 		const result = await projectsRemoveMember.execute({ projectId: PROJECT_ID, userId: USER_ID }, ctx);
-		expect(ctx.client.del).toHaveBeenCalledWith("project_member", {
-			pathParams: { id: PROJECT_ID, uid: USER_ID },
-		});
-		expect(result).toEqual({ removed: true });
-	});
-
-	test("formatOutput compact returns boolean string", () => {
-		expect(projectsRemoveMember.formatOutput({ removed: true }, "compact")).toBe("true");
+		expectNoBackendCall(ctx);
+		expect(result).toMatchObject({ deprecated: true });
 	});
 });
 
@@ -315,18 +269,16 @@ describe("projects.leave", () => {
 		expect(projectsLeave.annotations?.destructiveHint).toBe(true);
 	});
 
-	test("calls POST /projects/{id}/leave", async () => {
-		const ctx = mockContext({ postResult: { left: true } });
+	test("is a deprecated no-op (no backend call)", async () => {
+		const ctx = mockContext();
 		const result = await projectsLeave.execute({ projectId: PROJECT_ID }, ctx);
-		expect(ctx.client.post).toHaveBeenCalledWith("project_leave", undefined, {
-			pathParams: { id: PROJECT_ID },
-		});
-		expect(result).toEqual({ left: true });
+		expectNoBackendCall(ctx);
+		expect(result).toMatchObject({ deprecated: true });
 	});
 });
 
 // ---------------------------------------------------------------------------
-// registerProjectCommands
+// registerProjectCommands — stays registered (parity + back-compat)
 // ---------------------------------------------------------------------------
 
 describe("registerProjectCommands", () => {
@@ -346,6 +298,13 @@ describe("registerProjectCommands", () => {
 		const commands = registerProjectCommands();
 		for (const cmd of commands) {
 			expect(cmd.name).toMatch(/^projects\./);
+		}
+	});
+
+	test("all commands are marked [DEPRECATED] in their description", () => {
+		const commands = registerProjectCommands();
+		for (const cmd of commands) {
+			expect(cmd.description).toContain("[DEPRECATED]");
 		}
 	});
 

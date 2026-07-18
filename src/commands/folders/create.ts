@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { ElnoraCommand } from "../../core/command.js";
 import type { OutputFormat } from "../../lib/output.js";
+import { projectsRemoved } from "../_shared/deprecated.js";
 
 const inputSchema = z.object({
 	name: z.string().min(1).describe("Folder name"),
@@ -9,7 +10,7 @@ const inputSchema = z.object({
 		.string()
 		.uuid()
 		.optional()
-		.describe("Legacy: create a project-scoped folder in this project instead of a Knowledge Base folder"),
+		.describe("[DEPRECATED] Legacy project-scoped folders were removed; this option is a no-op."),
 });
 
 type Input = z.infer<typeof inputSchema>;
@@ -17,18 +18,21 @@ type Input = z.infer<typeof inputSchema>;
 export const foldersCreate: ElnoraCommand<Input> = {
 	name: "folders.create",
 	group: "folders",
-	description: "Create a Knowledge Base folder (or a legacy project folder when project is set)",
+	description:
+		"Create a Knowledge Base folder. (The legacy project-scoped path via `project` is deprecated and no longer supported.)",
 	inputSchema,
 	outputSchema: z.any(),
 
 	async execute(input, ctx) {
-		// Both the KB (CreateFolderRequestDTO) and legacy (CreateFolderDTO) bodies use `parentFolderId`.
+		if (input.project) {
+			// Legacy project-scoped folders were removed (ELN-880/881). No-op instead of
+			// calling the retired /projects/{id}/folders route.
+			return projectsRemoved({
+				hint: "Project-scoped folders were removed. Omit --project to create a Knowledge Base folder.",
+			});
+		}
 		const body: Record<string, unknown> = { name: input.name };
 		if (input.parentId) body.parentFolderId = input.parentId;
-		if (input.project) {
-			// Legacy escape hatch: materialized-path, project-scoped folder.
-			return ctx.client.post("project_folders", body, { pathParams: { id: input.project } });
-		}
 		return ctx.client.post("folder_create", body);
 	},
 

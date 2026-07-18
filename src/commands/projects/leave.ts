@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { ElnoraCommand } from "../../core/command.js";
 import type { OutputFormat } from "../../lib/output.js";
+import { projectsRemoved } from "../_shared/deprecated.js";
 
 const inputSchema = z.object({
 	projectId: z.string().uuid().describe("Project ID to leave"),
@@ -11,15 +12,13 @@ type Input = z.infer<typeof inputSchema>;
 export const projectsLeave: ElnoraCommand<Input> = {
 	name: "projects.leave",
 	group: "projects",
-	description: "Leave a project",
+	description: "[DEPRECATED] Leave a project — projects were removed; this is a no-op.",
 	inputSchema,
 	outputSchema: z.any(),
 	annotations: { destructiveHint: true },
 
-	async execute(input, ctx) {
-		return ctx.client.post("project_leave", undefined, {
-			pathParams: { id: input.projectId },
-		});
+	async execute() {
+		return projectsRemoved();
 	},
 
 	formatOutput(output: unknown, format: OutputFormat): string {

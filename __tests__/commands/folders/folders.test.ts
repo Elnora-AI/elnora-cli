@@ -60,13 +60,11 @@ describe("folders.list", () => {
 		expect(() => foldersList.inputSchema.parse({ projectId: "bad" })).toThrow();
 	});
 
-	test("calls GET /projects/{id}/folders", async () => {
-		const ctx = mockContext({ getResult: [{ id: FOLDER_ID, name: "Data" }] });
+	test("is a deprecated no-op (projects removed; no backend call)", async () => {
+		const ctx = mockContext();
 		const result = await foldersList.execute({ projectId: PROJECT_ID }, ctx);
-		expect(ctx.client.get).toHaveBeenCalledWith("project_folders", {
-			pathParams: { id: PROJECT_ID },
-		});
-		expect(result).toEqual([{ id: FOLDER_ID, name: "Data" }]);
+		expect(ctx.client.get).not.toHaveBeenCalled();
+		expect(result).toMatchObject({ deprecated: true });
 	});
 });
 
@@ -98,14 +96,11 @@ describe("folders.create", () => {
 		expect(ctx.client.post).toHaveBeenCalledWith("folder_create", { name: "Sub", parentFolderId: PARENT_ID });
 	});
 
-	test("uses the legacy project endpoint when --project is set", async () => {
-		const ctx = mockContext({ postResult: { id: FOLDER_ID } });
-		await foldersCreate.execute({ name: "Leg", project: PROJECT_ID }, ctx);
-		expect(ctx.client.post).toHaveBeenCalledWith(
-			"project_folders",
-			{ name: "Leg" },
-			{ pathParams: { id: PROJECT_ID } },
-		);
+	test("no-ops the legacy --project path (projects removed; no backend call)", async () => {
+		const ctx = mockContext();
+		const result = await foldersCreate.execute({ name: "Leg", project: PROJECT_ID }, ctx);
+		expect(ctx.client.post).not.toHaveBeenCalled();
+		expect(result).toMatchObject({ deprecated: true });
 	});
 });
 

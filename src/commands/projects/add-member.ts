@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { ElnoraCommand } from "../../core/command.js";
 import type { OutputFormat } from "../../lib/output.js";
+import { projectsRemoved } from "../_shared/deprecated.js";
 
 const inputSchema = z.object({
 	projectId: z.string().uuid().describe("Project ID"),
@@ -13,16 +14,12 @@ type Input = z.infer<typeof inputSchema>;
 export const projectsAddMember: ElnoraCommand<Input> = {
 	name: "projects.addMember",
 	group: "projects",
-	description: "Add a member to a project",
+	description: "[DEPRECATED] Add a member to a project — projects were removed; this is a no-op.",
 	inputSchema,
 	outputSchema: z.any(),
 
-	async execute(input, ctx) {
-		return ctx.client.post(
-			"project_members",
-			{ userId: input.userId, role: input.role },
-			{ pathParams: { id: input.projectId } },
-		);
+	async execute() {
+		return projectsRemoved();
 	},
 
 	formatOutput(output: unknown, format: OutputFormat): string {

@@ -56,11 +56,15 @@ async function checkApiReachable(): Promise<CheckResult> {
 async function checkAuthenticated(): Promise<CheckResult> {
 	const key = resolveApiKey();
 	const client = new ElnoraApiClient(key);
-	const result = await client.get<{ items?: unknown[]; totalCount?: number }>("projects", {
-		queryParams: { page: 1, pageSize: 1 },
-	});
-	const count = result?.totalCount ?? result?.items?.length ?? 0;
-	return { status: "pass", msg: `Authenticated         profile: default (${count} projects accessible)` };
+	// Auth probe: GET /organizations (every authenticated user belongs to >=1 org).
+	// Replaces the retired GET /projects shim used by older CLI versions.
+	const orgs = await client.get<{ items?: unknown[]; totalCount?: number } | unknown[]>("organizations");
+	const list = Array.isArray(orgs) ? orgs : (orgs.items ?? []);
+	const count = Array.isArray(orgs) ? orgs.length : (orgs.totalCount ?? list.length);
+	return {
+		status: "pass",
+		msg: `Authenticated         profile: default (${count} organization${count === 1 ? "" : "s"} accessible)`,
+	};
 }
 
 async function checkVersionCurrent(): Promise<CheckResult> {

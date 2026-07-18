@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { ElnoraCommand } from "../../core/command.js";
 import type { OutputFormat } from "../../lib/output.js";
+import { projectsRemoved } from "../_shared/deprecated.js";
 import { paginationInput } from "../_shared/pagination.js";
 
 const inputSchema = z.object({
@@ -12,15 +13,15 @@ type Input = z.infer<typeof inputSchema>;
 export const projectsList: ElnoraCommand<Input> = {
 	name: "projects.list",
 	group: "projects",
-	description: "List all projects accessible to the current user",
+	description:
+		"[DEPRECATED] List all projects accessible to the current user — projects were removed; this is a no-op.",
 	inputSchema,
 	outputSchema: z.any(),
 	annotations: { readOnlyHint: true },
 
-	async execute(input, ctx) {
-		return ctx.client.get("projects", {
-			queryParams: { page: input.page, pageSize: input.pageSize },
-		});
+	async execute(input) {
+		// No-op: the /projects shim is retired. Return an empty page for back-compat.
+		return projectsRemoved({ items: [], totalCount: 0, page: input.page, pageSize: input.pageSize });
 	},
 
 	formatOutput(output: unknown, format: OutputFormat): string {

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { ElnoraCommand } from "../../core/command.js";
-import { ValidationError } from "../../lib/errors.js";
 import type { OutputFormat } from "../../lib/output.js";
+import { projectsRemoved } from "../_shared/deprecated.js";
 
 const inputSchema = z.object({
 	projectId: z.string().uuid().describe("Project ID"),
@@ -15,22 +15,13 @@ type Input = z.infer<typeof inputSchema>;
 export const projectsUpdate: ElnoraCommand<Input> = {
 	name: "projects.update",
 	group: "projects",
-	description: "Update an existing project",
+	description: "[DEPRECATED] Update an existing project — projects were removed; this is a no-op.",
 	inputSchema,
 	outputSchema: z.any(),
 	annotations: { idempotentHint: true },
 
-	async execute(input, ctx) {
-		const { projectId, ...fields } = input;
-		if (!fields.name && !fields.description && !fields.icon) {
-			throw new ValidationError(
-				"At least one field (name, description, icon) must be provided.",
-				"Provide at least one field to update.",
-			);
-		}
-		return ctx.client.patch("project", fields, {
-			pathParams: { id: projectId },
-		});
+	async execute() {
+		return projectsRemoved();
 	},
 
 	formatOutput(output: unknown, format: OutputFormat): string {

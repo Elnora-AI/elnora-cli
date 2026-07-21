@@ -12,7 +12,7 @@
  * Default --out is ../elnora-docs/content/docs/cli (sibling repo layout).
  */
 
-import { mkdirSync, writeFileSync, readdirSync, rmSync } from "node:fs";
+import { mkdirSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { z } from "zod";
 import { buildRegistry } from "../src/core/build-registry.js";
@@ -50,7 +50,11 @@ function inlineText(s: string | undefined): string {
 
 function frontmatterValue(s: string): string {
 	// double-quoted YAML scalar
-	return `"${(s ?? "").replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\r?\n+/g, " ").trim()}"`;
+	return `"${(s ?? "")
+		.replace(/\\/g, "\\\\")
+		.replace(/"/g, '\\"')
+		.replace(/\r?\n+/g, " ")
+		.trim()}"`;
 }
 
 // ---------------------------------------------------------------------------
@@ -163,9 +167,7 @@ function renderCommand(cmd: ElnoraCommand): string {
 		out += "| Parameter | Type | Required | Description |\n";
 		out += "| --- | --- | --- | --- |\n";
 		for (const r of rows) {
-			out += `| \`${r.name}\` | ${r.type} | ${r.required ? "yes" : "no"} | ${inlineText(
-				r.description,
-			)} |\n`;
+			out += `| \`${r.name}\` | ${r.type} | ${r.required ? "yes" : "no"} | ${inlineText(r.description)} |\n`;
 		}
 		out += "\n";
 	}
@@ -211,13 +213,14 @@ for (const f of readdirSync(outDir)) {
 const groupTitle = (g: string) => g.replace(/(^|-)([a-z])/g, (_, p, c) => (p ? " " : "") + c.toUpperCase());
 
 for (const group of allGroups) {
-	const cmds = registry.byGroup(group).filter(isPublic).sort((a, b) => a.name.localeCompare(b.name));
+	const cmds = registry
+		.byGroup(group)
+		.filter(isPublic)
+		.sort((a, b) => a.name.localeCompare(b.name));
 	if (cmds.length === 0) continue; // group is entirely internal — no public page
 	renderedGroups.push(group);
 	const blurb = GROUP_BLURB[group] ?? `${cmds.length} \`${group}\` commands.`;
-	let body = `---\ntitle: ${frontmatterValue(groupTitle(group))}\ndescription: ${frontmatterValue(
-		blurb,
-	)}\n---\n\n`;
+	let body = `---\ntitle: ${frontmatterValue(groupTitle(group))}\ndescription: ${frontmatterValue(blurb)}\n---\n\n`;
 	body += `${blurb}\n\n`;
 	for (const cmd of cmds) body += renderCommand(cmd);
 	writeFileSync(join(outDir, `${group}.mdx`), body, "utf-8");
@@ -274,7 +277,10 @@ These apply to every command:
 ## Command groups
 
 ${renderedGroups
-	.map((g) => `- [\`${g}\`](/docs/cli/${g}) — ${GROUP_BLURB[g] ?? `${registry.byGroup(g).filter(isPublic).length} commands`}`)
+	.map(
+		(g) =>
+			`- [\`${g}\`](/docs/cli/${g}) — ${GROUP_BLURB[g] ?? `${registry.byGroup(g).filter(isPublic).length} commands`}`,
+	)
 	.join("\n")}
 
 > Most of these operations are also available over the hosted MCP server. See **MCP & integrations** for the tool catalog and connection steps.

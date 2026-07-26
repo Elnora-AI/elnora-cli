@@ -5,11 +5,11 @@ settings:
   excludeLinksFromLockfile: false
 
 overrides:
-  '@hono/node-server': '>=1.19.13'
+  '@hono/node-server': '>=2.0.10'
   body-parser: '>=2.3.0'
   esbuild: '>=0.28.1'
-  fast-uri: '>=3.1.2'
-  hono: '>=4.12.25'
+  fast-uri: '>=3.1.4'
+  hono: '>=4.12.27'
   ip-address: '>=10.1.1'
   postcss: '>=8.5.10'
   qs: '>=6.15.2'
@@ -333,11 +333,11 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@hono/node-server@2.0.1':
-    resolution: {integrity: sha512-jI9yMDyFpqBeSighf/zlXnQG/nl9AyBc6aAgy4XtxJMyt/CNyJpvPfzDD+bCc2zAOmhhqtF6TnmIaY+xV4mIrw==}
+  '@hono/node-server@2.0.11':
+    resolution: {integrity: sha512-bjD221KPLoJTWUwso1J6fGKiTXEUFedG/s0visavY4zakFPkeGURMRNly+FhBHs7T8Dz4qHaZIMX9ZoJHSJtKA==}
     engines: {node: '>=20'}
     peerDependencies:
-      hono: '>=4.12.25'
+      hono: '>=4.12.27'
 
   '@isaacs/fs-minipass@4.0.1':
     resolution: {integrity: sha512-wgm9Ehl2jpeqP3zw/7mo3kRHFp5MEDhqAdwy1fTGkHAwnkGOVsgpvQhL8B5n1qlb01jV3n/bI0ZfZp5lWA1k4w==}
@@ -841,8 +841,8 @@ packages:
   fast-fifo@1.3.2:
     resolution: {integrity: sha512-/d9sfos4yxzpwkDkuN7k2SqFKtYNmCTzgfEpz82x34IM9/zc8KGxQoXg1liNC/izpRM/MBdt44Nmx41ZWqk+FQ==}
 
-  fast-uri@3.1.2:
-    resolution: {integrity: sha512-rVjf7ArG3LTk+FS6Yw81V1DLuZl1bRbNrev6Tmd/9RaroeeRRJhAt7jg/6YFxbvAQXUCavSoZhPPj6oOx+5KjQ==}
+  fast-uri@4.1.1:
+    resolution: {integrity: sha512-YPOs1zD5TG2+EZt+r88LwF6mclA7TPkpwMP7ZN3TO2HiHS8TXvq7QA/17iJsV9dubcLo/f8eEYqMBruyQV21hQ==}
 
   fdir@6.5.0:
     resolution: {integrity: sha512-tIbYtZbucOs0BRGqPJkshJUYdL+SDH7dVM8gjy+ERp3WAUjLEFJE+02kanyHtwjWOnwrKYBiwAmM0p4kLJAnXg==}
@@ -910,8 +910,8 @@ packages:
     resolution: {integrity: sha512-0hJU9SCPvmMzIBdZFqNPXWa6dqh7WdH0cII9y+CyS8rG3nL48Bclra9HmKhVVUHyPWNH5Y7xDwAB7bfgSjkUMQ==}
     engines: {node: '>= 0.4'}
 
-  hono@4.12.25:
-    resolution: {integrity: sha512-2NFaIyNVgJmBs/ecmtGzlmluTFs5cHEWGTdu0t1HBwYzoGXOL5nUQBRMXsXWla5i4KkG//QMzVP88m1+I3fdAQ==}
+  hono@4.12.31:
+    resolution: {integrity: sha512-zJIHFrl6bq3RDd2YusFNCDlM8qUprxKswyi/OPzPyzKDdyBXDqWx8bZlZ7R+saTdSTatUmb3O7K4SspGPaEOQg==}
     engines: {node: '>=16.9.0'}
 
   http-errors@2.0.1:
@@ -1742,9 +1742,9 @@ snapshots:
   '@esbuild/win32-x64@0.28.1':
     optional: true
 
-  '@hono/node-server@2.0.1(hono@4.12.25)':
+  '@hono/node-server@2.0.11(hono@4.12.31)':
     dependencies:
-      hono: 4.12.25
+      hono: 4.12.31
 
   '@isaacs/fs-minipass@4.0.1':
     dependencies:
@@ -1766,7 +1766,7 @@ snapshots:
 
   '@modelcontextprotocol/sdk@1.29.0(zod@4.4.3)':
     dependencies:
-      '@hono/node-server': 2.0.1(hono@4.12.25)
+      '@hono/node-server': 2.0.11(hono@4.12.31)
       ajv: 8.18.0
       ajv-formats: 3.0.1(ajv@8.18.0)
       content-type: 1.0.5
@@ -1776,7 +1776,7 @@ snapshots:
       eventsource-parser: 3.0.6
       express: 5.2.1
       express-rate-limit: 8.6.0(express@5.2.1)
-      hono: 4.12.25
+      hono: 4.12.31
       jose: 6.2.2
       json-schema-typed: 8.0.2
       pkce-challenge: 5.0.1
@@ -1998,7 +1998,7 @@ snapshots:
   ajv@8.18.0:
     dependencies:
       fast-deep-equal: 3.1.3
-      fast-uri: 3.1.2
+      fast-uri: 4.1.1
       json-schema-traverse: 1.0.0
       require-from-string: 2.0.2
 
@@ -2276,7 +2276,7 @@ snapshots:
 
   fast-fifo@1.3.2: {}
 
-  fast-uri@3.1.2: {}
+  fast-uri@4.1.1: {}
 
   fdir@6.5.0(picomatch@4.0.4):
     optionalDependencies:
@@ -2342,7 +2342,7 @@ snapshots:
     dependencies:
       function-bind: 1.1.2
 
-  hono@4.12.25: {}
+  hono@4.12.31: {}
 
   http-errors@2.0.1:
     dependencies:

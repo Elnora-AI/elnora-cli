@@ -70,11 +70,11 @@
 	},
 	"pnpm": {
 		"overrides": {
-			"@hono/node-server": ">=1.19.13",
+			"@hono/node-server": ">=2.0.10",
 			"body-parser": ">=2.3.0",
 			"esbuild": ">=0.28.1",
-			"fast-uri": ">=3.1.2",
-			"hono": ">=4.12.25",
+			"fast-uri": ">=3.1.4",
+			"hono": ">=4.12.27",
 			"ip-address": ">=10.1.1",
 			"postcss": ">=8.5.10",
 			"qs": ">=6.15.2",

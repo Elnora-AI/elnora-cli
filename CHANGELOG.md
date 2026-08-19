@@ -5,6 +5,13 @@ All notable changes to the Elnora CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.6.4](https://github.com/Elnora-AI/elnora-cli/compare/v2.6.3...v2.6.4) (2026-08-19)
+
+
+### Bug Fixes
+
+* **deps:** bump 2 dependencies ([#228](https://github.com/Elnora-AI/elnora-cli/issues/228)) ([c9eb65e](https://github.com/Elnora-AI/elnora-cli/commit/c9eb65e55656ad29770262da04c157260a5e35b7))
+
 ## [2.6.3](https://github.com/Elnora-AI/elnora-cli/compare/v2.6.2...v2.6.3) (2026-08-02)
 
 

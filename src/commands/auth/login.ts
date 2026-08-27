@@ -7,6 +7,7 @@ import { getApiKey, listProfileNames, saveProfile, validateProfileName } from ".
 import { promptSecret } from "../../lib/prompt.js";
 import { readStdin } from "../../lib/stdin.js";
 import { isTTY } from "../../lib/tty.js";
+import { probeOrganizationCount } from "../_shared/auth-probe.js";
 
 const inputSchema = z.object({
 	apiKey: z.string().optional().describe("Elnora API key (elnora_live_...)"),
@@ -82,11 +83,8 @@ export const authLogin: ElnoraCommand<Input> = {
 					process.stderr.write(`\n  Checking profile "${profileName}"...`);
 					try {
 						const client = new ElnoraApiClient(savedKey);
-						const result = await client.get<{ items?: unknown[]; totalCount?: number }>("projects", {
-							queryParams: { page: 1, pageSize: 1 },
-						});
-						const projectCount = result?.totalCount ?? result?.items?.length ?? 0;
-						process.stderr.write(` authenticated (${projectCount} project${projectCount !== 1 ? "s" : ""}).\n\n`);
+						const orgCount = await probeOrganizationCount(client);
+						process.stderr.write(` authenticated (${orgCount} organization${orgCount !== 1 ? "s" : ""}).\n\n`);
 						process.stderr.write("  To update your API key, run:\n");
 						process.stderr.write(
 							`    elnora auth login --api-key <new-key>${profileName !== "default" ? ` --profile ${profileName}` : ""}\n\n`,
@@ -142,20 +140,16 @@ export const authLogin: ElnoraCommand<Input> = {
 
 		try {
 			const tempClient = new ElnoraApiClient(key);
-			const result = await tempClient.get<{ items?: unknown[]; totalCount?: number }>("projects", {
-				queryParams: { page: 1, pageSize: 1 },
-			});
-
-			const projectCount = result?.totalCount ?? result?.items?.length ?? 0;
+			const orgCount = await probeOrganizationCount(tempClient);
 			const configPath = saveProfile(profileName, key);
 
 			if (isTTY()) {
-				process.stderr.write(` Done! ${projectCount} project${projectCount !== 1 ? "s" : ""} accessible.\n`);
+				process.stderr.write(` Done! ${orgCount} organization${orgCount !== 1 ? "s" : ""} accessible.\n`);
 				process.stderr.write(`  Saved to profile "${profileName}" at ${configPath}\n\n`);
 				// Guidance goes to stderr so stdout stays clean, machine-readable data.
 				process.stderr.write("  Next steps:\n");
-				process.stderr.write("    elnora projects list                         See your projects\n");
-				process.stderr.write("    elnora tasks create --project <ID> --stream  Start a conversation\n");
+				process.stderr.write("    elnora tasks list                            See your tasks\n");
+				process.stderr.write('    elnora tasks create --message "..." --stream  Start a conversation\n');
 				process.stderr.write("    elnora doctor                                Verify your setup\n\n");
 			}
 

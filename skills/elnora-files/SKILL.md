@@ -47,12 +47,13 @@ CLI="elnora"
 ### List Files
 
 ```bash
-$CLI --compact files list --project <PROJECT_ID>
-$CLI --compact files list --project <PROJECT_ID> --page 2 --page-size 50
-$CLI --compact --fields "id,name" files list --project <PROJECT_ID>
+$CLI --compact files list
+$CLI --compact --fields "id,name" files list
 ```
 
-`--project` is required.
+Lists every file in your workspace (flat, capped at 200; takes no pagination).
+
+`--project` is deprecated — projects were removed from the platform and the option is a no-op that returns a deprecation notice instead of files.
 
 ### Get File Metadata
 

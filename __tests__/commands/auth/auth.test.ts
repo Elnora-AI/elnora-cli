@@ -203,25 +203,30 @@ describe("auth.status", () => {
 		expect(authStatus.annotations?.readOnlyHint).toBe(true);
 	});
 
-	test("calls GET /projects and returns status", async () => {
+	test("probes GET /organizations and returns status", async () => {
 		const ctx = mockContext({ getResult: { items: [{}, {}], totalCount: 5 } });
 		const result = await authStatus.execute({}, ctx);
-		expect(ctx.client.get).toHaveBeenCalledWith("projects", {
-			queryParams: { page: 1, pageSize: 1 },
-		});
-		expect(result).toEqual({ profile: "default", authenticated: true, projectCount: 5 });
+		// /projects was retired (ELN-880/881); organizations is the live auth probe.
+		expect(ctx.client.get).toHaveBeenCalledWith("organizations");
+		expect(result).toEqual({ profile: "default", authenticated: true, organizationCount: 5 });
+	});
+
+	test("counts a bare array response (the shape the API actually returns)", async () => {
+		const ctx = mockContext({ getResult: [{}, {}, {}] });
+		const result = await authStatus.execute({}, ctx);
+		expect(result).toEqual({ profile: "default", authenticated: true, organizationCount: 3 });
 	});
 
 	test("falls back to items.length when totalCount missing", async () => {
 		const ctx = mockContext({ getResult: { items: [{}, {}, {}] } });
 		const result = await authStatus.execute({}, ctx);
-		expect(result).toEqual({ profile: "default", authenticated: true, projectCount: 3 });
+		expect(result).toEqual({ profile: "default", authenticated: true, organizationCount: 3 });
 	});
 
 	test("returns 0 when no count info available", async () => {
 		const ctx = mockContext({ getResult: {} });
 		const result = await authStatus.execute({}, ctx);
-		expect(result).toEqual({ profile: "default", authenticated: true, projectCount: 0 });
+		expect(result).toEqual({ profile: "default", authenticated: true, organizationCount: 0 });
 	});
 
 	test("formatOutput compact returns authenticated boolean", () => {

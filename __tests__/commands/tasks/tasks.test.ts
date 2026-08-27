@@ -62,14 +62,12 @@ describe("tasks.list", () => {
 		expect(result).toEqual({ items: [], total: 0 });
 	});
 
-	test("calls GET /projects/{id}/tasks when project provided", async () => {
+	test("returns the deprecation no-op when project provided (ELN-880/881)", async () => {
 		const ctx = mockContext({ getResult: { items: [] } });
 		const result = await tasksList.execute({ project: PROJECT_ID, page: 1, pageSize: 25 }, ctx);
-		expect(ctx.client.get).toHaveBeenCalledWith("project_tasks", {
-			pathParams: { id: PROJECT_ID },
-			queryParams: { page: 1, pageSize: 25 },
-		});
-		expect(result).toEqual({ items: [] });
+		// The /projects/{id}/tasks route was retired and now 404s — never call it.
+		expect(ctx.client.get).not.toHaveBeenCalled();
+		expect(result).toMatchObject({ deprecated: true });
 	});
 
 	test("uses default pagination values", () => {

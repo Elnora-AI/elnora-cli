@@ -92,9 +92,10 @@ $CLI --compact --fields "id,name" projects list
 $CLI --compact tasks list
 $CLI --compact tasks list --status archived     # only archived tasks
 $CLI --compact tasks list --status all
-$CLI --compact tasks list --project <PROJECT_ID>
-$CLI --compact tasks list --project <PROJECT_ID> --page 2 --page-size 50
+$CLI --compact tasks list --page 2 --page-size 50
 ```
+
+`--project` is deprecated — projects were removed from the platform and the option is a no-op that returns a deprecation notice instead of tasks.
 
 `--status` is `active` (default — hides archived), `archived`, or `all`. Pagination: `--page` (default 1), `--page-size` (default 25, max 100).
 

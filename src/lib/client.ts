@@ -221,7 +221,13 @@ export class ElnoraApiClient {
 				}
 
 				if (response.status === 401) {
-					throw new AuthError(errorMessage.slice(0, 200) || "Authentication failed");
+					// The API answers an unrouted method with 401, not 405 — so a bad verb
+					// looks exactly like a bad key. Say so when the verb is the likely cause.
+					const suggestion =
+						method !== "GET"
+							? `Check your API key from platform.elnora.ai > Settings > API Keys. If that key works for other commands, the API may not route ${method} on this path — it answers an unsupported method with 401, not 405.`
+							: undefined;
+					throw new AuthError(errorMessage.slice(0, 200) || "Authentication failed", { suggestion });
 				}
 				if (response.status === 403) {
 					throw new ElnoraError(errorMessage.slice(0, 200) || "Access denied", {

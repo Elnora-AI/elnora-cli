@@ -294,10 +294,10 @@ describe("files.update", () => {
 		await expect(filesUpdate.execute({ fileId: FILE_ID }, ctx)).rejects.toThrow(ValidationError);
 	});
 
-	test("calls PATCH /files/{id} with name", async () => {
-		const ctx = mockContext({ patchResult: { id: FILE_ID, name: "renamed.txt" } });
+	test("calls PUT /files/{id} with name", async () => {
+		const ctx = mockContext({ putResult: { id: FILE_ID, name: "renamed.txt" } });
 		const result = await filesUpdate.execute({ fileId: FILE_ID, name: "renamed.txt" }, ctx);
-		expect(ctx.client.patch).toHaveBeenCalledWith("file", { name: "renamed.txt" }, { pathParams: { id: FILE_ID } });
+		expect(ctx.client.put).toHaveBeenCalledWith("file", { name: "renamed.txt" }, { pathParams: { id: FILE_ID } });
 		expect(result).toEqual({ id: FILE_ID, name: "renamed.txt" });
 	});
 });

@@ -27,7 +27,7 @@ export const tasksUpdate: ElnoraCommand<Input> = {
 				"Provide at least one field to update.",
 			);
 		}
-		return ctx.client.patch("task", fields, {
+		return ctx.client.put("task", fields, {
 			pathParams: { id: taskId },
 		});
 	},

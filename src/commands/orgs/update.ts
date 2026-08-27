@@ -27,7 +27,7 @@ export const orgsUpdate: ElnoraCommand<Input> = {
 				"Provide at least one field to update.",
 			);
 		}
-		return ctx.client.patch("organization", fields, {
+		return ctx.client.put("organization", fields, {
 			pathParams: { id: orgId },
 		});
 	},

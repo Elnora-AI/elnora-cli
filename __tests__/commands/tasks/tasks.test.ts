@@ -341,23 +341,23 @@ describe("tasks.update", () => {
 		await expect(tasksUpdate.execute({ taskId: TASK_ID }, ctx)).rejects.toThrow(ValidationError);
 	});
 
-	test("calls PATCH /tasks/{id} with title", async () => {
-		const ctx = mockContext({ patchResult: { id: TASK_ID, title: "Updated" } });
+	test("calls PUT /tasks/{id} with title", async () => {
+		const ctx = mockContext({ putResult: { id: TASK_ID, title: "Updated" } });
 		const result = await tasksUpdate.execute({ taskId: TASK_ID, title: "Updated" }, ctx);
-		expect(ctx.client.patch).toHaveBeenCalledWith("task", { title: "Updated" }, { pathParams: { id: TASK_ID } });
+		expect(ctx.client.put).toHaveBeenCalledWith("task", { title: "Updated" }, { pathParams: { id: TASK_ID } });
 		expect(result).toEqual({ id: TASK_ID, title: "Updated" });
 	});
 
-	test("calls PATCH /tasks/{id} with status", async () => {
-		const ctx = mockContext({ patchResult: {} });
+	test("calls PUT /tasks/{id} with status", async () => {
+		const ctx = mockContext({ putResult: {} });
 		await tasksUpdate.execute({ taskId: TASK_ID, status: "completed" }, ctx);
-		expect(ctx.client.patch).toHaveBeenCalledWith("task", { status: "completed" }, { pathParams: { id: TASK_ID } });
+		expect(ctx.client.put).toHaveBeenCalledWith("task", { status: "completed" }, { pathParams: { id: TASK_ID } });
 	});
 
 	test("accepts both title and status", async () => {
-		const ctx = mockContext({ patchResult: {} });
+		const ctx = mockContext({ putResult: {} });
 		await tasksUpdate.execute({ taskId: TASK_ID, title: "New Title", status: "active" }, ctx);
-		expect(ctx.client.patch).toHaveBeenCalledWith(
+		expect(ctx.client.put).toHaveBeenCalledWith(
 			"task",
 			{ title: "New Title", status: "active" },
 			{ pathParams: { id: TASK_ID } },

@@ -226,10 +226,10 @@ describe("account.updateLegalDoc", () => {
 		await expect(accountUpdateLegalDoc.execute({ versionId: "v1" }, ctx)).rejects.toThrow(ValidationError);
 	});
 
-	test("calls PATCH legal_doc_version_id", async () => {
-		const ctx = mockContext({ patchResult: {} });
+	test("calls PUT legal_doc_version_id", async () => {
+		const ctx = mockContext({ putResult: {} });
 		await accountUpdateLegalDoc.execute({ versionId: "v1", content: "Updated" }, ctx);
-		expect(ctx.client.patch).toHaveBeenCalledWith(
+		expect(ctx.client.put).toHaveBeenCalledWith(
 			"legal_doc_version_id",
 			{ content: "Updated" },
 			{ pathParams: { id: "v1" } },

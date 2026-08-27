@@ -139,10 +139,10 @@ describe("orgs.update", () => {
 		await expect(orgsUpdate.execute({ orgId: ORG_ID }, ctx)).rejects.toThrow(ValidationError);
 	});
 
-	test("calls PATCH /organizations/{id} with fields", async () => {
-		const ctx = mockContext({ patchResult: { id: ORG_ID, name: "Updated" } });
+	test("calls PUT /organizations/{id} with fields", async () => {
+		const ctx = mockContext({ putResult: { id: ORG_ID, name: "Updated" } });
 		const result = await orgsUpdate.execute({ orgId: ORG_ID, name: "Updated" }, ctx);
-		expect(ctx.client.patch).toHaveBeenCalledWith("organization", { name: "Updated" }, { pathParams: { id: ORG_ID } });
+		expect(ctx.client.put).toHaveBeenCalledWith("organization", { name: "Updated" }, { pathParams: { id: ORG_ID } });
 		expect(result).toEqual({ id: ORG_ID, name: "Updated" });
 	});
 });

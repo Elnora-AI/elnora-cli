@@ -112,3 +112,45 @@ describe("Network error mapping", () => {
 		}
 	});
 });
+
+describe("401 mapping", () => {
+	afterEach(() => {
+		vi.restoreAllMocks();
+	});
+
+	const client = new ElnoraApiClient("elnora_live_test_key", { baseUrl: "https://api.example.test/api/v1" });
+
+	function respond401() {
+		globalThis.fetch = vi.fn(
+			async () =>
+				new Response(JSON.stringify({ errorCode: "UNAUTHORIZED", messages: ["Authentication required."] }), {
+					status: 401,
+				}),
+		) as typeof fetch;
+	}
+
+	test("a non-GET 401 mentions the unroutable method", async () => {
+		respond401();
+		try {
+			await client.patch("/tasks/x", { title: "t" });
+			throw new Error("expected AuthError");
+		} catch (e) {
+			const err = e as ElnoraError;
+			expect(err.code).toBe("AUTH_FAILED");
+			expect(err.suggestion).toContain("PATCH");
+			expect(err.suggestion).toContain("405");
+		}
+	});
+
+	test("a GET 401 keeps the plain API-key suggestion", async () => {
+		respond401();
+		try {
+			await client.get("/tasks/x");
+			throw new Error("expected AuthError");
+		} catch (e) {
+			const err = e as ElnoraError;
+			expect(err.code).toBe("AUTH_FAILED");
+			expect(err.suggestion).not.toContain("405");
+		}
+	});
+});

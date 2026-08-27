@@ -26,7 +26,7 @@ export const accountUpdateLegalDoc: ElnoraCommand<Input> = {
 		if (Object.keys(body).length === 0) {
 			throw new ValidationError("At least one of --content or --effectiveDate is required");
 		}
-		return ctx.client.patch("legal_doc_version_id", body, {
+		return ctx.client.put("legal_doc_version_id", body, {
 			pathParams: { id: input.versionId },
 		});
 	},

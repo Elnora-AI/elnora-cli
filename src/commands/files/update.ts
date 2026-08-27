@@ -30,7 +30,7 @@ export const filesUpdate: ElnoraCommand<Input> = {
 		const body: Record<string, unknown> = {};
 		if (fields.name) body.name = fields.name;
 		if (fields.folder) body.folderId = fields.folder;
-		return ctx.client.patch("file", body, {
+		return ctx.client.put("file", body, {
 			pathParams: { id: fileId },
 		});
 	},

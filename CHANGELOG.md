@@ -5,6 +5,15 @@ All notable changes to the Elnora CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.6.5](https://github.com/Elnora-AI/elnora-cli/compare/v2.6.4...v2.6.5) (2026-08-27)
+
+
+### Bug Fixes
+
+* **auth:** stop calling retired /projects routes from auth and list commands ([#232](https://github.com/Elnora-AI/elnora-cli/issues/232)) ([b8403f2](https://github.com/Elnora-AI/elnora-cli/commit/b8403f208b4b1bc01324f6cef9fe473d637ec3e2))
+* **cli:** send PUT, not PATCH, on the four update commands ([#233](https://github.com/Elnora-AI/elnora-cli/issues/233)) ([ec7ee08](https://github.com/Elnora-AI/elnora-cli/commit/ec7ee080f8d9a22ded750497df2ceaa2cdc1a150))
+* **deps:** bump 2 dependencies ([#230](https://github.com/Elnora-AI/elnora-cli/issues/230)) ([f1dcf5c](https://github.com/Elnora-AI/elnora-cli/commit/f1dcf5c8658b241604df512fe3f7e50d564756ad))
+
 ## [2.6.4](https://github.com/Elnora-AI/elnora-cli/compare/v2.6.3...v2.6.4) (2026-08-19)
 
 

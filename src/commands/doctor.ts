@@ -10,6 +10,7 @@ import { PROFILES_FILE, resolveApiKey } from "../lib/profiles.js";
 import { CLAUDE_DIR, CLAUDE_SETTINGS_FILE, MARKETPLACE_NAME, PLUGIN_ID } from "../lib/setup/common.js";
 import { isColorEnabled } from "../lib/tty.js";
 import { isNewerVersion } from "../lib/update-check.js";
+import { probeOrganizationCount } from "./_shared/auth-probe.js";
 
 type CheckStatus = "pass" | "fail" | "warn" | "skip";
 interface CheckResult {
@@ -56,11 +57,7 @@ async function checkApiReachable(): Promise<CheckResult> {
 async function checkAuthenticated(): Promise<CheckResult> {
 	const key = resolveApiKey();
 	const client = new ElnoraApiClient(key);
-	// Auth probe: GET /organizations (every authenticated user belongs to >=1 org).
-	// Replaces the retired GET /projects shim used by older CLI versions.
-	const orgs = await client.get<{ items?: unknown[]; totalCount?: number } | unknown[]>("organizations");
-	const list = Array.isArray(orgs) ? orgs : (orgs.items ?? []);
-	const count = Array.isArray(orgs) ? orgs.length : (orgs.totalCount ?? list.length);
+	const count = await probeOrganizationCount(client);
 	return {
 		status: "pass",
 		msg: `Authenticated         profile: default (${count} organization${count === 1 ? "" : "s"} accessible)`,

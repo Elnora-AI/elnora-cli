@@ -79,14 +79,12 @@ describe("files.list", () => {
 		expect(parsed.pageSize).toBe(25);
 	});
 
-	test("calls GET /projects/{id}/files with pagination when --project is given (legacy)", async () => {
+	test("returns the deprecation no-op when --project is given (ELN-880/881)", async () => {
 		const ctx = mockContext({ getResult: { items: [], total: 0 } });
 		const result = await filesList.execute({ project: PROJECT_ID, page: 1, pageSize: 25 }, ctx);
-		expect(ctx.client.get).toHaveBeenCalledWith("project_files", {
-			pathParams: { id: PROJECT_ID },
-			queryParams: { page: 1, pageSize: 25 },
-		});
-		expect(result).toEqual({ items: [], total: 0 });
+		// The /projects/{id}/files route was retired and now 404s — never call it.
+		expect(ctx.client.get).not.toHaveBeenCalled();
+		expect(result).toMatchObject({ deprecated: true });
 	});
 
 	test("defaults to GET /folders/files (workspace) when no project is given (ELN-880)", async () => {

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { ElnoraCommand } from "../../core/command.js";
 import type { OutputFormat } from "../../lib/output.js";
+import { probeOrganizationCount } from "../_shared/auth-probe.js";
 
 const inputSchema = z.object({});
 
@@ -15,12 +16,8 @@ export const authStatus: ElnoraCommand<Input> = {
 	annotations: { readOnlyHint: true, exposeInMcp: false },
 
 	async execute(_input, ctx) {
-		const result = await ctx.client.get<unknown>("projects", {
-			queryParams: { page: 1, pageSize: 1 },
-		});
-		const projectCount =
-			(result as { totalCount?: number }).totalCount ?? (result as { items?: unknown[] }).items?.length ?? 0;
-		return { profile: ctx.profileName, authenticated: true, projectCount };
+		const organizationCount = await probeOrganizationCount(ctx.client);
+		return { profile: ctx.profileName, authenticated: true, organizationCount };
 	},
 
 	formatOutput(output: unknown, format: OutputFormat): string {

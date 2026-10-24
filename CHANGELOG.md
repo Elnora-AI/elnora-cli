@@ -5,6 +5,14 @@ All notable changes to the Elnora CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.6.10](https://github.com/Elnora-AI/elnora-cli/compare/v2.6.9...v2.6.10) (2026-10-24)
+
+
+### Bug Fixes
+
+* **deps:** bump body-parser, fast-uri, ip-address and undici via overrides ([#281](https://github.com/Elnora-AI/elnora-cli/issues/281)) ([57c0817](https://github.com/Elnora-AI/elnora-cli/commit/57c0817e6e0c27a60ebca4118d1469001640ca6b))
+* **deps:** bump vite from 8.0.16 to 8.1.6 ([#279](https://github.com/Elnora-AI/elnora-cli/issues/279)) ([ea31588](https://github.com/Elnora-AI/elnora-cli/commit/ea31588141221539425f1d31bf34a3a5711297f1))
+
 ## [2.6.9](https://github.com/Elnora-AI/elnora-cli/compare/v2.6.8...v2.6.9) (2026-10-19)
 
 

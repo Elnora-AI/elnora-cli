@@ -39,16 +39,16 @@ console.log(`Built dist/cli.cjs (${pkg.version})`);
 // Step 2: Optionally run pkg to create standalone binaries
 if (doPkg) {
 	const targets = [
-		"node20-linux-x64",
-		"node20-linux-arm64",
-		"node20-macos-x64",
-		"node20-macos-arm64",
-		"node20-win-x64",
+		"node22-linux-x64",
+		"node22-linux-arm64",
+		"node22-macos-x64",
+		"node22-macos-arm64",
+		"node22-win-x64",
 	];
 
 	console.log("Building standalone binaries...");
 	for (const target of targets) {
-		const platform = target.replace("node20-", "");
+		const platform = target.replace("node22-", "");
 		const output = `dist/elnora-${platform}`;
 		console.log(`  ${target} → ${output}`);
 		execSync(`npx pkg dist/cli.cjs --target ${target} --output ${output}`, {

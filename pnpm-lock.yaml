@@ -9,11 +9,11 @@ overrides:
   body-parser: '>=2.4.0'
   esbuild: '>=0.28.1'
   fast-uri: '>=4.2.3'
-  hono: '>=4.13.5'
+  hono: '>=4.13.11'
   undici: '>=8.12.2'
   ip-address: '>=10.7.4'
   nanoid: '>=3.3.18 <4'
-  postcss: '>=8.5.18'
+  postcss: '>=8.5.23'
   proxy-addr: '>=2.0.8'
   qs: '>=6.16.1'
   source-map-js: '>=1.2.2'
@@ -28,7 +28,7 @@ importers:
         specifier: ^14.0.0
         version: 14.0.0(commander@14.0.3)
       '@modelcontextprotocol/sdk':
-        specifier: ^1.31.0
+        specifier: ^1.32.1
         version: 1.32.1(zod@4.6.7)
       commander:
         specifier: ^14.0.3
@@ -43,7 +43,7 @@ importers:
         specifier: ^1.1.1
         version: 1.1.1
       zod:
-        specifier: ^4.6.5
+        specifier: ^4.6.7
         version: 4.6.7
     devDependencies:
       '@biomejs/biome':
@@ -56,8 +56,8 @@ importers:
         specifier: ^26.6.5
         version: 26.6.5
       '@yao-pkg/pkg':
-        specifier: ^6.23.0
-        version: 6.23.0
+        specifier: ^6.24.0
+        version: 6.24.0
       esbuild:
         specifier: '>=0.28.1'
         version: 0.28.2
@@ -341,7 +341,7 @@ packages:
     resolution: {integrity: sha512-TA//nWMqPhbfdfneACk6t5a9eqbS9lABEPyKn0/xZTah3H3U2XaVg85rJFl0/Fyit0I552YDHgXGVSf3GwqbUw==}
     engines: {node: '>=20'}
     peerDependencies:
-      hono: '>=4.13.5'
+      hono: '>=4.13.11'
 
   '@isaacs/fs-minipass@4.0.1':
     resolution: {integrity: sha512-wgm9Ehl2jpeqP3zw/7mo3kRHFp5MEDhqAdwy1fTGkHAwnkGOVsgpvQhL8B5n1qlb01jV3n/bI0ZfZp5lWA1k4w==}
@@ -538,12 +538,12 @@ packages:
   '@vitest/spy@5.0.5':
     resolution: {integrity: sha512-lwJRExuH417257Q5wv9QYugN9IMJkoxcrKrYxGPQkBzl7wlNpTUxD/5yNX4ESKVUIShKPgkGchYPFMWOOk0wzw==}
 
-  '@yao-pkg/pkg-fetch@3.6.6':
-    resolution: {integrity: sha512-Nu9ytHewcV6FuH4WvdpYZxz2XwiP2p30jlPBzbvwsS3OPYN7RRTyGrXhcmhS59O3AdXz/LW+4bozhV3alN+MEA==}
+  '@yao-pkg/pkg-fetch@3.6.7':
+    resolution: {integrity: sha512-uEeU5druVgHffruTAXzW6nf0wHfREWlCq5LBtQ4hCdLBDbwTteuym5NrxREur3EgNcqFRenEi6Rivwo723PkHg==}
     hasBin: true
 
-  '@yao-pkg/pkg@6.23.0':
-    resolution: {integrity: sha512-+d8iqRcmDxPpTE5fbSmsn1rShktIKvMcQGcFhwLdH15A4g2fBcRVLXppeQmu9fbF98bhYXjCOj6UTf3odXxWiA==}
+  '@yao-pkg/pkg@6.24.0':
+    resolution: {integrity: sha512-SMwFLic12noHLbqxhhQVClVX6YZlQtzwwez6dq7Xj64rXX6OFgZTTQbPgw4wgec5IoUN+6rCRKgyW/cnVPOwkA==}
     engines: {node: '>=22.0.0'}
     hasBin: true
 
@@ -1887,7 +1887,7 @@ snapshots:
 
   '@vitest/spy@5.0.5': {}
 
-  '@yao-pkg/pkg-fetch@3.6.6':
+  '@yao-pkg/pkg-fetch@3.6.7':
     dependencies:
       picocolors: 1.1.1
       progress: 2.0.3
@@ -1900,14 +1900,14 @@ snapshots:
       - bare-buffer
       - react-native-b4a
 
-  '@yao-pkg/pkg@6.23.0':
+  '@yao-pkg/pkg@6.24.0':
     dependencies:
       '@babel/generator': 7.29.1
       '@babel/parser': 7.29.2
       '@babel/traverse': 7.29.0
       '@babel/types': 7.29.0
       '@roberts_lando/vfs': 0.3.3
-      '@yao-pkg/pkg-fetch': 3.6.6
+      '@yao-pkg/pkg-fetch': 3.6.7
       esbuild: 0.28.2
       into-stream: 9.1.0
       multistream: 4.1.0

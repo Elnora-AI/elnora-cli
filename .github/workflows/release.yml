@@ -136,12 +136,28 @@ jobs:
         # The greedy form (##*-v) would silently break pre-release tags like v1.0.0-beta.1.
         run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
 
-      - name: Wait for npm propagation
-        shell: bash
-        run: sleep 30
-
+      # npm can take a few minutes to serve a newly published version, so retry while it
+      # reports the version missing, and fail on any other error. --prefer-online stops a
+      # retry from reusing npm's cached "not found".
       - name: Install CLI from npm
-        run: npm install -g @elnora-ai/cli@${{ steps.ver.outputs.VERSION }}
+        shell: bash
+        timeout-minutes: 15
+        env:
+          VERSION: ${{ steps.ver.outputs.VERSION }}
+        run: |
+          log="$RUNNER_TEMP/npm-install.log"
+          for attempt in {1..40}; do
+            if npm install -g --prefer-online "@elnora-ai/cli@$VERSION" > "$log" 2>&1; then
+              cat "$log"
+              exit 0
+            fi
+            cat "$log"
+            grep -qE 'ETARGET|E404' "$log" || exit 1
+            echo "Attempt $attempt: npm is not serving $VERSION yet; retrying in 15 s"
+            sleep 15
+          done
+          echo "::error::npm was still not serving @elnora-ai/cli@$VERSION after 10 minutes"
+          exit 1
 
       - name: Run smoke test (Unix)
         if: runner.os != 'Windows'

@@ -82,6 +82,11 @@ export const tasksSend: ElnoraCommand<Input> = {
 					renderer.renderEvent(event);
 				}
 				renderer.stopSpinner();
+				if (!renderer.hasAnswer) {
+					// The stream ended with no answer (an error, a timeout, a pause for the person): fetch the saved one.
+					process.stderr.write("Stream ended without an answer — falling back to polling.\n");
+					return pollForResponse(ctx.client, input.taskId, sequence);
+				}
 				return { sent: true, taskId: input.taskId, streamed: true };
 			} catch {
 				// Streaming failed — fall back to polling

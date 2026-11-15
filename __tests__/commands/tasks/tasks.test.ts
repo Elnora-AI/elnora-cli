@@ -12,6 +12,13 @@ import { tasksUnarchive } from "../../../src/commands/tasks/unarchive.js";
 import { tasksUpdate } from "../../../src/commands/tasks/update.js";
 import type { CommandContext } from "../../../src/core/command.js";
 import { ValidationError } from "../../../src/lib/errors.js";
+import { streamTask } from "../../../src/lib/stream.js";
+
+vi.mock("../../../src/lib/stream.js", () => ({ streamTask: vi.fn(), collectStreamResponse: vi.fn() }));
+vi.mock("../../../src/lib/profiles.js", async (orig) => ({
+	...(await orig<typeof import("../../../src/lib/profiles.js")>()),
+	resolveApiKey: () => "key",
+}));
 
 const TASK_ID = "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d";
 const PROJECT_ID = "d5c4b3a2-f6e5-4b7a-9d8c-1f0e2a3b4c5d";
@@ -276,6 +283,16 @@ describe("tasks.send", () => {
 		const ctx = mockContext({ postResult: { id: "msg-1", sequence: 1 } });
 		const result = await tasksSend.execute({ taskId: TASK_ID, message: "hello", wait: false, stream: false }, ctx);
 		expect(result).toEqual({ id: "msg-1", sequence: 1 });
+	});
+
+	test("--stream fetches the saved answer when the stream ends without one", async () => {
+		const answer = { role: "assistant", sequence: 2, content: "saved answer" };
+		const ctx = mockContext({ postResult: { id: "msg-1", sequence: 1 }, getResult: [answer] });
+		vi.mocked(streamTask).mockImplementation(async function* () {
+			yield { type: "error", content: "Stream connection failed: HTTP 409" };
+		});
+		const result = await tasksSend.execute({ taskId: TASK_ID, message: "hello", wait: false, stream: true }, ctx);
+		expect(result).toEqual(answer);
 	});
 });
 

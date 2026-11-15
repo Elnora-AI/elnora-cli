@@ -217,6 +217,15 @@ describe("collectStreamResponse", () => {
 		expect(result).toBe("Hello World");
 	});
 
+	test("returns the completed answer when no token streamed, and throws when none came", async () => {
+		const opts = { aiServerBaseUrl: "http://localhost:8000" };
+		globalThis.fetch = mockFetchSSE([sseEvent({ type: "completed", content: "Full answer" })]);
+		expect(await collectStreamResponse("task-1", "key", opts)).toBe("Full answer");
+
+		globalThis.fetch = mockFetchSSE([sseEvent({ type: "timeout" })]);
+		await expect(collectStreamResponse("task-1", "key", opts)).rejects.toThrow("without an answer");
+	});
+
 	test("throws on error event", async () => {
 		globalThis.fetch = mockFetchSSE([sseEvent({ type: "error", content: "Pipeline failed" })]);
 

@@ -152,9 +152,14 @@ export async function collectStreamResponse(taskId: string, apiKey: string, opti
 	for await (const event of streamTask(taskId, apiKey, options)) {
 		if (event.type === "token") {
 			content += event.content;
+		} else if (event.type === "completed" && event.content?.startsWith(content)) {
+			// The whole answer, also when no token streamed (a stopped or cut-short turn).
+			content = event.content;
 		} else if (event.type === "error") {
 			throw new Error(event.content);
 		}
 	}
+	// A timeout or a pause ended the stream with no answer: the caller fetches the saved one.
+	if (!content) throw new Error("Stream ended without an answer");
 	return content;
 }

@@ -54,6 +54,19 @@ describe("StreamRenderer", () => {
 		expect(stderrWrite).toHaveBeenCalled();
 	});
 
+	test("prints the part of the completed answer that no token streamed", () => {
+		const stopped = new StreamRenderer();
+		stopped.renderEvent({ type: "completed", content: "Full answer" });
+		expect(stdoutWrite).toHaveBeenCalledWith("Full answer");
+		expect(stopped.hasAnswer).toBe(true);
+
+		stdoutWrite.mockClear();
+		const cutShort = new StreamRenderer();
+		cutShort.renderEvent({ type: "token", content: "Part" });
+		cutShort.renderEvent({ type: "completed", content: "Part\n\nStopped." });
+		expect(stdoutWrite.mock.calls.map((c) => String(c[0])).join("")).toBe("Part\n\nStopped.\n");
+	});
+
 	test("writes newline on completed", () => {
 		const renderer = new StreamRenderer();
 		renderer.renderEvent({ type: "completed" });

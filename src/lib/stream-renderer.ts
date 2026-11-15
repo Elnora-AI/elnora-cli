@@ -18,10 +18,17 @@ export class StreamRenderer {
 	private currentLabel = "";
 	private useColor: boolean;
 	private quiet: boolean;
+	/** The answer text written to stdout so far. */
+	private answer = "";
 
 	constructor(opts?: { quiet?: boolean }) {
 		this.useColor = isColorEnabled();
 		this.quiet = opts?.quiet ?? false;
+	}
+
+	/** False when the stream ended before any answer reached stdout; the caller then fetches the saved one. */
+	get hasAnswer(): boolean {
+		return this.answer.length > 0;
 	}
 
 	renderEvent(event: StreamEvent): void {
@@ -45,12 +52,21 @@ export class StreamRenderer {
 			case "token":
 				this.stopSpinner();
 				process.stdout.write((event as { content: string }).content);
+				this.answer += (event as { content: string }).content;
 				break;
 
-			case "completed":
+			case "completed": {
 				this.stopSpinner();
+				// The completed event carries the whole answer. Print the part no token carried: all of it
+				// when none streamed (a stopped or cut-short turn), or a notice added after the tokens.
+				const full = (event as { content?: string }).content ?? "";
+				if (full.length > this.answer.length && full.startsWith(this.answer)) {
+					process.stdout.write(full.slice(this.answer.length));
+					this.answer = full;
+				}
 				process.stdout.write("\n");
 				break;
+			}
 
 			case "error":
 				this.stopSpinner();

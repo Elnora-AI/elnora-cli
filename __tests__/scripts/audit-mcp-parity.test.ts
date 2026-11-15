@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { buildCliToolList, diffToolSets, parseMcpServerSource } from "../../scripts/audit-mcp-parity.js";
+import {
+	buildCliToolList,
+	diffToolSets,
+	excludeRetired,
+	parseMcpServerSource,
+} from "../../scripts/audit-mcp-parity.js";
 
 describe("audit-mcp-parity", () => {
 	describe("buildCliToolList", () => {
@@ -74,6 +79,28 @@ describe("audit-mcp-parity", () => {
 			];
 			const diff = diffToolSets(cli, mcp);
 			expect(diff.paramMismatches).toEqual([]);
+		});
+	});
+
+	describe("excludeRetired", () => {
+		it("drops retired projects tools so parity is not enforced for them", () => {
+			const tools = [
+				{ name: "elnora_projects_create", description: "x", params: [] },
+				{ name: "elnora_files_upload", description: "y", params: ["path"] },
+			];
+			expect(excludeRetired(tools).map((t) => t.name)).toEqual(["elnora_files_upload"]);
+		});
+
+		it("lets the mcp-server drop projects tools without drift", () => {
+			// CLI still registers projects commands; MCP has already removed them.
+			const cli = excludeRetired([
+				{ name: "elnora_projects_create", description: "Create a project", params: ["name"] },
+				{ name: "elnora_files_upload", description: "Upload file", params: ["path"] },
+			]);
+			const mcp = excludeRetired([{ name: "elnora_files_upload", description: "Upload file", params: ["path"] }]);
+			const diff = diffToolSets(cli, mcp);
+			expect(diff.missingInMcp).toEqual([]);
+			expect(diff.extraInMcp).toEqual([]);
 		});
 	});
 

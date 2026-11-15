@@ -33,6 +33,30 @@ export interface Diff {
 
 const IGNORED_PARAMS = new Set(["compact", "fields"]);
 
+/**
+ * Tools intentionally retired from the MCP surface during the project-concept
+ * cleanup (the platform "project" concept was removed; ELN-880/881). Parity is
+ * not enforced for these names so the elnora-mcp-server removal can land before
+ * the matching CLI removal without reddening CLI `main`. Once both sides have
+ * dropped them this set is inert and can be deleted.
+ */
+export const RETIRED_TOOLS = new Set<string>([
+	"elnora_projects_list",
+	"elnora_projects_get",
+	"elnora_projects_create",
+	"elnora_projects_update",
+	"elnora_projects_archive",
+	"elnora_projects_members",
+	"elnora_projects_addMember",
+	"elnora_projects_updateRole",
+	"elnora_projects_removeMember",
+	"elnora_projects_leave",
+]);
+
+export function excludeRetired(tools: ToolInfo[]): ToolInfo[] {
+	return tools.filter((t) => !RETIRED_TOOLS.has(t.name));
+}
+
 export function buildCliToolList(): ToolInfo[] {
 	const registry = buildRegistry();
 	return registry
@@ -209,7 +233,7 @@ function parseArgs(argv: string[]): {
 
 async function main() {
 	const args = parseArgs(process.argv.slice(2));
-	const cli = buildCliToolList();
+	const cli = excludeRetired(buildCliToolList());
 	let mcp: ToolInfo[];
 	if (args.liveUrl) {
 		mcp = await fetchLiveMcpTools(args.liveUrl, args.headers);
@@ -217,6 +241,8 @@ async function main() {
 		const toolsDir = join(args.siblingPath, "src", "tools");
 		mcp = parseMcpServerSibling(toolsDir);
 	}
+
+	mcp = excludeRetired(mcp);
 
 	const diff = diffToolSets(cli, mcp);
 	const drift = diff.missingInMcp.length + diff.extraInMcp.length + diff.paramMismatches.length;
